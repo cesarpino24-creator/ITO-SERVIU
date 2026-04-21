@@ -132,6 +132,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="mod-item" onclick="goModulo('personal')"><div class="mod-left"><div class="mod-icon" style="background:#FBEAF0;">👷</div><div><div class="mod-name">Personal y organigrama</div><div class="mod-desc">Residente, autocontrol, subcontratos</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('garantias')"><div class="mod-left"><div class="mod-icon" style="background:#EAF3DE;">🔒</div><div><div class="mod-name">Garantías</div><div class="mod-desc">Boletas y pólizas con alertas de vencimiento</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('ensayos')"><div class="mod-left"><div class="mod-icon" style="background:#FAEEDA;">🧪</div><div><div class="mod-name">Ensayos P.6</div><div class="mod-desc">Plan de ensayos y registro de resultados</div></div></div><span class="chevron">›</span></div>
+    <div class="mod-item" onclick="goModulo('documentos')"><div class="mod-left"><div class="mod-icon" style="background:#F5F0FF;">🗂️</div><div><div class="mod-name">Gestión documental</div><div class="mod-desc">Actas, resoluciones, oficios, planos y más</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('informespdf')"><div class="mod-left"><div class="mod-icon" style="background:#F0EBF8;">📄</div><div><div class="mod-name">Exportar informe PDF</div><div class="mod-desc">Avance bimensual y estados de pago</div></div></div><span class="chevron">›</span></div>
   </div>
   <div style="padding:16px 16px 32px;">
@@ -355,6 +356,74 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- GESTIÓN DOCUMENTAL -->
+<div class="screen" id="s-documentos">
+  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Gestión documental</div><div style="width:60px;"></div></div>
+  <div class="tab-bar" id="doc-tabs">
+    <button class="tab-btn active" onclick="switchDocTab('actas')">Actas</button>
+    <button class="tab-btn" onclick="switchDocTab('resoluciones')">Resoluciones</button>
+    <button class="tab-btn" onclick="switchDocTab('oficios')">Oficios</button>
+    <button class="tab-btn" onclick="switchDocTab('contratos')">Contratos</button>
+    <button class="tab-btn" onclick="switchDocTab('planos')">Planos</button>
+    <button class="tab-btn" onclick="switchDocTab('eett')">EE.TT.</button>
+  </div>
+  <div id="doc-content"></div>
+  <button class="fab" onclick="showFormDocumento()">+</button>
+</div>
+
+<!-- FORM DOCUMENTO -->
+<div class="screen" id="s-documento-form">
+  <div class="topbar"><button class="back-btn" onclick="go('s-documentos')">Documentos</button><div style="font-size:15px;font-weight:500;" id="doc-form-title">Nuevo documento</div><div style="width:60px;"></div></div>
+  <div class="form-wrap" style="padding-top:16px;">
+    <input type="hidden" id="doc-idx" value="-1"/>
+    <input type="hidden" id="doc-cat" value=""/>
+    <div class="form-group">
+      <label class="form-label">Nombre / descripción</label>
+      <input class="form-input" id="doc-nombre" placeholder="Ej: Acta de inicio de obras N°1"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Fecha documento</label>
+        <input class="form-input" type="date" id="doc-fecha"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">N° documento</label>
+        <input class="form-input" id="doc-numero" placeholder="Ej: 1234/2024"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Emisor / origen</label>
+      <input class="form-input" id="doc-emisor" placeholder="Ej: SERVIU Metropolitano"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observaciones</label>
+      <input class="form-input" id="doc-obs" placeholder="Opcional"/>
+    </div>
+    <div class="form-group" id="doc-archivo-wrap">
+      <label class="form-label">Archivo adjunto (PDF o Excel)</label>
+      <div id="doc-archivo-actual" style="display:none;margin-bottom:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">📎</span>
+        <div style="flex:1;min-width:0;">
+          <div id="doc-archivo-nombre" style="font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+          <a id="doc-archivo-link" href="#" target="_blank" style="font-size:11px;color:var(--blue);">Abrir en Drive</a>
+        </div>
+      </div>
+      <label id="doc-upload-label" style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px 14px;cursor:pointer;">
+        <input type="file" id="doc-file-input" accept=".pdf,.xlsx,.xls,.doc,.docx" style="display:none;" onchange="handleDocUpload(event)"/>
+        <span style="font-size:20px;">☁️</span>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);">Subir a Google Drive</div>
+          <div style="font-size:11px;color:var(--text2);">PDF, Excel o Word</div>
+        </div>
+      </label>
+      <div id="doc-upload-progress" style="display:none;font-size:12px;color:var(--text2);margin-top:6px;text-align:center;">Subiendo...</div>
+    </div>
+    <button class="btn-primary" onclick="guardarDocumento()">Guardar documento</button>
+    <button class="btn-secondary" id="doc-btn-eliminar" onclick="eliminarDocumento()" style="color:var(--red);border-color:#F09595;display:none;">Eliminar documento</button>
+    <button class="btn-secondary" onclick="go('s-documentos')">Cancelar</button>
+  </div>
+</div>
+
 <div class="screen" id="s-nueva-obra">
   <div class="topbar"><button class="back-btn" onclick="go('s-obras')">Obras</button><div style="font-size:15px;font-weight:500;">Nueva obra</div><div style="width:60px;"></div></div>
   <div class="form-wrap" style="padding-top:16px;">
@@ -557,7 +626,304 @@ function goModulo(mod){
   else if(mod==='personal'){renderPersonal(o);go('s-personal');}
   else if(mod==='garantias'){renderGarantias();go('s-garantias');}
   else if(mod==='ensayos'){renderEnsayos();go('s-ensayos');}
+  else if(mod==='documentos'){renderDocumentos();go('s-documentos');}
   else if(mod==='informespdf'){initInformesPDF(o);go('s-informes-pdf');}
+}
+
+// ══ UTILIDADES DRIVE ═══════════════════════════════════════
+
+const DOC_CATS = ['actas','resoluciones','oficios','contratos','planos','eett'];
+const DOC_LABELS = {
+  actas:'Actas', resoluciones:'Resoluciones', oficios:'Oficios',
+  contratos:'Contratos', planos:'Planos', eett:'EE.TT.'
+};
+let docCatActiva = 'actas';
+let docUploadPendiente = null; // {fileId, nombre, link} esperando guardar
+
+async function subirArchivoADrive(file, carpeta){
+  if(!accessToken) throw new Error('Sin conexión Drive');
+  // 1. Obtener o crear carpeta ITO SERVIU / obra / categoria
+  const obraNombre = state.obras[state.activeObraIdx].nombre;
+  const folderId = await obtenerCarpetaDrive(`ITO SERVIU/${obraNombre}/${carpeta}`);
+  // 2. Subir archivo multipart
+  const meta = JSON.stringify({name: file.name, parents:[folderId]});
+  const form = new FormData();
+  form.append('metadata', new Blob([meta],{type:'application/json'}));
+  form.append('file', file);
+  const res = await apiFetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink',
+    {method:'POST', body:form}
+  );
+  if(!res.ok) throw new Error('Error subiendo archivo: '+res.status);
+  return await res.json(); // {id, name, webViewLink}
+}
+
+async function obtenerCarpetaDrive(ruta){
+  // Crea carpetas anidadas si no existen, retorna id de la última
+  const partes = ruta.split('/');
+  let parentId = 'root';
+  for(const parte of partes){
+    const q = `name='${parte}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
+    const r = await apiFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`);
+    const d = await r.json();
+    if(d.files && d.files.length > 0){
+      parentId = d.files[0].id;
+    } else {
+      const cr = await apiFetch('https://www.googleapis.com/drive/v3/files',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({name:parte, mimeType:'application/vnd.google-apps.folder', parents:[parentId]})
+      });
+      const cd = await cr.json();
+      parentId = cd.id;
+    }
+  }
+  return parentId;
+}
+
+// ══ GESTIÓN DOCUMENTAL ════════════════════════════════════
+
+function renderDocumentos(){
+  const o = state.obras[state.activeObraIdx];
+  if(!o.documentos) o.documentos = {};
+  DOC_CATS.forEach(c=>{ if(!o.documentos[c]) o.documentos[c]=[]; });
+  switchDocTab(docCatActiva);
+}
+
+function switchDocTab(cat){
+  docCatActiva = cat;
+  DOC_CATS.forEach((c,i)=>{
+    document.querySelectorAll('#doc-tabs .tab-btn')[i].classList.toggle('active', c===cat);
+  });
+  renderDocCat(cat);
+}
+
+function renderDocCat(cat){
+  const o = state.obras[state.activeObraIdx];
+  if(!o.documentos) o.documentos={};
+  if(!o.documentos[cat]) o.documentos[cat]=[];
+  const docs = o.documentos[cat];
+  const c = document.getElementById('doc-content');
+  if(!docs.length){
+    c.innerHTML=`<div class="empty-state">${DOC_LABELS[cat]} sin documentos.<br>Presiona + para agregar.</div>`;
+    return;
+  }
+  c.innerHTML = docs.map((d,i)=>`
+    <div class="obra-card" onclick="editarDocumento('${cat}',${i})">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div style="font-size:24px;flex-shrink:0;">${d.driveLink?'📎':'📄'}</div>
+        <div style="flex:1;min-width:0;">
+          <div class="obra-name" style="font-size:14px;">${d.nombre}</div>
+          <div class="obra-meta">N°${d.numero||'—'} · ${fmtDate(d.fecha)} · ${d.emisor||'—'}</div>
+          ${d.obs?`<div class="obra-meta" style="margin-top:2px;">${d.obs}</div>`:''}
+        </div>
+        ${d.driveLink?`<a href="${d.driveLink}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--blue);flex-shrink:0;padding:4px 8px;border:0.5px solid var(--border);border-radius:20px;">Abrir</a>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function showFormDocumento(cat){
+  const c = cat||docCatActiva;
+  docUploadPendiente = null;
+  document.getElementById('doc-idx').value = -1;
+  document.getElementById('doc-cat').value = c;
+  document.getElementById('doc-form-title').textContent = `Nuevo — ${DOC_LABELS[c]}`;
+  document.getElementById('doc-nombre').value = '';
+  document.getElementById('doc-fecha').value = today();
+  document.getElementById('doc-numero').value = '';
+  document.getElementById('doc-emisor').value = '';
+  document.getElementById('doc-obs').value = '';
+  document.getElementById('doc-btn-eliminar').style.display = 'none';
+  document.getElementById('doc-archivo-actual').style.display = 'none';
+  document.getElementById('doc-upload-progress').style.display = 'none';
+  go('s-documento-form');
+}
+
+function editarDocumento(cat, idx){
+  const o = state.obras[state.activeObraIdx];
+  const d = o.documentos[cat][idx];
+  docUploadPendiente = null;
+  document.getElementById('doc-idx').value = idx;
+  document.getElementById('doc-cat').value = cat;
+  document.getElementById('doc-form-title').textContent = `Editar — ${DOC_LABELS[cat]}`;
+  document.getElementById('doc-nombre').value = d.nombre||'';
+  document.getElementById('doc-fecha').value = d.fecha||'';
+  document.getElementById('doc-numero').value = d.numero||'';
+  document.getElementById('doc-emisor').value = d.emisor||'';
+  document.getElementById('doc-obs').value = d.obs||'';
+  document.getElementById('doc-btn-eliminar').style.display = 'block';
+  // Mostrar archivo actual si existe
+  const actualWrap = document.getElementById('doc-archivo-actual');
+  if(d.driveLink){
+    actualWrap.style.display = 'flex';
+    document.getElementById('doc-archivo-nombre').textContent = d.archivoNombre||'Archivo adjunto';
+    document.getElementById('doc-archivo-link').href = d.driveLink;
+  } else {
+    actualWrap.style.display = 'none';
+  }
+  go('s-documento-form');
+}
+
+async function handleDocUpload(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  if(!accessToken){ showToast('Conecta Drive primero'); return; }
+  const cat = document.getElementById('doc-cat').value;
+  const prog = document.getElementById('doc-upload-progress');
+  prog.style.display = 'block';
+  prog.textContent = `Subiendo "${file.name}" a Drive...`;
+  try{
+    const result = await subirArchivoADrive(file, DOC_LABELS[cat]);
+    docUploadPendiente = { driveId:result.id, archivoNombre:result.name, driveLink:result.webViewLink };
+    prog.style.display = 'none';
+    const actualWrap = document.getElementById('doc-archivo-actual');
+    actualWrap.style.display = 'flex';
+    document.getElementById('doc-archivo-nombre').textContent = result.name;
+    document.getElementById('doc-archivo-link').href = result.webViewLink;
+    showToast('Archivo subido a Drive ✓');
+  } catch(e){
+    prog.style.display = 'none';
+    showToast('Error subiendo archivo: '+e.message);
+  }
+}
+
+function guardarDocumento(){
+  const o = state.obras[state.activeObraIdx];
+  const cat = document.getElementById('doc-cat').value;
+  const idx = parseInt(document.getElementById('doc-idx').value);
+  if(!o.documentos) o.documentos={};
+  if(!o.documentos[cat]) o.documentos[cat]=[];
+  const nombre = document.getElementById('doc-nombre').value.trim();
+  if(!nombre){ showToast('Ingresa un nombre'); return; }
+  const base = idx>=0 ? {...o.documentos[cat][idx]} : {};
+  const doc = {
+    ...base,
+    nombre,
+    fecha: document.getElementById('doc-fecha').value,
+    numero: document.getElementById('doc-numero').value.trim(),
+    emisor: document.getElementById('doc-emisor').value.trim(),
+    obs: document.getElementById('doc-obs').value.trim(),
+  };
+  if(docUploadPendiente) Object.assign(doc, docUploadPendiente);
+  if(idx===-1) o.documentos[cat].push(doc);
+  else o.documentos[cat][idx] = doc;
+  saveAndSync();
+  go('s-documentos');
+  renderDocCat(cat);
+  showToast(idx===-1?'Documento guardado':'Documento actualizado');
+}
+
+function eliminarDocumento(){
+  const o = state.obras[state.activeObraIdx];
+  const cat = document.getElementById('doc-cat').value;
+  const idx = parseInt(document.getElementById('doc-idx').value);
+  if(!confirm('¿Eliminar este documento?')) return;
+  o.documentos[cat].splice(idx,1);
+  saveAndSync();
+  go('s-documentos');
+  renderDocCat(cat);
+  showToast('Documento eliminado');
+}
+
+// ══ ADJUNTOS EN FICHAS P ══════════════════════════════════
+
+function renderFichasP(o){
+  const fin=calcFin(o);
+  const fichas=[
+    {id:'P.1',nombre:'Control de fechas',rows:[['Inicio',fmtDate(o.inicio)],['Fin',fmtDate(fin)],['Plazo total',`${o.plazo} días`],['Transcurridos',o.inicio?diffDays(o.inicio,today())+'d':'—'],['Restantes',calcDR(o)+'d']]},
+    {id:'P.2',nombre:'Cronograma de plazos',rows:[['Entrega terreno',fmtDate(o.inicio)],['Plazo cartillas','5 días desde inicio'],['Plazo 1er EP','28 días desde inicio'],['Próximo EP',fmtDate(o.proximoEP)]]},
+    {id:'P.3',nombre:'Programa de trabajo',rows:[['Estado',o.eps.length?'Recibido':'Pendiente de contratista']]},
+    {id:'P.4',nombre:'Programación financiera',rows:[['Monto','$'+fmtM(o.monto||0)],['Anticipo',o.anticipo+'%'],['EPs emitidos',o.eps.length],['Próximo EP',fmtDate(o.proximoEP)]]},
+    {id:'P.5',nombre:'Lista de materiales',rows:[['Estado','Adjuntar en carpeta técnica']]},
+    {id:'P.6',nombre:'Plan de ensayos',rows:[['Avance obra',o.avance+'%'],['Estado',o.avance>30?'Ensayos hormigón requeridos':'Sin ensayos urgentes']]},
+    {id:'P.7',nombre:'Calendario de visitas ITO',rows:[['Última visita','—'],['Próxima visita','—']]},
+    {id:'P.8',nombre:'Control de calidad',rows:[['Estado',o.eps.length?'Verificar cartillas C.C.':'Solicitar antes 1er EP']]},
+    {id:'P.9',nombre:'Equipos y subcontratos',rows:[['Estado','Ver módulo Personal']]},
+  ];
+  if(!o.adjuntos) o.adjuntos={};
+  document.getElementById('fichas-p-list').innerHTML=fichas.map(f=>{
+    const adj = o.adjuntos[f.id]||[];
+    const adjHTML = adj.length>0
+      ? adj.map(a=>`<a href="${a.driveLink}" target="_blank" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--blue);padding:3px 0;">📎 ${a.nombre}</a>`).join('')
+      : '';
+    return `<div class="ficha-card">
+      <div class="ficha-header" onclick="openFichaDetalle('${f.id}','${f.nombre}')" style="cursor:pointer;">
+        <div><div class="ficha-id">${f.id}</div><div class="ficha-name">${f.nombre}</div></div>
+        <span class="chevron">›</span>
+      </div>
+      <div class="ficha-body">
+        ${f.rows.map(r=>`<div class="ficha-row"><span class="ficha-key">${r[0]}</span><span class="ficha-val">${r[1]}</span></div>`).join('')}
+        <div style="margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px;">
+          ${adjHTML}
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--blue);cursor:pointer;margin-top:${adj.length?'4px':'0'};">
+            <input type="file" accept=".pdf,.xlsx,.xls,.doc,.docx" style="display:none;" onchange="adjuntarArchivo(event,'${f.id}')"/>
+            + Adjuntar archivo
+          </label>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function adjuntarArchivo(event, fichaId){
+  const file = event.target.files[0];
+  if(!file) return;
+  const o = state.obras[state.activeObraIdx];
+  if(!o.adjuntos) o.adjuntos={};
+  if(!o.adjuntos[fichaId]) o.adjuntos[fichaId]=[];
+  if(!accessToken){ showToast('Conecta Drive para adjuntar'); return; }
+  showToast('Subiendo archivo...');
+  try{
+    const result = await subirArchivoADrive(file, `Fichas/${fichaId}`);
+    o.adjuntos[fichaId].push({ nombre:result.name, driveId:result.id, driveLink:result.webViewLink });
+    saveAndSync();
+    renderFichasP(o);
+    showToast(`"${result.name}" adjuntado en ${fichaId}`);
+  } catch(e){
+    showToast('Error: '+e.message);
+  }
+}
+
+// Igual para fichas M — adjuntos en estados de pago
+async function adjuntarArchivoEP(event, epNum){
+  const file = event.target.files[0];
+  if(!file) return;
+  const o = state.obras[state.activeObraIdx];
+  const ep = o.eps.find(e=>e.num===epNum);
+  if(!ep) return;
+  if(!ep.adjuntos) ep.adjuntos=[];
+  if(!accessToken){ showToast('Conecta Drive para adjuntar'); return; }
+  showToast('Subiendo archivo...');
+  try{
+    const result = await subirArchivoADrive(file, `Estados de Pago/EP-${epNum}`);
+    ep.adjuntos.push({ nombre:result.name, driveId:result.id, driveLink:result.webViewLink });
+    saveAndSync();
+    renderEP(o);
+    showToast(`"${result.name}" adjuntado en EP N°${epNum}`);
+  } catch(e){
+    showToast('Error: '+e.message);
+  }
+}
+
+// ══ ADJUNTOS EN GARANTÍAS ════════════════════════════════
+
+async function adjuntarArchivoGarantia(event, idx){
+  const file = event.target.files[0];
+  if(!file) return;
+  const o = state.obras[state.activeObraIdx];
+  if(!o.garantias[idx]) return;
+  if(!accessToken){ showToast('Conecta Drive para adjuntar'); return; }
+  showToast('Subiendo garantía a Drive...');
+  try{
+    const result = await subirArchivoADrive(file, 'Garantías');
+    o.garantias[idx].driveLink = result.webViewLink;
+    o.garantias[idx].archivoNombre = result.name;
+    o.garantias[idx].driveId = result.id;
+    saveAndSync();
+    renderGarantias();
+    showToast(`Garantía adjuntada ✓`);
+  } catch(e){
+    showToast('Error: '+e.message);
+  }
 }
 
 // ══ GARANTÍAS ══════════════════════════════════════════════
@@ -581,8 +947,8 @@ function renderGarantias(){
     else if(dias<0) badge='<span class="badge badge-danger">Vencida</span>';
     else if(dias<=45) badge=`<span class="badge badge-warn">Vence en ${dias}d</span>`;
     else badge=`<span class="badge badge-ok">Vigente ${dias}d</span>`;
-    return `<div class="obra-card" onclick="showFormGarantia(${i})">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+    return `<div class="obra-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;" onclick="showFormGarantia(${i})">
         <div>
           <div class="obra-name" style="font-size:14px;">${g.tipo}</div>
           <div class="obra-meta">${g.instrumento} · ${g.entidad||'—'} · N°${g.numero||'—'}</div>
@@ -591,6 +957,15 @@ function renderGarantias(){
         <div>${badge}</div>
       </div>
       ${g.obs?`<div style="font-size:11px;color:var(--text2);margin-top:6px;">${g.obs}</div>`:''}
+      <div style="margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px;display:flex;align-items:center;justify-content:space-between;">
+        ${g.driveLink
+          ? `<a href="${g.driveLink}" target="_blank" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:5px;">📎 ${g.archivoNombre||'Ver documento'}</a>`
+          : `<span style="font-size:11px;color:var(--text2);">Sin documento adjunto</span>`}
+        <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:4px 8px;border:0.5px solid var(--border);border-radius:20px;">
+          <input type="file" accept=".pdf,.xlsx,.xls,.jpg,.png" style="display:none;" onchange="adjuntarArchivoGarantia(event,${i})"/>
+          ${g.driveLink?'Reemplazar':'+ Adjuntar'}
+        </label>
+      </div>
     </div>`;
   }).join('');
 }
@@ -1183,22 +1558,6 @@ function generarCurvaSCanvas(o){
   return canvas.toDataURL('image/png');
 }
 
-function renderFichasP(o){
-  const fin=calcFin(o);
-  const fichas=[
-    {id:'P.1',nombre:'Control de fechas',rows:[['Inicio',fmtDate(o.inicio)],['Fin',fmtDate(fin)],['Plazo total',`${o.plazo} días`],['Transcurridos',o.inicio?diffDays(o.inicio,today())+'d':'—'],['Restantes',calcDR(o)+'d']]},
-    {id:'P.2',nombre:'Cronograma de plazos',rows:[['Entrega terreno',fmtDate(o.inicio)],['Plazo cartillas','5 días desde inicio'],['Plazo 1er EP','28 días desde inicio'],['Próximo EP',fmtDate(o.proximoEP)]]},
-    {id:'P.3',nombre:'Programa de trabajo',rows:[['Estado',o.eps.length?'Recibido':'Pendiente de contratista']]},
-    {id:'P.4',nombre:'Programación financiera',rows:[['Monto','$'+fmtM(o.monto||0)],['Anticipo',o.anticipo+'%'],['EPs emitidos',o.eps.length],['Próximo EP',fmtDate(o.proximoEP)]]},
-    {id:'P.5',nombre:'Lista de materiales',rows:[['Estado','Adjuntar en carpeta técnica']]},
-    {id:'P.6',nombre:'Plan de ensayos',rows:[['Avance obra',o.avance+'%'],['Estado',o.avance>30?'Ensayos hormigón requeridos':'Sin ensayos urgentes']]},
-    {id:'P.7',nombre:'Calendario de visitas ITO',rows:[['Última visita','—'],['Próxima visita','—']]},
-    {id:'P.8',nombre:'Control de calidad',rows:[['Estado',o.eps.length?'Verificar cartillas C.C.':'Solicitar antes 1er EP']]},
-    {id:'P.9',nombre:'Equipos y subcontratos',rows:[['Estado','Ver módulo Personal']]},
-  ];
-  document.getElementById('fichas-p-list').innerHTML=fichas.map(f=>`<div class="ficha-card" onclick="openFichaDetalle('${f.id}','${f.nombre}')"><div class="ficha-header"><div><div class="ficha-id">${f.id}</div><div class="ficha-name">${f.nombre}</div></div><span class="chevron">›</span></div><div class="ficha-body">${f.rows.map(r=>`<div class="ficha-row"><span class="ficha-key">${r[0]}</span><span class="ficha-val">${r[1]}</span></div>`).join('')}</div></div>`).join('');
-}
-
 function openFichaDetalle(id,nombre){
   document.getElementById('ficha-det-title').textContent=id;
   const o=state.obras[state.activeObraIdx];
@@ -1225,7 +1584,24 @@ function renderEP(o){
   const c=document.getElementById('m-ep');
   if(!o.eps.length){c.innerHTML=`<div class="empty-state">Sin estados de pago.<br><br><button class="btn-secondary" style="width:auto;padding:10px 20px;margin:0 auto;" onclick="addEP()">+ Registrar EP</button></div>`;return;}
   const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0),tp=o.eps.reduce((s,e)=>s+(e.pagado||0),0),tr=o.eps.reduce((s,e)=>s+(e.retencion||0),0);
-  c.innerHTML=`<div style="padding:12px 16px 0;"><div class="stats-row" style="margin-bottom:12px;"><div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="font-size:14px;">$${fmtM(tb)}</div></div><div class="stat-card"><div class="stat-label">Total pagado</div><div class="stat-value" style="font-size:14px;color:var(--green);">$${fmtM(tp)}</div></div><div class="stat-card"><div class="stat-label">Retenido</div><div class="stat-value" style="font-size:14px;color:var(--amber);">$${fmtM(tr)}</div></div><div class="stat-card"><div class="stat-label">% ejecutado</div><div class="stat-value" style="font-size:14px;">${o.monto?Math.round(tb/o.monto*100):0}%</div></div></div></div><div class="ep-wrap"><table class="ep-table"><thead><tr><th style="width:40px;">EP</th><th>Fecha</th><th>Bruto</th><th>Pagado</th><th>Estado</th></tr></thead><tbody>${o.eps.map(ep=>`<tr><td style="font-weight:500;">N°${ep.num}</td><td>${fmtDate(ep.fecha)}</td><td style="font-size:11px;">$${fmtM(ep.monto)}</td><td style="font-size:11px;color:var(--green);">$${fmtM(ep.pagado)}</td><td><span class="badge ${ep.estado==='pagado'?'badge-ok':ep.estado==='en_revision'?'badge-warn':'badge-danger'}">${ep.estado==='pagado'?'Pagado':ep.estado==='en_revision'?'En revisión':'Pendiente'}</span></td></tr>`).join('')}</tbody></table></div><div style="padding:12px 16px;"><button class="btn-secondary" onclick="addEP()">+ Registrar nuevo EP</button></div>`;
+  c.innerHTML=`<div style="padding:12px 16px 0;"><div class="stats-row" style="margin-bottom:12px;"><div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="font-size:14px;">$${fmtM(tb)}</div></div><div class="stat-card"><div class="stat-label">Total pagado</div><div class="stat-value" style="font-size:14px;color:var(--green);">$${fmtM(tp)}</div></div><div class="stat-card"><div class="stat-label">Retenido</div><div class="stat-value" style="font-size:14px;color:var(--amber);">$${fmtM(tr)}</div></div><div class="stat-card"><div class="stat-label">% ejecutado</div><div class="stat-value" style="font-size:14px;">${o.monto?Math.round(tb/o.monto*100):0}%</div></div></div></div>
+  <div class="ep-wrap"><table class="ep-table"><thead><tr><th style="width:40px;">EP</th><th>Fecha</th><th>Bruto</th><th>Pagado</th><th>Estado</th></tr></thead><tbody>${o.eps.map(ep=>`<tr>
+    <td style="font-weight:500;">N°${ep.num}</td>
+    <td>${fmtDate(ep.fecha)}</td>
+    <td style="font-size:11px;">$${fmtM(ep.monto)}</td>
+    <td style="font-size:11px;color:var(--green);">$${fmtM(ep.pagado)}</td>
+    <td><span class="badge ${ep.estado==='pagado'?'badge-ok':ep.estado==='en_revision'?'badge-warn':'badge-danger'}">${ep.estado==='pagado'?'Pagado':ep.estado==='en_revision'?'En revisión':'Pendiente'}</span></td>
+  </tr>
+  <tr><td colspan="5" style="padding:4px 10px 10px;border-bottom:0.5px solid var(--border);">
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+      ${(ep.adjuntos||[]).map(a=>`<a href="${a.driveLink}" target="_blank" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 ${a.nombre}</a>`).join('')}
+      <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:3px 8px;border:0.5px dashed var(--border2);border-radius:20px;">
+        <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="adjuntarArchivoEP(event,${ep.num})"/>
+        + Adjuntar EP
+      </label>
+    </div>
+  </td></tr>`).join('')}</tbody></table></div>
+  <div style="padding:12px 16px;"><button class="btn-secondary" onclick="addEP()">+ Registrar nuevo EP</button></div>`;
 }
 
 function addEP(){
