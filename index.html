@@ -130,6 +130,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="mod-item" onclick="goModulo('medicion')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">📊</div><div><div class="mod-name">Fichas M — Medición</div><div class="mod-desc">Estados de pago, avance por partida</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('comunicaciones')"><div class="mod-left"><div class="mod-icon" style="background:var(--amber-bg);">📝</div><div><div class="mod-name">Comunicaciones</div><div class="mod-desc">Libro inspección, informes, actas</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('personal')"><div class="mod-left"><div class="mod-icon" style="background:#FBEAF0;">👷</div><div><div class="mod-name">Personal y organigrama</div><div class="mod-desc">Residente, autocontrol, subcontratos</div></div></div><span class="chevron">›</span></div>
+    <div class="mod-item" onclick="goModulo('informespdf')"><div class="mod-left"><div class="mod-icon" style="background:#F0EBF8;">📄</div><div><div class="mod-name">Exportar informe PDF</div><div class="mod-desc">Avance bimensual y estados de pago</div></div></div><span class="chevron">›</span></div>
   </div>
 </div>
 
@@ -167,6 +168,69 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="screen" id="s-personal">
   <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Personal</div><div style="width:60px;"></div></div>
   <div id="personal-body"></div>
+</div>
+
+<div class="screen" id="s-informes-pdf">
+  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Exportar informe PDF</div><div style="width:60px;"></div></div>
+  <div style="padding:16px;">
+    <div class="section-title" style="padding:0 0 8px;">tipo de informe</div>
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:16px;">
+      <div id="tipo-avance" onclick="selectTipoInforme('avance')" style="border:2px solid var(--blue);border-radius:var(--rl);padding:14px 12px;cursor:pointer;text-align:center;">
+        <div style="font-size:20px;margin-bottom:4px;">📈</div>
+        <div style="font-size:13px;font-weight:500;color:var(--blue);">Informe de avance</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Bimensual SERVIU</div>
+      </div>
+      <div id="tipo-ep" onclick="selectTipoInforme('ep')" style="border:0.5px solid var(--border);border-radius:var(--rl);padding:14px 12px;cursor:pointer;text-align:center;">
+        <div style="font-size:20px;margin-bottom:4px;">💰</div>
+        <div style="font-size:13px;font-weight:500;color:var(--text);">Estado de pago</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">EP individual</div>
+      </div>
+    </div>
+
+    <div id="sel-ep-wrap" style="display:none;margin-bottom:14px;">
+      <label class="form-label">Seleccionar EP</label>
+      <select class="form-input" id="sel-ep-num"></select>
+    </div>
+
+    <div class="section-title" style="padding:0 0 8px;">contenido</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;">
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="inc-resumen" checked style="width:18px;height:18px;"> Resumen general de la obra
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="inc-partidas" checked style="width:18px;height:18px;"> Avance por partidas
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="inc-eps" checked style="width:18px;height:18px;"> Tabla estados de pago
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="inc-curva" checked style="width:18px;height:18px;"> Gráfico Curva S
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="inc-libro" checked style="width:18px;height:18px;"> Últimas entradas libro inspección
+      </label>
+    </div>
+
+    <div class="section-title" style="padding:0 0 8px;">fotografías de obra</div>
+    <div style="margin-bottom:16px;">
+      <label style="display:block;border:0.5px dashed var(--border2);border-radius:var(--rl);padding:16px;text-align:center;cursor:pointer;color:var(--text2);font-size:13px;">
+        <input type="file" id="fotos-input" multiple accept="image/*" style="display:none;" onchange="handleFotos(event)">
+        <div style="font-size:24px;margin-bottom:4px;">📷</div>
+        Toca para agregar fotos (máx. 4)
+      </label>
+      <div id="fotos-preview" style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;"></div>
+    </div>
+
+    <div class="section-title" style="padding:0 0 8px;">observaciones del ITO</div>
+    <div class="form-group">
+      <textarea class="form-input" id="obs-ito" rows="4" placeholder="Observaciones, instrucciones y comentarios para el informe..." style="resize:none;line-height:1.5;"></textarea>
+    </div>
+
+    <button class="btn-primary" onclick="generarPDF()" style="display:flex;align-items:center;justify-content:center;gap:8px;">
+      <span>Generar y descargar PDF</span>
+    </button>
+    <div id="pdf-status" style="text-align:center;font-size:12px;color:var(--text2);margin-top:8px;display:none;">Generando PDF...</div>
+  </div>
 </div>
 
 <div class="screen" id="s-nueva-obra">
@@ -369,6 +433,280 @@ function goModulo(mod){
   else if(mod==='medicion'){renderMedicion(o);go('s-medicion');}
   else if(mod==='comunicaciones'){renderComunicaciones(o);go('s-comunicaciones');}
   else if(mod==='personal'){renderPersonal(o);go('s-personal');}
+  else if(mod==='informespdf'){initInformesPDF(o);go('s-informes-pdf');}
+}
+
+let tipoInforme='avance';
+let fotosData=[];
+
+function initInformesPDF(o){
+  tipoInforme='avance'; fotosData=[];
+  selectTipoInforme('avance');
+  document.getElementById('obs-ito').value='';
+  document.getElementById('fotos-preview').innerHTML='';
+  const sel=document.getElementById('sel-ep-num');
+  sel.innerHTML=o.eps.map(ep=>`<option value="${ep.num}">EP N°${ep.num} — ${fmtDate(ep.fecha)} — $${fmtM(ep.monto)}</option>`).join('');
+}
+
+function selectTipoInforme(tipo){
+  tipoInforme=tipo;
+  const ta=document.getElementById('tipo-avance');
+  const te=document.getElementById('tipo-ep');
+  const sw=document.getElementById('sel-ep-wrap');
+  ta.style.border=tipo==='avance'?'2px solid var(--blue)':'0.5px solid var(--border)';
+  ta.querySelector('div:nth-child(2)').style.color=tipo==='avance'?'var(--blue)':'var(--text)';
+  te.style.border=tipo==='ep'?'2px solid var(--blue)':'0.5px solid var(--border)';
+  te.querySelector('div:nth-child(2)').style.color=tipo==='ep'?'var(--blue)':'var(--text)';
+  sw.style.display=tipo==='ep'?'block':'none';
+}
+
+function handleFotos(e){
+  const files=[...e.target.files].slice(0,4);
+  fotosData=[];
+  const prev=document.getElementById('fotos-preview');
+  prev.innerHTML='';
+  files.forEach(f=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      fotosData.push(ev.target.result);
+      const img=document.createElement('img');
+      img.src=ev.target.result;
+      img.style.cssText='width:72px;height:72px;object-fit:cover;border-radius:8px;border:0.5px solid var(--border);';
+      prev.appendChild(img);
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function generarPDF(){
+  const o=state.obras[state.activeObraIdx];
+  const status=document.getElementById('pdf-status');
+  status.style.display='block'; status.textContent='Generando PDF...';
+
+  const incResumen=document.getElementById('inc-resumen').checked;
+  const incPartidas=document.getElementById('inc-partidas').checked;
+  const incEps=document.getElementById('inc-eps').checked;
+  const incCurva=document.getElementById('inc-curva').checked;
+  const incLibro=document.getElementById('inc-libro').checked;
+  const obs=document.getElementById('obs-ito').value.trim();
+  const fin=calcFin(o);
+  const hoy=new Date().toLocaleDateString('es-CL',{day:'2-digit',month:'long',year:'numeric'});
+
+  let epSelNum=null;
+  if(tipoInforme==='ep'){
+    epSelNum=parseInt(document.getElementById('sel-ep-num').value);
+  }
+  const epSel=epSelNum?o.eps.find(e=>e.num===epSelNum):null;
+
+  const curvaDataURL=incCurva&&o.eps.length>=2?generarCurvaSCanvas(o):null;
+
+  let html=`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:Arial,sans-serif;font-size:11px;color:#1a1a18;background:#fff;padding:20px}
+    .header{display:flex;align-items:center;justify-content:space-between;border-bottom:2px solid #185FA5;padding-bottom:12px;margin-bottom:16px}
+    .header-left{display:flex;align-items:center;gap:12px}
+    .logo-box{width:48px;height:48px;background:#185FA5;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:10px;text-align:center;line-height:1.2}
+    .org-name{font-size:13px;font-weight:700;color:#185FA5}
+    .org-sub{font-size:10px;color:#666;margin-top:1px}
+    .doc-title{text-align:right}
+    .doc-title h1{font-size:15px;font-weight:700;color:#185FA5}
+    .doc-title p{font-size:10px;color:#666;margin-top:2px}
+    .obra-box{background:#E6F1FB;border-radius:6px;padding:10px 14px;margin-bottom:14px}
+    .obra-box h2{font-size:13px;font-weight:700;color:#185FA5;margin-bottom:6px}
+    .obra-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+    .obra-field label{font-size:9px;color:#666;text-transform:uppercase;letter-spacing:.04em}
+    .obra-field p{font-size:11px;font-weight:600;color:#1a1a18;margin-top:1px}
+    .section{margin-bottom:16px}
+    .section h3{font-size:11px;font-weight:700;color:#185FA5;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #B5D4F4;padding-bottom:4px;margin-bottom:8px}
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+    .stat-box{background:#f5f5f0;border-radius:5px;padding:8px 10px}
+    .stat-box label{font-size:9px;color:#666;display:block;margin-bottom:2px}
+    .stat-box p{font-size:14px;font-weight:700}
+    .stat-ok{color:#3B6D11}.stat-warn{color:#854F0B}.stat-danger{color:#A32D2D}.stat-blue{color:#185FA5}
+    .prog-bar-wrap{margin-bottom:8px}
+    .prog-bar-labels{display:flex;justify-content:space-between;margin-bottom:3px;font-size:10px}
+    .prog-track{height:10px;background:#e0e0e0;border-radius:5px;overflow:hidden}
+    .prog-fill-ok{height:100%;background:#639922;border-radius:5px}
+    .prog-fill-warn{height:100%;background:#BA7517;border-radius:5px}
+    .prog-fill-danger{height:100%;background:#E24B4A;border-radius:5px}
+    table{width:100%;border-collapse:collapse;font-size:10px}
+    th{background:#185FA5;color:#fff;padding:6px 8px;text-align:left;font-size:9px;font-weight:600;text-transform:uppercase}
+    td{padding:5px 8px;border-bottom:0.5px solid #e0e0e0}
+    tr:nth-child(even) td{background:#f9f9f7}
+    .badge-ok{background:#EAF3DE;color:#3B6D11;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:600}
+    .badge-warn{background:#FAEEDA;color:#854F0B;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:600}
+    .badge-danger{background:#FCEBEB;color:#A32D2D;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:600}
+    .obs-box{background:#FAEEDA;border-left:3px solid #EF9F27;padding:10px 14px;border-radius:0 6px 6px 0;font-size:11px;line-height:1.6}
+    .fotos-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:8px}
+    .foto-item img{width:100%;height:160px;object-fit:cover;border-radius:5px;border:0.5px solid #ddd}
+    .firma-row{display:grid;grid-template-columns:repeat(2,1fr);gap:30px;margin-top:30px}
+    .firma-box{border-top:1px solid #1a1a18;padding-top:6px;text-align:center;font-size:10px;color:#666}
+    .ep-highlight{background:#E6F1FB;border-radius:6px;padding:10px 14px;margin-bottom:10px}
+    .ep-highlight h4{font-size:11px;font-weight:700;color:#185FA5;margin-bottom:6px}
+    .ep-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+    .ep-field label{font-size:9px;color:#666;display:block}
+    .ep-field p{font-size:13px;font-weight:700;margin-top:1px}
+    .footer{margin-top:20px;border-top:1px solid #e0e0e0;padding-top:8px;display:flex;justify-content:space-between;font-size:9px;color:#999}
+    @media print{body{padding:10px}}
+  </style></head><body>`;
+
+  // HEADER
+  const tipoLabel=tipoInforme==='avance'?'Informe de Avance Bimensual':'Estado de Pago';
+  html+=`<div class="header">
+    <div class="header-left">
+      <div class="logo-box">SERVI<br>U</div>
+      <div><div class="org-name">SERVIU Metropolitano</div><div class="org-sub">Ministerio de Vivienda y Urbanismo</div><div class="org-sub">Inspección Técnica de Obra</div></div>
+    </div>
+    <div class="doc-title"><h1>${tipoLabel}</h1><p>Fecha: ${hoy}</p>${tipoInforme==='ep'&&epSel?`<p>EP N°${epSel.num}</p>`:''}</div>
+  </div>`;
+
+  // OBRA INFO
+  const atraso=(o.avanceProg||0)-(o.avance||0);
+  html+=`<div class="obra-box"><h2>${o.nombre}</h2><div class="obra-grid">
+    <div class="obra-field"><label>Contrato</label><p>${o.contrato||'—'}</p></div>
+    <div class="obra-field"><label>Contratista</label><p>${o.contratista||'—'}</p></div>
+    <div class="obra-field"><label>Monto contrato</label><p>$${fmtM(o.monto||0)}</p></div>
+    <div class="obra-field"><label>Fecha inicio</label><p>${fmtDate(o.inicio)}</p></div>
+    <div class="obra-field"><label>Plazo</label><p>${o.plazo} días</p></div>
+    <div class="obra-field"><label>Fecha término</label><p>${fmtDate(fin)}</p></div>
+    <div class="obra-field"><label>Residente</label><p>${o.personal?.residente||'—'}</p></div>
+    <div class="obra-field"><label>Autocontrol</label><p>${o.personal?.autocontrol||'—'}</p></div>
+    <div class="obra-field"><label>ITO</label><p>César G., ITO</p></div>
+  </div></div>`;
+
+  // RESUMEN
+  if(incResumen){
+    const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0);
+    const tp=o.eps.reduce((s,e)=>s+(e.pagado||0),0);
+    const tr=o.eps.reduce((s,e)=>s+(e.retencion||0),0);
+    const pctEjec=o.monto?Math.round(tb/o.monto*100):0;
+    const fillClass=atraso>=10?'prog-fill-danger':atraso>=5?'prog-fill-warn':'prog-fill-ok';
+    html+=`<div class="section"><h3>Resumen de avance</h3>
+      <div class="stats-grid">
+        <div class="stat-box"><label>Avance físico</label><p class="${atraso>=10?'stat-danger':atraso>=5?'stat-warn':'stat-ok'}">${o.avance||0}%</p></div>
+        <div class="stat-box"><label>Avance programado</label><p class="stat-blue">${o.avanceProg||0}%</p></div>
+        <div class="stat-box"><label>Días restantes</label><p class="${parseInt(calcDR(o))<30?'stat-warn':'stat-ok'}">${calcDR(o)}</p></div>
+        <div class="stat-box"><label>% ejecutado ($)</label><p class="stat-blue">${pctEjec}%</p></div>
+      </div>
+      <div class="prog-bar-wrap">
+        <div class="prog-bar-labels"><span>Avance real: ${o.avance||0}%</span>${atraso>0?`<span style="color:#A32D2D">Atraso: ${atraso}%</span>`:''}</div>
+        <div class="prog-track"><div class="${fillClass}" style="width:${o.avance||0}%"></div></div>
+      </div>
+      <div class="prog-bar-wrap">
+        <div class="prog-bar-labels"><span>Avance programado: ${o.avanceProg||0}%</span></div>
+        <div class="prog-track"><div class="prog-fill-warn" style="width:${o.avanceProg||0}%"></div></div>
+      </div>
+      <div class="stats-grid" style="margin-top:8px;">
+        <div class="stat-box"><label>Total facturado</label><p style="font-size:11px;" class="stat-blue">$${fmtM(tb)}</p></div>
+        <div class="stat-box"><label>Total pagado</label><p style="font-size:11px;" class="stat-ok">$${fmtM(tp)}</p></div>
+        <div class="stat-box"><label>Retenido acum.</label><p style="font-size:11px;" class="stat-warn">$${fmtM(tr)}</p></div>
+        <div class="stat-box"><label>N° EPs emitidos</label><p class="stat-blue">${o.eps.length}</p></div>
+      </div>
+    </div>`;
+  }
+
+  // EP DESTACADO (modo EP)
+  if(tipoInforme==='ep'&&epSel){
+    html+=`<div class="section"><h3>Estado de pago N°${epSel.num}</h3>
+      <div class="ep-highlight"><div class="ep-grid">
+        <div class="ep-field"><label>Fecha</label><p>${fmtDate(epSel.fecha)}</p></div>
+        <div class="ep-field"><label>Monto bruto</label><p style="color:#185FA5">$${fmtM(epSel.monto)}</p></div>
+        <div class="ep-field"><label>Estado</label><p>${epSel.estado==='pagado'?'<span class="badge-ok">Pagado</span>':epSel.estado==='en_revision'?'<span class="badge-warn">En revisión</span>':'<span class="badge-danger">Pendiente</span>'}</p></div>
+        <div class="ep-field"><label>Descuento anticipo</label><p style="color:#854F0B">$${fmtM(epSel.descAnt)}</p></div>
+        <div class="ep-field"><label>Retención (5%)</label><p style="color:#854F0B">$${fmtM(epSel.retencion)}</p></div>
+        <div class="ep-field"><label>Líquido a pagar</label><p style="color:#3B6D11;font-size:16px;">$${fmtM(epSel.pagado)}</p></div>
+      </div></div>
+    </div>`;
+  }
+
+  // PARTIDAS
+  if(incPartidas&&o.partidas?.length){
+    html+=`<div class="section"><h3>Avance por partidas</h3><table>
+      <thead><tr><th>Partida</th><th>Avance</th><th>Estado</th></tr></thead><tbody>
+      ${o.partidas.map(p=>`<tr><td>${p.nombre}</td><td>${p.pct}%</td><td>${p.pct>=80?'<span class="badge-ok">Avanzado</span>':p.pct>=40?'<span class="badge-warn">En ejecución</span>':'<span class="badge-danger">Inicial</span>'}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  // TABLA EPs
+  if(incEps&&o.eps.length){
+    const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0),tp=o.eps.reduce((s,e)=>s+(e.pagado||0),0),tr=o.eps.reduce((s,e)=>s+(e.retencion||0),0);
+    html+=`<div class="section"><h3>Resumen estados de pago</h3><table>
+      <thead><tr><th>EP</th><th>Fecha</th><th>Monto bruto</th><th>Desc. anticipo</th><th>Retención</th><th>Líquido pagado</th><th>Estado</th></tr></thead>
+      <tbody>
+      ${o.eps.map(ep=>`<tr><td>N°${ep.num}</td><td>${fmtDate(ep.fecha)}</td><td>$${fmtM(ep.monto)}</td><td>$${fmtM(ep.descAnt)}</td><td>$${fmtM(ep.retencion)}</td><td style="color:#3B6D11;font-weight:600;">$${fmtM(ep.pagado)}</td><td>${ep.estado==='pagado'?'<span class="badge-ok">Pagado</span>':ep.estado==='en_revision'?'<span class="badge-warn">En revisión</span>':'<span class="badge-danger">Pendiente</span>'}</td></tr>`).join('')}
+      <tr style="background:#E6F1FB;font-weight:700;"><td colspan="2">TOTAL</td><td>$${fmtM(tb)}</td><td></td><td>$${fmtM(tr)}</td><td>$${fmtM(tp)}</td><td></td></tr>
+      </tbody></table></div>`;
+  }
+
+  // CURVA S
+  if(incCurva&&curvaDataURL){
+    html+=`<div class="section"><h3>Curva S — Avance financiero</h3><img src="${curvaDataURL}" style="width:100%;max-height:200px;object-fit:contain;border:0.5px solid #ddd;border-radius:5px;"/></div>`;
+  }
+
+  // LIBRO INSPECCIÓN
+  if(incLibro&&o.libro?.length){
+    const ultimas=o.libro.slice(-3).reverse();
+    html+=`<div class="section"><h3>Últimas entradas libro de inspección</h3><table>
+      <thead><tr><th>Fecha</th><th>Contenido</th><th>Autor</th></tr></thead><tbody>
+      ${ultimas.map(e=>`<tr><td style="white-space:nowrap">${fmtDate(e.fecha)}</td><td>${e.texto}</td><td>${e.autor}</td></tr>`).join('')}
+      </tbody></table></div>`;
+  }
+
+  // FOTOS
+  if(fotosData.length){
+    html+=`<div class="section"><h3>Registro fotográfico</h3><div class="fotos-grid">
+    ${fotosData.map((d,i)=>`<div class="foto-item"><img src="${d}"/><p style="font-size:9px;color:#666;margin-top:3px;text-align:center;">Foto ${i+1} — ${hoy}</p></div>`).join('')}
+    </div></div>`;
+  }
+
+  // OBSERVACIONES
+  if(obs){
+    html+=`<div class="section"><h3>Observaciones del ITO</h3><div class="obs-box">${obs.replace(/\n/g,'<br>')}</div></div>`;
+  }
+
+  // FIRMAS
+  html+=`<div class="firma-row">
+    <div class="firma-box"><p style="margin-bottom:40px;"></p>César G.<br>Inspector Técnico de Obra<br>SERVIU Metropolitano</div>
+    <div class="firma-box"><p style="margin-bottom:40px;"></p>${o.personal?.residente||'Profesional Residente'}<br>Contratista: ${o.contratista||'—'}</div>
+  </div>`;
+
+  // FOOTER
+  html+=`<div class="footer"><span>ITO SERVIU Metropolitano — Sistema de Administración de Contratos</span><span>Generado: ${hoy}</span></div>`;
+  html+=`</body></html>`;
+
+  // ABRIR VENTANA PARA IMPRIMIR/GUARDAR PDF
+  const win=window.open('','_blank');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(()=>{win.focus();win.print();},600);
+  status.style.display='none';
+  showToast('Informe generado — usa "Guardar como PDF"');
+}
+
+function generarCurvaSCanvas(o){
+  const canvas=document.createElement('canvas');
+  canvas.width=700;canvas.height=280;
+  const ctx=canvas.getContext('2d');
+  const PL=50,PR=20,PT=20,PB=40,W=700,H=280;
+  const cW=W-PL-PR,cH=H-PT-PB;
+  ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
+  const data=[{x:0,real:0,prog:0},...o.eps.map((ep,i)=>({x:(i+1)/(o.eps.length+1),real:Math.round(o.eps.slice(0,i+1).reduce((s,e)=>s+(e.monto||0),0)/o.monto*100),prog:Math.round((i+1)/(o.eps.length+1)*100)}))];
+  const tX=x=>PL+x*cW,tY=y=>PT+cH-y/100*cH;
+  [0,25,50,75,100].forEach(v=>{
+    ctx.strokeStyle='#e0e0e0';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(PL,tY(v));ctx.lineTo(W-PR,tY(v));ctx.stroke();
+    ctx.fillStyle='#999';ctx.font='11px Arial';ctx.textAlign='right';ctx.fillText(v+'%',PL-6,tY(v)+4);
+  });
+  ctx.strokeStyle='#EF9F27';ctx.lineWidth=2;ctx.setLineDash([6,3]);ctx.beginPath();
+  data.forEach((d,i)=>{i===0?ctx.moveTo(tX(d.x),tY(d.prog)):ctx.lineTo(tX(d.x),tY(d.prog));});ctx.stroke();
+  ctx.strokeStyle='#185FA5';ctx.lineWidth=2.5;ctx.setLineDash([]);ctx.beginPath();
+  data.forEach((d,i)=>{i===0?ctx.moveTo(tX(d.x),tY(d.real)):ctx.lineTo(tX(d.x),tY(d.real));});ctx.stroke();
+  data.slice(1).forEach(d=>{ctx.fillStyle='#185FA5';ctx.beginPath();ctx.arc(tX(d.x),tY(d.real),4,0,Math.PI*2);ctx.fill();});
+  ctx.fillStyle='#185FA5';ctx.font='11px Arial';ctx.textAlign='left';
+  ctx.fillRect(PL,H-22,20,3);ctx.fillText('Avance real',PL+24,H-17);
+  ctx.strokeStyle='#EF9F27';ctx.setLineDash([6,3]);ctx.beginPath();ctx.moveTo(PL+120,H-20);ctx.lineTo(PL+140,H-20);ctx.stroke();
+  ctx.fillStyle='#999';ctx.fillText('Avance programado',PL+144,H-17);
+  return canvas.toDataURL('image/png');
 }
 
 function renderFichasP(o){
