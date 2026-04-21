@@ -260,6 +260,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="Fiel cumplimiento de contrato">Fiel cumplimiento de contrato</option>
         <option value="Buena ejecución de la obra">Buena ejecución de la obra</option>
         <option value="Correcta inversión del anticipo">Correcta inversión del anticipo</option>
+        <option value="Garantía por AAOO">Garantía por AAOO</option>
+        <option value="Garantía por OOEE">Garantía por OOEE</option>
         <option value="Otro">Otro</option>
       </select>
     </div>
@@ -367,6 +369,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="tab-btn" onclick="switchDocTab('contratos')">Contratos</button>
     <button class="tab-btn" onclick="switchDocTab('planos')">Planos</button>
     <button class="tab-btn" onclick="switchDocTab('eett')">EE.TT.</button>
+    <button class="tab-btn" onclick="switchDocTab('garantias_docs')">Garantías</button>
   </div>
   <div id="doc-content"></div>
   <button class="fab" onclick="showFormDocumento()">+</button>
@@ -731,10 +734,10 @@ function goModulo(mod){
 
 // ══ UTILIDADES DRIVE ═══════════════════════════════════════
 
-const DOC_CATS = ['actas','resoluciones','oficios','contratos','planos','eett'];
+const DOC_CATS = ['actas','resoluciones','oficios','contratos','planos','eett','garantias_docs'];
 const DOC_LABELS = {
   actas:'Actas', resoluciones:'Resoluciones', oficios:'Oficios',
-  contratos:'Contratos', planos:'Planos', eett:'EE.TT.'
+  contratos:'Contratos', planos:'Planos', eett:'EE.TT.', garantias_docs:'Garantías'
 };
 let docCatActiva = 'actas';
 let docUploadPendiente = null; // {fileId, nombre, link} esperando guardar
@@ -800,8 +803,53 @@ function renderDocCat(cat){
   const o = state.obras[state.activeObraIdx];
   if(!o.documentos) o.documentos={};
   if(!o.documentos[cat]) o.documentos[cat]=[];
-  const docs = o.documentos[cat];
   const c = document.getElementById('doc-content');
+
+  // Pestaña especial: garantías — muestra las del módulo de garantías con sus documentos
+  if(cat==='garantias_docs'){
+    const garantias = o.garantias||[];
+    const conDoc = garantias.filter(g=>g.driveLink);
+    const fab = document.querySelector('#s-documentos .fab');
+    if(fab) fab.style.display='none';
+    if(!garantias.length){
+      c.innerHTML='<div class="empty-state">Sin garantías registradas.<br>Ve al módulo Garantías para agregar.</div>';
+      return;
+    }
+    const hoy=new Date(); hoy.setHours(0,0,0,0);
+    c.innerHTML=garantias.map((g,i)=>{
+      const venc=g.vencimiento?parseFechaJS(g.vencimiento):null;
+      const dias=venc?Math.round((venc-hoy)/(864e5)):null;
+      const badge=dias===null?'<span class="badge badge-info">Sin fecha</span>':
+        dias<0?'<span class="badge badge-danger">Vencida</span>':
+        dias<=45?`<span class="badge badge-warn">Vence en ${dias}d</span>`:
+        `<span class="badge badge-ok">Vigente ${dias}d</span>`;
+      return `<div class="obra-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div style="flex:1;min-width:0;">
+            <div class="obra-name" style="font-size:14px;">${g.tipo}</div>
+            <div class="obra-meta">${g.instrumento} · ${g.entidad||'—'} · N°${g.numero||'—'}</div>
+            <div class="obra-meta">$${fmtM(g.monto||0)} · Vence: ${fmtDate(g.vencimiento)}</div>
+          </div>
+          ${badge}
+        </div>
+        <div style="margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px;display:flex;align-items:center;justify-content:space-between;">
+          ${g.driveLink
+            ? `<a href="${g.driveLink}" target="_blank" style="font-size:12px;color:var(--blue);display:flex;align-items:center;gap:5px;">📎 ${g.archivoNombre||'Ver documento'}</a>`
+            : `<span style="font-size:12px;color:var(--text2);">Sin documento adjunto</span>`}
+          <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:4px 10px;border:0.5px solid var(--border);border-radius:20px;">
+            <input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="adjuntarArchivoGarantia(event,${i})"/>
+            ${g.driveLink?'Reemplazar':'+ Adjuntar'}
+          </label>
+        </div>
+      </div>`;
+    }).join('');
+    return;
+  }
+
+  // Pestañas normales
+  const fab = document.querySelector('#s-documentos .fab');
+  if(fab) fab.style.display='flex';
+  const docs = o.documentos[cat];
   if(!docs.length){
     c.innerHTML=`<div class="empty-state">${DOC_LABELS[cat]} sin documentos.<br>Presiona + para agregar.</div>`;
     return;
@@ -1014,12 +1062,36 @@ async function adjuntarArchivoGarantia(event, idx){
   showToast('Subiendo garantía a Drive...');
   try{
     const result = await subirArchivoADrive(file, 'Garantías');
-    o.garantias[idx].driveLink = result.webViewLink;
-    o.garantias[idx].archivoNombre = result.name;
-    o.garantias[idx].driveId = result.id;
+    const g = o.garantias[idx];
+    // Vincular en el módulo de garantías
+    g.driveLink = result.webViewLink;
+    g.archivoNombre = result.name;
+    g.driveId = result.id;
+    // Vincular automáticamente en gestión documental pestaña garantías_docs
+    // (solo referencia — la pestaña lee directamente de o.garantias)
+    // Además registrar también en documentos/garantias_docs como entrada formal
+    if(!o.documentos) o.documentos={};
+    if(!o.documentos['garantias_docs']) o.documentos['garantias_docs']=[];
+    // Actualizar o crear entrada en garantias_docs
+    const existente = o.documentos['garantias_docs'].findIndex(d=>d.garantiaIdx===idx);
+    const docEntry = {
+      garantiaIdx: idx,
+      nombre: `${g.tipo} — ${g.instrumento} N°${g.numero||'s/n'}`,
+      fecha: today(),
+      numero: g.numero||'',
+      emisor: g.entidad||'',
+      obs: `Monto: $${fmtM(g.monto||0)} · Vence: ${fmtDate(g.vencimiento)}`,
+      driveLink: result.webViewLink,
+      archivoNombre: result.name,
+      driveId: result.id,
+    };
+    if(existente>=0) o.documentos['garantias_docs'][existente]=docEntry;
+    else o.documentos['garantias_docs'].push(docEntry);
     saveAndSync();
-    renderGarantias();
-    showToast(`Garantía adjuntada ✓`);
+    // Refrescar vista actual
+    if(document.getElementById('s-garantias').classList.contains('active')) renderGarantias();
+    if(document.getElementById('s-documentos').classList.contains('active')) renderDocCat('garantias_docs');
+    showToast('Garantía adjuntada y registrada en Documentos ✓');
   } catch(e){
     showToast('Error: '+e.message);
   }
@@ -1917,74 +1989,420 @@ function generarCurvaSCanvas(o){
   return canvas.toDataURL('image/png');
 }
 
+// ── FICHAS P: detalle editable ────────────────────────────
 function openFichaDetalle(id,nombre){
   document.getElementById('ficha-det-title').textContent=id;
   const o=state.obras[state.activeObraIdx];
   let html='';
+
   if(id==='P.1'){
-    const dt=o.inicio?diffDays(o.inicio,today()):0;const pct=o.plazo?Math.min(100,Math.round(dt/o.plazo*100)):0;
-    html=`<div style="padding:16px;"><div class="prog-wrap" style="margin:0 0 16px;"><div class="prog-labels"><span class="prog-label">Tiempo transcurrido</span><span class="prog-pct">${pct}%</span></div><div class="prog-track"><div class="prog-fill ${pct>80?'fill-danger':pct>60?'fill-warn':'fill-ok'}" style="width:${pct}%"></div></div></div><div class="form-group"><label class="form-label">Agregar aumento de plazo (días)</label><input class="form-input" type="number" id="fp1-aum" placeholder="0" min="0"/></div><button class="btn-primary" onclick="guardarFP1()">Aplicar aumento de plazo</button></div>`;
+    const dt=o.inicio?diffDays(o.inicio,today()):0;
+    const pct=o.plazo?Math.min(100,Math.round(dt/o.plazo*100)):0;
+    html=`<div style="padding:16px;">
+      <div class="prog-wrap" style="margin:0 0 16px;">
+        <div class="prog-labels"><span class="prog-label">Tiempo transcurrido</span><span class="prog-pct">${pct}%</span></div>
+        <div class="prog-track"><div class="prog-fill ${pct>80?'fill-danger':pct>60?'fill-warn':'fill-ok'}" style="width:${pct}%"></div></div>
+      </div>
+      <div class="form-group"><label class="form-label">Fecha inicio contrato</label><input class="form-input" type="date" id="p1-inicio" value="${o.inicio||''}"/></div>
+      <div class="form-group"><label class="form-label">Plazo total (días)</label><input class="form-input" type="number" id="p1-plazo" value="${o.plazo||''}"/></div>
+      <div class="form-group"><label class="form-label">Aumento de plazo (días adicionales)</label><input class="form-input" type="number" id="fp1-aum" placeholder="0" min="0"/></div>
+      <button class="btn-primary" onclick="guardarP1()">Guardar cambios</button>
+    </div>`;
+
+  } else if(id==='P.2'){
+    html=`<div style="padding:16px;">
+      <div class="form-group"><label class="form-label">Fecha entrega de terreno</label><input class="form-input" type="date" id="p2-entrega" value="${o.p2?.entrega||o.inicio||''}"/></div>
+      <div class="form-group"><label class="form-label">Fecha próximo EP</label><input class="form-input" type="date" id="p2-ep" value="${o.proximoEP||''}"/></div>
+      <div class="form-group"><label class="form-label">Observaciones plazo</label><input class="form-input" id="p2-obs" value="${o.p2?.obs||''}" placeholder="Ampliaciones, paralizaciones, etc."/></div>
+      <button class="btn-primary" onclick="guardarP2()">Guardar</button>
+    </div>`;
+
+  } else if(id==='P.3'){
+    const tieneAdj=o.adjuntos?.['P.3']?.length>0;
+    const estado=o.p3Estado||'pendiente';
+    html=`<div style="padding:16px;">
+      <div style="padding:14px;border-radius:var(--r);margin-bottom:14px;${estado==='ok'?'background:var(--green-bg);border:0.5px solid #C0DD97;':'background:var(--amber-bg);border:0.5px solid #FAC775;'}">
+        <div style="font-size:13px;font-weight:500;color:${estado==='ok'?'var(--green)':'var(--amber)'};">${estado==='ok'?'✓ Programa de trabajo recibido':'⏳ Pendiente envío por parte del contratista'}</div>
+      </div>
+      ${tieneAdj?o.adjuntos['P.3'].map(a=>`<a href="${a.driveLink}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--blue);">📎 ${a.nombre}</a>`).join(''):''}
+      <div class="form-group" style="margin-top:8px;">
+        <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;">
+          <input type="file" accept=".pdf,.xlsx" style="display:none;" onchange="adjuntarP3YActivar(event)"/>
+          <span style="font-size:20px;">📄</span>
+          <div><div style="font-size:13px;font-weight:500;">Cargar programa de trabajo</div><div style="font-size:11px;color:var(--text2);">PDF o Excel — al cargar cambia estado a OK</div></div>
+        </label>
+      </div>
+    </div>`;
+
   } else if(id==='P.4'){
-    const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0),tp=o.eps.reduce((s,e)=>s+(e.pagado||0),0),tr=o.eps.reduce((s,e)=>s+(e.retencion||0),0);
-    html=`<div style="padding:16px;"><div class="stats-row" style="margin-bottom:14px;"><div class="stat-card"><div class="stat-label">Monto contrato</div><div class="stat-value" style="font-size:14px;">$${fmtM(o.monto||0)}</div></div><div class="stat-card"><div class="stat-label">Pagado acum.</div><div class="stat-value" style="font-size:14px;color:var(--green);">$${fmtM(tp)}</div></div><div class="stat-card"><div class="stat-label">Retenido</div><div class="stat-value" style="font-size:14px;color:var(--amber);">$${fmtM(tr)}</div></div><div class="stat-card"><div class="stat-label">% ejecutado</div><div class="stat-value" style="font-size:14px;">${o.monto?Math.round(tb/o.monto*100):0}%</div></div></div><div class="form-group"><label class="form-label">Fecha próximo EP</label><input class="form-input" type="date" id="fp4-ep" value="${o.proximoEP||''}"/></div><button class="btn-primary" onclick="guardarFP4()">Guardar</button></div>`;
+    const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0);
+    const tp=o.eps.reduce((s,e)=>s+(e.pagado||0),0);
+    html=`<div style="padding:16px;">
+      <div class="stats-row" style="margin-bottom:14px;">
+        <div class="stat-card"><div class="stat-label">Monto contrato</div><div class="stat-value" style="font-size:14px;">$${fmtM(o.monto||0)}</div></div>
+        <div class="stat-card"><div class="stat-label">% anticipo</div><div class="stat-value" style="font-size:14px;">${o.anticipo||0}%</div></div>
+        <div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="font-size:14px;color:var(--blue);">$${fmtM(tb)}</div></div>
+        <div class="stat-card"><div class="stat-label">Total pagado</div><div class="stat-value" style="font-size:14px;color:var(--green);">$${fmtM(tp)}</div></div>
+      </div>
+      <div class="form-group"><label class="form-label">Monto contrato ($)</label><input class="form-input" type="number" id="p4-monto" value="${o.monto||0}"/></div>
+      <div class="form-group"><label class="form-label">% anticipo</label><input class="form-input" type="number" id="p4-anticipo" value="${o.anticipo||0}" min="0" max="100"/></div>
+      <div class="form-group"><label class="form-label">Fecha próximo EP</label><input class="form-input" type="date" id="fp4-ep" value="${o.proximoEP||''}"/></div>
+      <button class="btn-primary" onclick="guardarP4()">Guardar</button>
+    </div>`;
+
+  } else if(id==='P.5'){
+    html=`<div style="padding:16px;">
+      <div class="form-group"><label class="form-label">Observaciones lista de materiales</label>
+      <textarea class="form-input" id="p5-obs" rows="4" style="resize:none;">${o.p5?.obs||''}</textarea></div>
+      <button class="btn-primary" onclick="guardarPX('p5','p5-obs')">Guardar</button>
+    </div>`;
+
+  } else if(id==='P.6'){
+    html=`<div style="padding:16px;">
+      <div style="background:var(--blue-bg);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--blue);">
+        P.6 está vinculada al módulo de Ensayos. Ir al módulo para ver el plan completo y registrar ensayos.
+      </div>
+      <button class="btn-primary" onclick="goModulo('ensayos')">Ir a Ensayos P.6</button>
+    </div>`;
+
+  } else if(id==='P.7'){
+    const visitas=o.visitas||[];
+    html=`<div style="padding:16px;">
+      <div style="background:var(--blue-bg);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--blue);">
+        P.7 está vinculada al módulo de Visitas ITO. Se muestran las últimas 3 visitas registradas.
+      </div>
+      ${visitas.length?visitas.slice(-3).reverse().map(v=>`
+        <div class="obra-card" style="cursor:default;margin:0 0 8px;">
+          <div style="font-size:13px;font-weight:500;">${v.tipo||'Visita'}</div>
+          <div class="obra-meta">${fmtDate(v.fecha)}${v.hora?' · '+v.hora:''}</div>
+          ${v.obs?`<div style="font-size:12px;color:var(--text2);margin-top:4px;">${v.obs.slice(0,100)}${v.obs.length>100?'...':''}</div>`:''}
+        </div>`).join(''):'<div class="empty-state" style="padding:20px;">Sin visitas registradas aún.</div>'}
+      <button class="btn-primary" style="margin-top:8px;" onclick="goModulo('visitas')">Ir a Visitas ITO</button>
+    </div>`;
+
+  } else if(id==='P.8'){
+    const ensayos=o.ensayos||[];
+    const plan=o.planP6||[];
+    const aprobados=plan.filter(p=>ensayos.some(e=>e.itemNum===p.num&&e.resultado==='aprobado')).length;
+    html=`<div style="padding:16px;">
+      <div style="background:var(--blue-bg);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--blue);">
+        P.8 está vinculada al módulo de Ensayos P.6. Cumplimiento actual: ${plan.length?Math.round(aprobados/plan.length*100):0}% (${aprobados}/${plan.length} ítems aprobados).
+      </div>
+      <div class="form-group"><label class="form-label">Observaciones control de calidad</label>
+      <textarea class="form-input" id="p8-obs" rows="4" style="resize:none;">${o.p8?.obs||''}</textarea></div>
+      <button class="btn-primary" onclick="guardarPX('p8','p8-obs');goModulo('ensayos')">Guardar e ir a Ensayos</button>
+      <button class="btn-secondary" onclick="guardarPX('p8','p8-obs')">Solo guardar</button>
+    </div>`;
+
+  } else if(id==='P.9'){
+    const permite=o.p9?.permiteSubcontratos;
+    html=`<div style="padding:16px;">
+      <div class="form-group">
+        <label class="form-label">¿El contrato permite subcontratos?</label>
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding:10px 16px;border-radius:var(--r);border:0.5px solid ${permite===true?'var(--blue)':'var(--border)'};background:${permite===true?'var(--blue-bg)':'var(--bg)'};">
+            <input type="radio" name="subcont" value="si" ${permite===true?'checked':''} onchange="state.obras[state.activeObraIdx].p9=state.obras[state.activeObraIdx].p9||{};state.obras[state.activeObraIdx].p9.permiteSubcontratos=true;saveAndSync();openFichaDetalle('P.9','');"/> Sí permite
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:14px;cursor:pointer;padding:10px 16px;border-radius:var(--r);border:0.5px solid ${permite===false?'var(--red)':'var(--border)'};background:${permite===false?'var(--red-bg)':'var(--bg)'};">
+            <input type="radio" name="subcont" value="no" ${permite===false?'checked':''} onchange="state.obras[state.activeObraIdx].p9=state.obras[state.activeObraIdx].p9||{};state.obras[state.activeObraIdx].p9.permiteSubcontratos=false;saveAndSync();openFichaDetalle('P.9','');"/> No permite
+          </label>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Equipos y subcontratos autorizados</label>
+      <textarea class="form-input" id="p9-lista" rows="5" style="resize:none;" placeholder="Lista los equipos y subcontratos autorizados...">${o.p9?.lista||''}</textarea></div>
+      <button class="btn-primary" onclick="guardarP9()">Guardar</button>
+    </div>`;
+
   } else {
-    html=`<div class="empty-state"><div style="font-size:32px;margin-bottom:12px;">📋</div><div style="font-weight:500;">${nombre}</div><br><button class="btn-secondary" style="width:auto;padding:10px 24px;margin:0 auto;" onclick="showToast('Marcado como revisado')">Marcar como revisado</button></div>`;
+    html=`<div style="padding:16px;">
+      <div class="form-group"><label class="form-label">Observaciones</label>
+      <textarea class="form-input" id="px-obs" rows="5" style="resize:none;">${o['p'+id.toLowerCase().replace('.','')]?.obs||''}</textarea></div>
+      <button class="btn-primary" onclick="showToast('Guardado')">Guardar</button>
+    </div>`;
   }
   document.getElementById('ficha-det-body').innerHTML=html;
   go('s-ficha-detalle');
 }
 
-function guardarFP1(){const a=parseInt(document.getElementById('fp1-aum').value)||0;if(a>0){state.obras[state.activeObraIdx].plazo+=a;saveAndSync();showToast(`Plazo +${a} días guardado`);openFichaDetalle('P.1','');}}
+function guardarP1(){
+  const o=state.obras[state.activeObraIdx];
+  const inicio=document.getElementById('p1-inicio').value;
+  const plazo=parseInt(document.getElementById('p1-plazo').value)||o.plazo;
+  const aum=parseInt(document.getElementById('fp1-aum').value)||0;
+  o.inicio=inicio; o.plazo=plazo+aum;
+  saveAndSync(); showToast('P.1 guardado'); openFichaDetalle('P.1','');
+}
+function guardarP2(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.p2)o.p2={};
+  o.p2.entrega=document.getElementById('p2-entrega').value;
+  o.p2.obs=document.getElementById('p2-obs').value;
+  o.proximoEP=document.getElementById('p2-ep').value;
+  saveAndSync(); showToast('P.2 guardado');
+}
+async function adjuntarP3YActivar(event){
+  const file=event.target.files[0]; if(!file)return;
+  const o=state.obras[state.activeObraIdx];
+  if(!accessToken){showToast('Conecta Drive para adjuntar');return;}
+  showToast('Subiendo programa...');
+  try{
+    const r=await subirArchivoADrive(file,'Fichas/P.3');
+    if(!o.adjuntos)o.adjuntos={};
+    if(!o.adjuntos['P.3'])o.adjuntos['P.3']=[];
+    o.adjuntos['P.3'].push({nombre:r.name,driveId:r.id,driveLink:r.webViewLink});
+    o.p3Estado='ok';
+    saveAndSync(); openFichaDetalle('P.3',''); showToast('Programa recibido ✓');
+  }catch(e){showToast('Error: '+e.message);}
+}
+function guardarP4(){
+  const o=state.obras[state.activeObraIdx];
+  o.monto=parseInt(document.getElementById('p4-monto').value)||0;
+  o.anticipo=parseInt(document.getElementById('p4-anticipo').value)||0;
+  o.proximoEP=document.getElementById('fp4-ep').value;
+  saveAndSync(); showToast('P.4 guardado'); openFichaDetalle('P.4','');
+}
+function guardarPX(key,inputId){
+  const o=state.obras[state.activeObraIdx];
+  if(!o[key])o[key]={};
+  o[key].obs=document.getElementById(inputId).value;
+  saveAndSync(); showToast('Guardado');
+}
+function guardarP9(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.p9)o.p9={};
+  o.p9.lista=document.getElementById('p9-lista').value;
+  saveAndSync(); showToast('P.9 guardado');
+}
 function guardarFP4(){state.obras[state.activeObraIdx].proximoEP=document.getElementById('fp4-ep').value;saveAndSync();showToast('Fecha EP guardada');}
+
+// ── FICHAS M ─────────────────────────────────────────────
 
 function renderMedicion(o){renderEP(o);renderAvance(o);renderCurvas(o);}
 
 function renderEP(o){
   const c=document.getElementById('m-ep');
-  if(!o.eps.length){c.innerHTML=`<div class="empty-state">Sin estados de pago.<br><br><button class="btn-secondary" style="width:auto;padding:10px 20px;margin:0 auto;" onclick="addEP()">+ Registrar EP</button></div>`;return;}
-  const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0),tp=o.eps.reduce((s,e)=>s+(e.pagado||0),0),tr=o.eps.reduce((s,e)=>s+(e.retencion||0),0);
-  c.innerHTML=`<div style="padding:12px 16px 0;"><div class="stats-row" style="margin-bottom:12px;"><div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="font-size:14px;">$${fmtM(tb)}</div></div><div class="stat-card"><div class="stat-label">Total pagado</div><div class="stat-value" style="font-size:14px;color:var(--green);">$${fmtM(tp)}</div></div><div class="stat-card"><div class="stat-label">Retenido</div><div class="stat-value" style="font-size:14px;color:var(--amber);">$${fmtM(tr)}</div></div><div class="stat-card"><div class="stat-label">% ejecutado</div><div class="stat-value" style="font-size:14px;">${o.monto?Math.round(tb/o.monto*100):0}%</div></div></div></div>
-  <div class="ep-wrap"><table class="ep-table"><thead><tr><th style="width:40px;">EP</th><th>Fecha</th><th>Bruto</th><th>Pagado</th><th>Estado</th></tr></thead><tbody>${o.eps.map(ep=>`<tr>
-    <td style="font-weight:500;">N°${ep.num}</td>
-    <td>${fmtDate(ep.fecha)}</td>
-    <td style="font-size:11px;">$${fmtM(ep.monto)}</td>
-    <td style="font-size:11px;color:var(--green);">$${fmtM(ep.pagado)}</td>
-    <td><span class="badge ${ep.estado==='pagado'?'badge-ok':ep.estado==='en_revision'?'badge-warn':'badge-danger'}">${ep.estado==='pagado'?'Pagado':ep.estado==='en_revision'?'En revisión':'Pendiente'}</span></td>
-  </tr>
-  <tr><td colspan="5" style="padding:4px 10px 10px;border-bottom:0.5px solid var(--border);">
-    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-      ${(ep.adjuntos||[]).map(a=>`<a href="${a.driveLink}" target="_blank" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 ${a.nombre}</a>`).join('')}
-      <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:3px 8px;border:0.5px dashed var(--border2);border-radius:20px;">
-        <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="adjuntarArchivoEP(event,${ep.num})"/>
-        + Adjuntar EP
-      </label>
+  if(!o.eps.length){
+    c.innerHTML=`<div class="empty-state">Sin estados de pago.<br><br><button class="btn-secondary" style="width:auto;padding:10px 20px;margin:0 auto;" onclick="showFormEP(-1)">+ Registrar EP</button></div>`;
+    return;
+  }
+  const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0);
+  const tp=o.eps.filter(e=>e.pagado).reduce((s,e)=>s+(e.monto||0),0);
+  const pend=o.eps.filter(e=>!e.pagado).length;
+  c.innerHTML=`<div style="padding:12px 16px 0;">
+    <div class="stats-row" style="margin-bottom:12px;">
+      <div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="font-size:14px;">$${fmtM(tb)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total pagado</div><div class="stat-value" style="font-size:14px;color:var(--green);">$${fmtM(tp)}</div></div>
+      <div class="stat-card"><div class="stat-label">EPs pendientes</div><div class="stat-value" style="font-size:14px;color:${pend>0?'var(--amber)':'var(--green)'};">${pend}</div></div>
+      <div class="stat-card"><div class="stat-label">% ejecutado</div><div class="stat-value" style="font-size:14px;">${o.monto?Math.round(tb/o.monto*100):0}%</div></div>
     </div>
-  </td></tr>`).join('')}</tbody></table></div>
-  <div style="padding:12px 16px;"><button class="btn-secondary" onclick="addEP()">+ Registrar nuevo EP</button></div>`;
+  </div>
+  ${o.eps.map((ep,i)=>`
+    <div style="margin:0 16px 10px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:0.5px solid var(--border);cursor:pointer;" onclick="showFormEP(${i})">
+        <div>
+          <div style="font-size:14px;font-weight:500;">EP N°${ep.num} — ${fmtDate(ep.fecha)}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">$${fmtM(ep.monto)}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;" onclick="event.stopPropagation()">
+            <input type="checkbox" ${ep.pagado?'checked':''} onchange="togglePagoEP(${i},this.checked)" style="width:16px;height:16px;cursor:pointer;"/>
+            Pagado
+          </label>
+          <span class="badge ${ep.pagado?'badge-ok':ep.estado==='en_revision'?'badge-warn':'badge-danger'}">${ep.pagado?'Pagado':ep.estado==='en_revision'?'En revisión':'Pendiente'}</span>
+        </div>
+      </div>
+      <div style="padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+        ${(ep.adjuntos||[]).map(a=>`<a href="${a.driveLink}" target="_blank" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 ${a.nombre}</a>`).join('')}
+        <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:3px 8px;border:0.5px dashed var(--border2);border-radius:20px;">
+          <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="adjuntarArchivoEP(event,${ep.num})"/>+ Adjuntar
+        </label>
+      </div>
+    </div>`).join('')}
+  <div style="padding:4px 16px 16px;"><button class="btn-secondary" onclick="showFormEP(-1)">+ Registrar nuevo EP</button></div>`;
 }
 
-function addEP(){
-  const o=state.obras[state.activeObraIdx];const n=o.eps.length+1;
-  const monto=parseInt(prompt(`EP N°${n} — Monto bruto ($):`)||'0');if(!monto)return;
-  const dA=Math.round(monto*(o.anticipo||0)/100),ret=Math.round(monto*.05),pag=monto-dA-ret;
-  o.eps.push({num:n,fecha:today(),monto,descAnt:dA,retencion:ret,pagado:pag,estado:'en_revision'});
-  const nx=new Date(today());nx.setDate(nx.getDate()+28);o.proximoEP=nx.toISOString().slice(0,10);
-  saveAndSync();renderEP(o);showToast(`EP N°${n} registrado`);
+function showFormEP(idx){
+  const o=state.obras[state.activeObraIdx];
+  const ep=idx>=0?o.eps[idx]:null;
+  const titulo=ep?`Editar EP N°${ep.num}`:'Nuevo estado de pago';
+  const html=`<div style="padding:16px;">
+    <div class="form-group"><label class="form-label">Fecha del EP</label><input class="form-input" type="date" id="ep-fecha" value="${ep?.fecha||today()}"/></div>
+    <div class="form-group"><label class="form-label">Monto bruto ($)</label><input class="form-input" type="number" id="ep-monto" value="${ep?.monto||''}" placeholder="0"/></div>
+    <div class="form-group"><label class="form-label">Descuento anticipo ($)</label><input class="form-input" type="number" id="ep-desc" value="${ep?.descAnt||''}" placeholder="0"/></div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;">
+        <input type="checkbox" id="ep-pagado" ${ep?.pagado?'checked':''} style="width:18px;height:18px;"/> EP pagado por SERVIU
+      </label>
+    </div>
+    <div class="form-group"><label class="form-label">Estado</label>
+      <select class="form-input" id="ep-estado">
+        <option value="en_revision" ${ep?.estado==='en_revision'?'selected':''}>En revisión</option>
+        <option value="pendiente" ${ep?.estado==='pendiente'?'selected':''}>Pendiente</option>
+        <option value="pagado" ${ep?.estado==='pagado'?'selected':''}>Pagado</option>
+      </select>
+    </div>
+    <button class="btn-primary" onclick="guardarEP(${idx})">Guardar EP</button>
+    ${idx>=0?`<button class="btn-secondary" style="color:var(--red);border-color:#F09595;" onclick="eliminarEP(${idx})">Eliminar EP</button>`:''}
+    <button class="btn-secondary" onclick="renderEP(state.obras[state.activeObraIdx]);document.getElementById('m-ep').scrollIntoView();">Cancelar</button>
+  </div>`;
+  document.getElementById('m-ep').innerHTML=`<div class="topbar" style="position:relative;"><div style="font-size:15px;font-weight:500;">${titulo}</div></div>${html}`;
 }
+
+function guardarEP(idx){
+  const o=state.obras[state.activeObraIdx];
+  const monto=parseInt(document.getElementById('ep-monto').value)||0;
+  const descAnt=parseInt(document.getElementById('ep-desc').value)||0;
+  const pagado=document.getElementById('ep-pagado').checked;
+  const estado=document.getElementById('ep-estado').value;
+  const fecha=document.getElementById('ep-fecha').value;
+  const ep={num:idx>=0?o.eps[idx].num:o.eps.length+1,fecha,monto,descAnt,pagado,estado,adjuntos:idx>=0?(o.eps[idx].adjuntos||[]):[]};
+  if(idx===-1){
+    o.eps.push(ep);
+    const nx=new Date(fecha);nx.setDate(nx.getDate()+28);o.proximoEP=nx.toISOString().slice(0,10);
+  } else {
+    o.eps[idx]=ep;
+  }
+  saveAndSync();renderEP(o);showToast(idx===-1?`EP N°${ep.num} registrado`:'EP actualizado');
+}
+
+function eliminarEP(idx){
+  if(!confirm('¿Eliminar este EP?'))return;
+  const o=state.obras[state.activeObraIdx];
+  o.eps.splice(idx,1);
+  o.eps.forEach((e,i)=>e.num=i+1);
+  saveAndSync();renderEP(o);showToast('EP eliminado');
+}
+
+function togglePagoEP(idx,val){
+  const o=state.obras[state.activeObraIdx];
+  o.eps[idx].pagado=val;
+  if(val)o.eps[idx].estado='pagado';
+  saveAndSync();renderEP(o);showToast(val?'EP marcado como pagado':'EP marcado como pendiente');
+}
+
+function addEP(){showFormEP(-1);}
+
+// ── AVANCE POR PARTIDAS (desde Excel Ppto Comp) ──────────
+
+const PARTIDAS_BASE=[{"item":"I.","desc":"OBRAS PROVISIONALES","unidad":"","cant":0,"punit":0,"ptotal":0,"esCapitulo":true},{"item":"I.1","desc":"INSTALACION DE FAENA","unidad":"GL","cant":1,"punit":4967541,"ptotal":4967541},{"item":"I.2","desc":"LETRERO DE OBRA","unidad":"UNIDAD","cant":1,"punit":704530,"ptotal":704530},{"item":"A","desc":"REMOCION DE ELEMENTOS CON ASBESTO CEMENTO","unidad":"","cant":0,"punit":0,"ptotal":0,"esCapitulo":true},{"item":"A.1","desc":"RETIRO DE CUBIERTA DE ASBESTO CEMENTO, TRATAMIENTO, TRANSPORTE Y DISPOSICIÓN FINAL","unidad":"M2","cant":1575,"punit":24878,"ptotal":39182850},{"item":"A.2","desc":"PROVISIÓN, MONTAJE Y DESMONTAJE DE ANDAMIOS","unidad":"M2","cant":198,"punit":9879,"ptotal":1956042},{"item":"B","desc":"CAMBIO DE CUBIERTA","unidad":"","cant":0,"punit":0,"ptotal":0,"esCapitulo":true},{"item":"B.1","desc":"RETIRO DE COSTANERAS","unidad":"M2","cant":1575,"punit":7925,"ptotal":12481875},{"item":"B.2","desc":"REFUERZO DE CERCHAS","unidad":"M2","cant":1575,"punit":20521,"ptotal":32320575},{"item":"B.3","desc":"COSTANERAS DE PINO IMPREGNADO 2\"X2\"","unidad":"M2","cant":1575,"punit":10558,"ptotal":16628850},{"item":"B.4","desc":"FIELTRO DE 15 LB","unidad":"M2","cant":1575,"punit":3375,"ptotal":5315625},{"item":"B.5","desc":"PLACA OSB ESTRUCTURAL11,1 MM","unidad":"M2","cant":1575,"punit":17564,"ptotal":27663300},{"item":"B.6","desc":"CUBIERTA DE ZINC ALUM DE 0,4 MM","unidad":"M2","cant":1575,"punit":20563,"ptotal":32386725},{"item":"B.7","desc":"CABALLETE ZINC ALUM DE 0,35MM Y 40 CM DE DESARROLLO","unidad":"ML","cant":225,"punit":11978,"ptotal":2695050},{"item":"B.11","desc":"INSTALACIÓN CELOSÍAS DE VENTILACIÓN EN ALEROS /FRONTON","unidad":"UNIDAD","cant":16,"punit":14815,"ptotal":237040},{"item":"B.15","desc":"FORRO ACERO GALVANIZADO 50 CM. DESARROLLO","unidad":"ML","cant":332,"punit":21750,"ptotal":7221000},{"item":"C","desc":"CAMBIO DE CANALETA DE AGUAS LLUVIAS","unidad":"","cant":0,"punit":0,"ptotal":0,"esCapitulo":true},{"item":"C.1","desc":"RETIRO DE CANALETAS","unidad":"ML","cant":332,"punit":3795,"ptotal":1259940},{"item":"C.2","desc":"CANALETAS FE GALV. DE 0,3 MM","unidad":"ML","cant":332,"punit":12767,"ptotal":4238644},{"item":"C.3","desc":"RETIRO DE BAJADAS DE ALL","unidad":"ML","cant":160,"punit":2840,"ptotal":454400},{"item":"C.4","desc":"B.A.LL FE GALVANIZADO DE 0,3","unidad":"ML","cant":160,"punit":24487,"ptotal":3917920},{"item":"C.5","desc":"SOLUCION DE AGUAS LLUVIAS","unidad":"","cant":0,"punit":0,"ptotal":0,"esCapitulo":true},{"item":"C.5.1","desc":"DEMOLICION DE PAVIMENTO EXISTENTE (e=7cm)","unidad":"M3","cant":6,"punit":120571,"ptotal":723426},{"item":"C.5.2","desc":"EXCAVACIONES","unidad":"M3","cant":148,"punit":29225,"ptotal":4325300},{"item":"C.5.3","desc":"CAMARAS DE INSPECCION","unidad":"UNIDAD","cant":16,"punit":466989,"ptotal":7471824},{"item":"C.5.4","desc":"TUBERIAS 200 MM","unidad":"ML","cant":48,"punit":24536,"ptotal":1177728},{"item":"C.5.5","desc":"CUBO DREN","unidad":"M3","cant":24,"punit":325263,"ptotal":7806312},{"item":"C.5.6","desc":"GEOTEXTIL","unidad":"M2","cant":328,"punit":3957,"ptotal":1297896},{"item":"C.5.7","desc":"RELLENOS ESTABILIZADOS","unidad":"M3","cant":28,"punit":50373,"ptotal":1410444},{"item":"C.5.8","desc":"RELLENOS DE ARENA","unidad":"M3","cant":72,"punit":83334,"ptotal":6000048},{"item":"C.5.9","desc":"CAMA RIPIO COMPACTADO (e=8)","unidad":"M2","cant":84,"punit":4734,"ptotal":397656},{"item":"C.5.10","desc":"REPOSICION DE PAVIMENTOS (RADIER e=7CM)","unidad":"M2","cant":84,"punit":16903,"ptotal":1419852},{"item":"D","desc":"TRABAJOS COMPLEMENTARIOS DE CUBIERTA","unidad":"","cant":0,"punit":0,"ptotal":0,"esCapitulo":true},{"item":"D.1","desc":"RETIRO DE OBJETO DE CUBIERTA","unidad":"UNIDAD","cant":16,"punit":11379,"ptotal":182064},{"item":"D.2","desc":"MANTA HOJALATERÍA PARA DUCTOS DE VENTILACIÓN EXISTENTES","unidad":"M2","cant":8,"punit":44568,"ptotal":356544},{"item":"D.3","desc":"DUCTO E VENTILACION DE GASES","unidad":"UNIDAD","cant":16,"punit":70288,"ptotal":1124608},{"item":"E","desc":"MANEJO DE PLAGAS","unidad":"","cant":0,"punit":0,"ptotal":0,"esCapitulo":true},{"item":"E.1","desc":"LIMPIEZA ENTRETECHO","unidad":"M2","cant":1432,"punit":4124,"ptotal":5905568},{"item":"E.2","desc":"INSTALACIÓN DE VARILLAS ANTIPALOMAS","unidad":"ML","cant":557,"punit":24817,"ptotal":13823069},{"item":"II","desc":"ENTREGA FINAL Y RECEPCIÓN DE OBRAS","unidad":"","cant":0,"punit":0,"ptotal":0,"esCapitulo":true},{"item":"II.1","desc":"RETIRO DE ESCOMBROS","unidad":"M3","cant":350,"punit":37748,"ptotal":13211800}];
 
 function renderAvance(o){
   const c=document.getElementById('m-avance');
-  if(!o.partidas?.length){c.innerHTML='<div class="empty-state">Sin partidas registradas.</div>';return;}
-  const avg=Math.round(o.partidas.reduce((s,p)=>s+p.pct,0)/o.partidas.length);
-  c.innerHTML=`<div style="padding:12px 16px 4px;"><div class="stat-card"><div class="stat-label">Promedio avance partidas</div><div class="stat-value">${avg}<span class="stat-unit">%</span></div></div></div>${o.partidas.map((p,i)=>`<div class="part-row"><div class="part-top"><span class="part-name">${p.nombre}</span><span class="part-pct" style="color:${p.pct>=80?'var(--green)':p.pct>=40?'var(--amber)':'var(--red)'}">${p.pct}%</span></div><div class="mini-track"><div class="mini-fill ${p.pct>=80?'fill-ok':p.pct>=40?'fill-warn':'fill-danger'}" style="width:${p.pct}%"></div></div><div style="margin-top:6px;"><button style="font-size:11px;padding:4px 12px;border:0.5px solid var(--border2);border-radius:20px;background:none;cursor:pointer;color:var(--text2);" onclick="updatePartida(${i})">Actualizar %</button></div></div>`).join('')}`;
+  // Inicializar partidas desde base si no existen
+  if(!o.partidas||!o.partidas.length){
+    o.partidas=PARTIDAS_BASE.map(p=>({...p,cantHF:0,valHF:0,valEP:0,pct:0}));
+  }
+  const partidas=o.partidas;
+  const totalPpto=partidas.filter(p=>!p.esCapitulo).reduce((s,p)=>s+(p.ptotal||0),0);
+  const totalHF=partidas.filter(p=>!p.esCapitulo).reduce((s,p)=>s+(p.valHF||0),0);
+  const totalEP=partidas.filter(p=>!p.esCapitulo).reduce((s,p)=>s+(p.valEP||0),0);
+  const avgAvance=partidas.filter(p=>!p.esCapitulo).length?
+    Math.round(partidas.filter(p=>!p.esCapitulo).reduce((s,p)=>s+(p.pct||0),0)/partidas.filter(p=>!p.esCapitulo).length):0;
+
+  c.innerHTML=`
+    <div style="padding:10px 16px 4px;">
+      <div class="stats-row" style="margin-bottom:8px;">
+        <div class="stat-card"><div class="stat-label">Avance promedio</div><div class="stat-value">${avgAvance}<span class="stat-unit">%</span></div></div>
+        <div class="stat-card"><div class="stat-label">Total Ppto</div><div class="stat-value" style="font-size:13px;">$${fmtM(totalPpto)}</div></div>
+        <div class="stat-card"><div class="stat-label">Hasta la fecha</div><div class="stat-value" style="font-size:13px;color:var(--blue);">$${fmtM(totalHF)}</div></div>
+        <div class="stat-card"><div class="stat-label">Valor EP</div><div class="stat-value" style="font-size:13px;color:var(--green);">$${fmtM(totalEP)}</div></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--blue);cursor:pointer;padding:8px 0;">
+        <input type="file" accept=".xlsx,.xls" style="display:none;" onchange="cargarPartidasExcel(event)"/>
+        🔄 Recargar desde Excel (Ppto Comp)
+      </label>
+    </div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:11px;min-width:600px;">
+        <thead>
+          <tr style="background:var(--blue);color:#fff;">
+            <th style="padding:7px 8px;text-align:left;width:50px;">Ítem</th>
+            <th style="padding:7px 8px;text-align:left;">Descripción</th>
+            <th style="padding:7px 8px;text-align:center;width:35px;">U.</th>
+            <th style="padding:7px 8px;text-align:right;width:55px;">Cant.</th>
+            <th style="padding:7px 8px;text-align:right;width:80px;">P.Total</th>
+            <th style="padding:7px 8px;text-align:center;width:55px;">Cant.HF</th>
+            <th style="padding:7px 8px;text-align:center;width:80px;">Val.HF ($)</th>
+            <th style="padding:7px 8px;text-align:center;width:80px;">Val.EP ($)</th>
+            <th style="padding:7px 8px;text-align:center;width:50px;">Avance</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${partidas.map((p,i)=>p.esCapitulo
+            ? `<tr style="background:var(--blue-bg);"><td colspan="9" style="padding:6px 8px;font-weight:600;color:var(--blue);font-size:11px;">${p.item}. ${p.desc}</td></tr>`
+            : `<tr style="border-bottom:0.5px solid var(--border);${i%2===0?'background:var(--bg2);':''}">
+                <td style="padding:5px 8px;font-weight:500;">${p.item}</td>
+                <td style="padding:5px 8px;">${p.desc}</td>
+                <td style="padding:5px 8px;text-align:center;">${p.unidad}</td>
+                <td style="padding:5px 8px;text-align:right;">${p.cant}</td>
+                <td style="padding:5px 8px;text-align:right;">$${fmtM(p.ptotal)}</td>
+                <td style="padding:2px 4px;text-align:center;"><input type="number" value="${p.cantHF||0}" min="0" style="width:50px;padding:3px;border:0.5px solid var(--border2);border-radius:4px;font-size:11px;text-align:right;" onchange="updatePartidaField(${i},'cantHF',this.value)"/></td>
+                <td style="padding:2px 4px;text-align:center;"><input type="number" value="${p.valHF||0}" min="0" style="width:75px;padding:3px;border:0.5px solid var(--border2);border-radius:4px;font-size:11px;text-align:right;" onchange="updatePartidaField(${i},'valHF',this.value)"/></td>
+                <td style="padding:2px 4px;text-align:center;"><input type="number" value="${p.valEP||0}" min="0" style="width:75px;padding:3px;border:0.5px solid var(--border2);border-radius:4px;font-size:11px;text-align:right;" onchange="updatePartidaField(${i},'valEP',this.value)"/></td>
+                <td style="padding:5px 8px;text-align:center;">
+                  <span style="color:${(p.pct||0)>=80?'var(--green)':(p.pct||0)>=40?'var(--amber)':'var(--red)'}; font-weight:500;">${p.pct||0}%</span>
+                </td>
+              </tr>`
+          ).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="padding:10px 16px;">
+      <button class="btn-primary" onclick="guardarPartidas()">Guardar avances</button>
+    </div>`;
 }
 
+function updatePartidaField(i,campo,val){
+  const o=state.obras[state.activeObraIdx];
+  o.partidas[i][campo]=parseFloat(val)||0;
+  // Calcular % automático si hay valor HF y ptotal
+  if(o.partidas[i].ptotal>0){
+    o.partidas[i].pct=Math.min(100,Math.round((o.partidas[i].valHF||0)/o.partidas[i].ptotal*100));
+  }
+}
+function guardarPartidas(){
+  const o=state.obras[state.activeObraIdx];
+  const noCapitulo=o.partidas.filter(p=>!p.esCapitulo);
+  o.avance=noCapitulo.length?Math.round(noCapitulo.reduce((s,p)=>s+(p.pct||0),0)/noCapitulo.length):0;
+  saveAndSync();showToast('Avances guardados');
+}
 function updatePartida(i){
   const o=state.obras[state.activeObraIdx];
-  const v=parseInt(prompt(`Nuevo avance "${o.partidas[i].nombre}" (0-100%):`)||'-1');
+  const v=parseInt(prompt(`Nuevo avance "${o.partidas[i].desc}" (0-100%):`)||'-1');
   if(v<0||v>100)return;
-  o.partidas[i].pct=v;o.avance=Math.round(o.partidas.reduce((s,p)=>s+p.pct,0)/o.partidas.length);
-  saveAndSync();renderAvance(o);showToast('Avance actualizado');
+  o.partidas[i].pct=v;
+  guardarPartidas();
+}
+function cargarPartidasExcel(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      if(!window.XLSX){showToast('Cargando librería...');return;}
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      // Buscar hoja Ppto Comp
+      const sheetName=wb.SheetNames.find(n=>n.includes('Comp'))||wb.SheetNames[0];
+      const ws=wb.Sheets[sheetName];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const items=[];
+      rows.forEach((row,ri)=>{
+        if(ri<9)return;
+        const item=row[0],desc=row[1],unidad=row[2],cant=row[3],punit=row[4];
+        if(!item||!desc||String(item)==='ÍTEM')return;
+        const esC=!unidad&&!cant;
+        const cantN=parseFloat(cant)||0,punitN=parseFloat(punit)||0;
+        const p={item:String(item),desc:String(desc).trim(),unidad:String(unidad||''),cant:cantN,punit:punitN,ptotal:Math.round(cantN*punitN),cantHF:0,valHF:0,valEP:0,pct:0};
+        if(esC)p.esCapitulo=true;
+        items.push(p);
+      });
+      if(items.length>0){
+        const o=state.obras[state.activeObraIdx];
+        o.partidas=items;
+        saveAndSync();renderAvance(o);showToast(`${items.length} partidas cargadas desde Excel`);
+      } else showToast('No se encontraron partidas');
+    }catch(e){showToast('Error leyendo Excel: '+e.message);}
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function renderCurvas(o){
@@ -1998,28 +2416,123 @@ function renderCurvas(o){
 
 function switchMTab(t){['ep','avance','curvas'].forEach(x=>{document.getElementById('m-'+x).style.display=x===t?'block':'none';});document.querySelectorAll('#m-tabs .tab-btn').forEach((b,i)=>b.classList.toggle('active',['ep','avance','curvas'][i]===t));}
 
+// ── COMUNICACIONES — solo libro de obras ─────────────────
+
 function renderComunicaciones(o){
   renderLibro(o);
-  document.getElementById('c-informes').innerHTML='<div class="empty-state">Informes bimensuales de avance.<br>Presiona + para registrar.</div>';
-  document.getElementById('c-actas').innerHTML='<div class="empty-state">Actas de entrega terreno y recepción.</div>';
+  // Ocultar pestañas que ya no se usan
+  const tabs=document.querySelector('#s-comunicaciones .tab-bar');
+  if(tabs)tabs.style.display='none';
 }
 function renderLibro(o){
   const c=document.getElementById('c-libro');
-  if(!o.libro?.length){c.innerHTML='<div class="empty-state">Sin entradas. Presiona + para agregar.</div>';return;}
-  c.innerHTML=o.libro.slice().reverse().map(e=>`<div class="libro-entry"><div class="libro-date">${fmtDate(e.fecha)}</div><div class="libro-text">${e.texto}</div><div class="libro-autor">${e.autor}</div></div>`).join('');
+  if(!o.libro?.length){c.innerHTML='<div class="empty-state">Sin entradas en el libro de obras.<br>Presiona + para agregar.</div>';return;}
+  c.innerHTML=o.libro.slice().reverse().map((e,ri)=>{
+    const idx=o.libro.length-1-ri;
+    return `<div class="libro-entry">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div class="libro-date">${fmtDate(e.fecha)}${e.hora?' · '+e.hora:''}</div>
+        <button onclick="eliminarEntradaLibro(${idx})" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;">✕</button>
+      </div>
+      <div class="libro-text">${e.texto}</div>
+      <div class="libro-autor">${e.autor}</div>
+    </div>`;
+  }).join('');
 }
-function switchCTab(t){['libro','informes','actas'].forEach(x=>{document.getElementById('c-'+x).style.display=x===t?'block':'none';});document.querySelectorAll('#s-comunicaciones .tab-btn').forEach((b,i)=>b.classList.toggle('active',['libro','informes','actas'][i]===t));}
+function switchCTab(t){document.getElementById('c-libro').style.display='block';}
 function addComEntry(){
   const o=state.obras[state.activeObraIdx];
-  const txt=prompt('Nueva entrada libro de inspección:');if(!txt)return;
+  const txt=prompt('Nueva entrada libro de obras:');if(!txt)return;
   if(!o.libro)o.libro=[];
-  o.libro.push({fecha:today(),texto:txt,autor:'César G., ITO'});
-  saveAndSync();renderLibro(o);showToast('Entrada guardada');
+  const ahora=new Date();
+  o.libro.push({fecha:ahora.toISOString().slice(0,10),hora:ahora.toTimeString().slice(0,5),texto:txt,autor:'César G., ITO'});
+  saveAndSync();renderLibro(o);showToast('Entrada registrada');
 }
+function eliminarEntradaLibro(idx){
+  if(!confirm('¿Eliminar esta entrada?'))return;
+  const o=state.obras[state.activeObraIdx];
+  o.libro.splice(idx,1);
+  saveAndSync();renderLibro(o);showToast('Entrada eliminada');
+}
+
+// ── PERSONAL Y ORGANIGRAMA — editable ────────────────────
 
 function renderPersonal(o){
   const p=o.personal||{};
-  document.getElementById('personal-body').innerHTML=`<div style="padding:16px;">${[['Profesional residente',p.residente||'—'],['Encargado autocontrol',p.autocontrol||'—'],['Jefe de terreno',p.jefTerreno||'—']].map(([k,v])=>`<div class="obra-card" style="cursor:default;"><div class="obra-meta" style="font-size:11px;margin:0 0 2px;">${k}</div><div class="obra-name">${v}</div></div>`).join('')}</div>`;
+  const profesionales=o.profesionales||[];
+  document.getElementById('personal-body').innerHTML=`
+    <div style="padding:16px;">
+      <div class="section-title" style="padding:0 0 8px;">responsables principales</div>
+      ${[
+        ['Profesional residente','residente'],
+        ['Encargado autocontrol','autocontrol'],
+        ['Jefe de terreno','jefTerreno'],
+      ].map(([label,key])=>`
+        <div class="form-group">
+          <label class="form-label">${label}</label>
+          <input class="form-input" id="pers-${key}" value="${p[key]||''}" placeholder="${label}"/>
+        </div>`).join('')}
+
+      <div class="section-title" style="padding:12px 0 8px;">otros profesionales</div>
+      ${profesionales.map((pr,i)=>`
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
+          <div style="flex:1;">
+            <input class="form-input" value="${pr.nombre||''}" placeholder="Nombre y cargo" style="margin-bottom:4px;" onchange="updateProfesional(${i},'nombre',this.value)"/>
+            <input class="form-input" value="${pr.cargo||''}" placeholder="Cargo" style="font-size:12px;" onchange="updateProfesional(${i},'cargo',this.value)"/>
+          </div>
+          <button onclick="eliminarProfesional(${i})" style="color:var(--red);background:none;border:none;font-size:18px;cursor:pointer;flex-shrink:0;">✕</button>
+        </div>`).join('')}
+      <button class="btn-secondary" onclick="agregarProfesional()" style="margin-bottom:14px;">+ Agregar profesional</button>
+
+      <div class="section-title" style="padding:0 0 8px;">organigrama</div>
+      ${o.organigramaDriveLink
+        ? `<a href="${o.organigramaDriveLink}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--blue);">📎 ${o.organigramaNombre||'Organigrama'}</a>`
+        : ''}
+      <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;margin-bottom:14px;">
+        <input type="file" accept=".pdf,.png,.jpg,.jpeg" style="display:none;" onchange="subirOrganigrama(event)"/>
+        <span style="font-size:20px;">🗂️</span>
+        <div><div style="font-size:13px;font-weight:500;">${o.organigramaDriveLink?'Reemplazar organigrama':'Subir organigrama'}</div><div style="font-size:11px;color:var(--text2);">PDF o imagen</div></div>
+      </label>
+
+      <button class="btn-primary" onclick="guardarPersonal()">Guardar cambios</button>
+    </div>`;
+}
+
+function guardarPersonal(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.personal)o.personal={};
+  o.personal.residente=document.getElementById('pers-residente').value.trim();
+  o.personal.autocontrol=document.getElementById('pers-autocontrol').value.trim();
+  o.personal.jefTerreno=document.getElementById('pers-jefTerreno').value.trim();
+  saveAndSync();showToast('Personal guardado');
+}
+function agregarProfesional(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.profesionales)o.profesionales=[];
+  o.profesionales.push({nombre:'',cargo:''});
+  saveAndSync();renderPersonal(o);
+}
+function updateProfesional(i,campo,val){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.profesionales)o.profesionales=[];
+  o.profesionales[i][campo]=val;
+}
+function eliminarProfesional(i){
+  const o=state.obras[state.activeObraIdx];
+  o.profesionales.splice(i,1);
+  saveAndSync();renderPersonal(o);showToast('Eliminado');
+}
+async function subirOrganigrama(event){
+  const file=event.target.files[0];if(!file)return;
+  if(!accessToken){showToast('Conecta Drive para subir');return;}
+  showToast('Subiendo organigrama...');
+  try{
+    const r=await subirArchivoADrive(file,'Personal/Organigrama');
+    const o=state.obras[state.activeObraIdx];
+    o.organigramaDriveLink=r.webViewLink;
+    o.organigramaNombre=r.name;
+    saveAndSync();renderPersonal(o);showToast('Organigrama subido a Drive ✓');
+  }catch(e){showToast('Error: '+e.message);}
 }
 
 function confirmarEliminarObra(){
