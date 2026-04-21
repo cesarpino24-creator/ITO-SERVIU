@@ -130,6 +130,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="mod-item" onclick="goModulo('medicion')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">📊</div><div><div class="mod-name">Fichas M — Medición</div><div class="mod-desc">Estados de pago, avance por partida</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('comunicaciones')"><div class="mod-left"><div class="mod-icon" style="background:var(--amber-bg);">📝</div><div><div class="mod-name">Comunicaciones</div><div class="mod-desc">Libro inspección, informes, actas</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('personal')"><div class="mod-left"><div class="mod-icon" style="background:#FBEAF0;">👷</div><div><div class="mod-name">Personal y organigrama</div><div class="mod-desc">Residente, autocontrol, subcontratos</div></div></div><span class="chevron">›</span></div>
+    <div class="mod-item" onclick="goModulo('garantias')"><div class="mod-left"><div class="mod-icon" style="background:#EAF3DE;">🔒</div><div><div class="mod-name">Garantías</div><div class="mod-desc">Boletas y pólizas con alertas de vencimiento</div></div></div><span class="chevron">›</span></div>
+    <div class="mod-item" onclick="goModulo('ensayos')"><div class="mod-left"><div class="mod-icon" style="background:#FAEEDA;">🧪</div><div><div class="mod-name">Ensayos P.6</div><div class="mod-desc">Plan de ensayos y registro de resultados</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('informespdf')"><div class="mod-left"><div class="mod-icon" style="background:#F0EBF8;">📄</div><div><div class="mod-name">Exportar informe PDF</div><div class="mod-desc">Avance bimensual y estados de pago</div></div></div><span class="chevron">›</span></div>
   </div>
   <div style="padding:16px 16px 32px;">
@@ -233,6 +235,123 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <span>Generar y descargar PDF</span>
     </button>
     <div id="pdf-status" style="text-align:center;font-size:12px;color:var(--text2);margin-top:8px;display:none;">Generando PDF...</div>
+  </div>
+</div>
+
+<!-- GARANTÍAS -->
+<div class="screen" id="s-garantias">
+  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Garantías</div><div style="width:60px;"></div></div>
+  <div id="garantias-list"></div>
+  <div style="padding:12px 16px 32px;">
+    <button class="add-btn" onclick="showFormGarantia(-1)">+ Agregar garantía</button>
+  </div>
+</div>
+
+<!-- FORM GARANTÍA -->
+<div class="screen" id="s-garantia-form">
+  <div class="topbar"><button class="back-btn" onclick="go('s-garantias')">Garantías</button><div style="font-size:15px;font-weight:500;" id="gar-form-title">Nueva garantía</div><div style="width:60px;"></div></div>
+  <div class="form-wrap" style="padding-top:16px;">
+    <input type="hidden" id="gar-idx" value="-1"/>
+    <div class="form-group">
+      <label class="form-label">Tipo de garantía</label>
+      <select class="form-input" id="gar-tipo">
+        <option value="Fiel cumplimiento de contrato">Fiel cumplimiento de contrato</option>
+        <option value="Buena ejecución de la obra">Buena ejecución de la obra</option>
+        <option value="Correcta inversión del anticipo">Correcta inversión del anticipo</option>
+        <option value="Otro">Otro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Instrumento</label>
+      <select class="form-input" id="gar-instrumento">
+        <option value="Boleta bancaria">Boleta bancaria</option>
+        <option value="Póliza de seguro">Póliza de seguro</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">N° documento / boleta</label>
+      <input class="form-input" id="gar-numero" placeholder="Ej: 0012345"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Entidad emisora</label>
+      <input class="form-input" id="gar-entidad" placeholder="Ej: Banco Estado"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Monto ($)</label>
+        <input class="form-input" type="number" id="gar-monto" placeholder="0"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha vencimiento</label>
+        <input class="form-input" type="date" id="gar-vencimiento"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observaciones</label>
+      <input class="form-input" id="gar-obs" placeholder="Opcional"/>
+    </div>
+    <button class="btn-primary" onclick="guardarGarantia()">Guardar garantía</button>
+    <button class="btn-secondary" id="gar-btn-eliminar" onclick="eliminarGarantia()" style="color:var(--red);border-color:#F09595;display:none;">Eliminar garantía</button>
+    <button class="btn-secondary" onclick="go('s-garantias')">Cancelar</button>
+  </div>
+</div>
+
+<!-- ENSAYOS P6 -->
+<div class="screen" id="s-ensayos">
+  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Plan de ensayos P.6</div><div style="width:60px;"></div></div>
+  <div class="tab-bar" id="ens-tabs">
+    <button class="tab-btn active" onclick="switchEnsTab('plan')">Plan P.6</button>
+    <button class="tab-btn" onclick="switchEnsTab('registro')">Registro</button>
+    <button class="tab-btn" onclick="switchEnsTab('estado')">Estado</button>
+  </div>
+  <div id="ens-plan"></div>
+  <div id="ens-registro" style="display:none;"></div>
+  <div id="ens-estado" style="display:none;"></div>
+  <button class="fab" id="fab-ensayo" onclick="showFormEnsayo(-1)" style="display:none;">+</button>
+</div>
+
+<!-- FORM ENSAYO -->
+<div class="screen" id="s-ensayo-form">
+  <div class="topbar"><button class="back-btn" onclick="go('s-ensayos')">Ensayos</button><div style="font-size:15px;font-weight:500;" id="ens-form-title">Registrar ensayo</div><div style="width:60px;"></div></div>
+  <div class="form-wrap" style="padding-top:16px;">
+    <input type="hidden" id="ens-idx" value="-1"/>
+    <div class="form-group">
+      <label class="form-label">Ítem del plan P.6</label>
+      <select class="form-input" id="ens-item-sel"></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha del ensayo</label>
+      <input class="form-input" type="date" id="ens-fecha"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Laboratorio</label>
+      <input class="form-input" id="ens-lab" placeholder="Nombre del laboratorio"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">N° informe</label>
+        <input class="form-input" id="ens-ninforme" placeholder="Ej: 2024-001"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Resultado</label>
+        <select class="form-input" id="ens-resultado">
+          <option value="aprobado">Aprobado ✓</option>
+          <option value="rechazado">Rechazado ✗</option>
+          <option value="pendiente">Pendiente revisión</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Valor obtenido</label>
+      <input class="form-input" id="ens-valor" placeholder="Ej: 280 kg/cm² / 95% Proctor"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observaciones</label>
+      <input class="form-input" id="ens-obs" placeholder="Opcional"/>
+    </div>
+    <button class="btn-primary" onclick="guardarEnsayo()">Guardar ensayo</button>
+    <button class="btn-secondary" id="ens-btn-eliminar" onclick="eliminarEnsayo()" style="color:var(--red);border-color:#F09595;display:none;">Eliminar registro</button>
+    <button class="btn-secondary" onclick="go('s-ensayos')">Cancelar</button>
   </div>
 </div>
 
@@ -436,7 +555,359 @@ function goModulo(mod){
   else if(mod==='medicion'){renderMedicion(o);go('s-medicion');}
   else if(mod==='comunicaciones'){renderComunicaciones(o);go('s-comunicaciones');}
   else if(mod==='personal'){renderPersonal(o);go('s-personal');}
+  else if(mod==='garantias'){renderGarantias();go('s-garantias');}
+  else if(mod==='ensayos'){renderEnsayos();go('s-ensayos');}
   else if(mod==='informespdf'){initInformesPDF(o);go('s-informes-pdf');}
+}
+
+// ══ GARANTÍAS ══════════════════════════════════════════════
+
+function renderGarantias(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.garantias) o.garantias=[];
+  const list=document.getElementById('garantias-list');
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+
+  if(!o.garantias.length){
+    list.innerHTML='<div class="empty-state">Sin garantías registradas.<br>Presiona + para agregar.</div>';
+    return;
+  }
+
+  list.innerHTML=o.garantias.map((g,i)=>{
+    const venc=g.vencimiento?parseFechaJS(g.vencimiento):null;
+    const dias=venc?Math.round((venc-hoy)/(864e5)):null;
+    let badge='';
+    if(dias===null) badge='<span class="badge badge-info">Sin fecha</span>';
+    else if(dias<0) badge='<span class="badge badge-danger">Vencida</span>';
+    else if(dias<=45) badge=`<span class="badge badge-warn">Vence en ${dias}d</span>`;
+    else badge=`<span class="badge badge-ok">Vigente ${dias}d</span>`;
+    return `<div class="obra-card" onclick="showFormGarantia(${i})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="obra-name" style="font-size:14px;">${g.tipo}</div>
+          <div class="obra-meta">${g.instrumento} · ${g.entidad||'—'} · N°${g.numero||'—'}</div>
+          <div class="obra-meta" style="margin-top:3px;">Monto: $${fmtM(g.monto||0)} · Vence: ${fmtDate(g.vencimiento)}</div>
+        </div>
+        <div>${badge}</div>
+      </div>
+      ${g.obs?`<div style="font-size:11px;color:var(--text2);margin-top:6px;">${g.obs}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function showFormGarantia(idx){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.garantias) o.garantias=[];
+  document.getElementById('gar-idx').value=idx;
+  const esNueva=idx===-1;
+  document.getElementById('gar-form-title').textContent=esNueva?'Nueva garantía':'Editar garantía';
+  document.getElementById('gar-btn-eliminar').style.display=esNueva?'none':'block';
+  if(!esNueva){
+    const g=o.garantias[idx];
+    document.getElementById('gar-tipo').value=g.tipo||'Fiel cumplimiento de contrato';
+    document.getElementById('gar-instrumento').value=g.instrumento||'Boleta bancaria';
+    document.getElementById('gar-numero').value=g.numero||'';
+    document.getElementById('gar-entidad').value=g.entidad||'';
+    document.getElementById('gar-monto').value=g.monto||'';
+    document.getElementById('gar-vencimiento').value=g.vencimiento||'';
+    document.getElementById('gar-obs').value=g.obs||'';
+  } else {
+    document.getElementById('gar-tipo').value='Fiel cumplimiento de contrato';
+    document.getElementById('gar-instrumento').value='Boleta bancaria';
+    document.getElementById('gar-numero').value='';
+    document.getElementById('gar-entidad').value='';
+    document.getElementById('gar-monto').value='';
+    document.getElementById('gar-vencimiento').value='';
+    document.getElementById('gar-obs').value='';
+  }
+  go('s-garantia-form');
+}
+
+function guardarGarantia(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.garantias) o.garantias=[];
+  const idx=parseInt(document.getElementById('gar-idx').value);
+  const g={
+    tipo:document.getElementById('gar-tipo').value,
+    instrumento:document.getElementById('gar-instrumento').value,
+    numero:document.getElementById('gar-numero').value.trim(),
+    entidad:document.getElementById('gar-entidad').value.trim(),
+    monto:parseInt(document.getElementById('gar-monto').value)||0,
+    vencimiento:document.getElementById('gar-vencimiento').value,
+    obs:document.getElementById('gar-obs').value.trim(),
+  };
+  if(idx===-1) o.garantias.push(g);
+  else o.garantias[idx]=g;
+  saveAndSync(); go('s-garantias'); renderGarantias();
+  showToast(idx===-1?'Garantía agregada':'Garantía actualizada');
+}
+
+function eliminarGarantia(){
+  const o=state.obras[state.activeObraIdx];
+  const idx=parseInt(document.getElementById('gar-idx').value);
+  if(!confirm('¿Eliminar esta garantía?')) return;
+  o.garantias.splice(idx,1);
+  saveAndSync(); go('s-garantias'); renderGarantias();
+  showToast('Garantía eliminada');
+}
+
+// ══ ENSAYOS P6 ═════════════════════════════════════════════
+
+// Estructura base del plan P.6 según ANEXO cargado
+// Se complementa con los ítems del Excel subido
+const PLAN_BASE_P6=[
+  {num:1,  elemento:'Madera Pino Impregnado 2x2',  tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:2,  elemento:'Madera Pino Impregnado 1x4',  tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:3,  elemento:'Fieltro 15lb',                tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:4,  elemento:'Placa OSB Estructural',        tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:5,  elemento:'Plancha Acanalada 0,4mm',      tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:6,  elemento:'Caballete galvanizado 0,5mm',  tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:7,  elemento:'Forro acero galvanizado 50cm', tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:8,  elemento:'Canaletas Fe Galv. 0,3mm',     tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:9,  elemento:'B.A.LL Fe Galvanizado 0,3mm',  tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:10, elemento:'Suelo (infiltración)',          tipo:'Ensayo Porchet',        norma:'',      frec:''},
+  {num:11, elemento:'Cámara de Inspección',          tipo:'Certificado proveedor', norma:'',      frec:'Si se opta por cámara prefabricada'},
+  {num:12, elemento:'Geotextil',                    tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:15, elemento:'Cubo Dren',                    tipo:'Certificado proveedor', norma:'',      frec:''},
+  {num:18, elemento:'Ducto de Ventilación de Gases',tipo:'Certificado proveedor', norma:'',      frec:''},
+];
+
+function renderEnsayos(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.ensayos) o.ensayos=[];
+  if(!o.planP6) o.planP6=JSON.parse(JSON.stringify(PLAN_BASE_P6));
+  switchEnsTab('plan');
+}
+
+function switchEnsTab(tab){
+  ['plan','registro','estado'].forEach(t=>{
+    document.getElementById('ens-'+t).style.display=t===tab?'block':'none';
+  });
+  document.querySelectorAll('#ens-tabs .tab-btn').forEach((b,i)=>b.classList.toggle('active',['plan','registro','estado'][i]===tab));
+  document.getElementById('fab-ensayo').style.display=tab==='registro'?'flex':'none';
+  const o=state.obras[state.activeObraIdx];
+  if(!o.ensayos) o.ensayos=[];
+  if(!o.planP6) o.planP6=JSON.parse(JSON.stringify(PLAN_BASE_P6));
+  if(tab==='plan') renderPlanP6(o);
+  else if(tab==='registro') renderRegistroEnsayos(o);
+  else if(tab==='estado') renderEstadoEnsayos(o);
+}
+
+function renderPlanP6(o){
+  const c=document.getElementById('ens-plan');
+  const plan=o.planP6||PLAN_BASE_P6;
+  c.innerHTML=`
+    <div style="padding:10px 16px 4px;">
+      <div class="stat-card" style="margin-bottom:10px;">
+        <div class="stat-label">Plan de ensayos cargado desde P.6</div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px;">
+          ${plan.length} ítems · Toca cada ítem para ver detalle
+        </div>
+      </div>
+      <div style="margin-bottom:8px;display:flex;gap:8px;align-items:center;">
+        <label style="font-size:12px;color:var(--text2);">Cargar nueva planilla Excel P.6:</label>
+        <label style="font-size:12px;padding:5px 12px;background:var(--blue);color:#fff;border-radius:20px;cursor:pointer;">
+          <input type="file" accept=".xlsx,.xls" onchange="cargarPlanillaP6(event)" style="display:none;"/>
+          Subir Excel
+        </label>
+      </div>
+    </div>
+    ${plan.map((item,i)=>{
+      const realizados=(o.ensayos||[]).filter(e=>e.itemNum===item.num);
+      const aprobados=realizados.filter(e=>e.resultado==='aprobado').length;
+      const rechazados=realizados.filter(e=>e.resultado==='rechazado').length;
+      return `<div style="padding:10px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px;">
+        <div style="width:28px;height:28px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text2);flex-shrink:0;">${item.num}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;color:var(--text);">${item.elemento}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:1px;">${item.tipo}${item.norma?' · '+item.norma:''}${item.frec?' · '+item.frec:''}</div>
+          ${item.obs?`<div style="font-size:11px;color:var(--amber);margin-top:1px;">${item.obs}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          ${realizados.length>0?`<div style="font-size:11px;color:var(--text2);">${realizados.length} ensayo${realizados.length>1?'s':''}</div>
+          <div style="font-size:11px;">${aprobados>0?`<span style="color:var(--green);">✓${aprobados}</span> `:''}${rechazados>0?`<span style="color:var(--red);">✗${rechazados}</span>`:''}
+          </div>`:'<span class="badge badge-info" style="font-size:10px;">Pendiente</span>'}
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function cargarPlanillaP6(event){
+  const file=event.target.files[0];
+  if(!file){return;}
+  const reader=new FileReader();
+  reader.onload=function(e){
+    const data=new Uint8Array(e.target.result);
+    // Parseo básico: extraer texto del xlsx como TSV usando SheetJS si disponible
+    // Fallback: usar los datos base y notificar al usuario
+    try{
+      if(window.XLSX){
+        const wb=XLSX.read(data,{type:'array'});
+        const ws=wb.Sheets[wb.SheetNames[0]];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+        const items=[];
+        rows.forEach(row=>{
+          const num=parseInt(row[0]);
+          if(!isNaN(num)&&num>0&&row[1]){
+            items.push({
+              num,
+              elemento:String(row[1]||'').trim(),
+              tipo:String(row[2]||'').trim(),
+              norma:String(row[3]||'').trim(),
+              frec:String(row[4]||'').trim(),
+              obs:String(row[5]||'').trim(),
+            });
+          }
+        });
+        if(items.length>0){
+          const o=state.obras[state.activeObraIdx];
+          o.planP6=items;
+          saveAndSync();
+          renderPlanP6(o);
+          showToast(`Plan P.6 cargado: ${items.length} ítems`);
+        } else {
+          showToast('No se encontraron ítems en la planilla');
+        }
+      } else {
+        showToast('Usando plan base. Para cargar Excel instala SheetJS.');
+      }
+    }catch(err){
+      showToast('Error leyendo Excel. Usando plan base.');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderRegistroEnsayos(o){
+  const c=document.getElementById('ens-registro');
+  if(!o.ensayos||!o.ensayos.length){
+    c.innerHTML='<div class="empty-state">Sin ensayos registrados.<br>Presiona + para registrar un resultado.</div>';
+    return;
+  }
+  c.innerHTML=o.ensayos.slice().reverse().map((e,ri)=>{
+    const i=o.ensayos.length-1-ri;
+    const resColor=e.resultado==='aprobado'?'var(--green)':e.resultado==='rechazado'?'var(--red)':'var(--amber)';
+    const resBadge=e.resultado==='aprobado'?'badge-ok':e.resultado==='rechazado'?'badge-danger':'badge-warn';
+    const resLabel=e.resultado==='aprobado'?'Aprobado':e.resultado==='rechazado'?'Rechazado':'Pendiente';
+    return `<div class="obra-card" onclick="showFormEnsayo(${i})" style="cursor:pointer;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div class="obra-name" style="font-size:13px;">Ítem ${e.itemNum} — ${e.elemento}</div>
+          <div class="obra-meta">${fmtDate(e.fecha)} · ${e.laboratorio||'—'} · Inf. ${e.ninforme||'—'}</div>
+          ${e.valor?`<div class="obra-meta" style="margin-top:3px;">Valor: ${e.valor}</div>`:''}
+          ${e.obs?`<div class="obra-meta" style="margin-top:2px;">${e.obs}</div>`:''}
+        </div>
+        <span class="badge ${resBadge}">${resLabel}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderEstadoEnsayos(o){
+  const c=document.getElementById('ens-estado');
+  const plan=o.planP6||PLAN_BASE_P6;
+  const ensayos=o.ensayos||[];
+  const total=plan.length;
+  const conEnsayo=[...new Set(ensayos.map(e=>e.itemNum))].length;
+  const aprobados=plan.filter(item=>ensayos.some(e=>e.itemNum===item.num&&e.resultado==='aprobado')).length;
+  const rechazados=plan.filter(item=>ensayos.some(e=>e.itemNum===item.num&&e.resultado==='rechazado'&&!ensayos.some(e2=>e2.itemNum===item.num&&e2.resultado==='aprobado'))).length;
+  const pendientes=total-aprobados-rechazados;
+  const pctCumpl=Math.round(aprobados/total*100);
+
+  c.innerHTML=`
+    <div style="padding:12px 16px;">
+      <div class="stats-row" style="margin-bottom:12px;">
+        <div class="stat-card"><div class="stat-label">Cumplimiento</div><div class="stat-value" style="color:${pctCumpl>=80?'var(--green)':pctCumpl>=50?'var(--amber)':'var(--red)'};">${pctCumpl}<span class="stat-unit">%</span></div></div>
+        <div class="stat-card"><div class="stat-label">Total ítems</div><div class="stat-value">${total}</div></div>
+        <div class="stat-card"><div class="stat-label">Aprobados</div><div class="stat-value" style="color:var(--green);">${aprobados}</div></div>
+        <div class="stat-card"><div class="stat-label">Pendientes</div><div class="stat-value" style="color:var(--amber);">${pendientes}</div></div>
+      </div>
+      <div class="prog-wrap" style="margin:0 0 14px;">
+        <div class="prog-labels"><span class="prog-label">Cumplimiento plan de ensayos</span><span class="prog-pct">${pctCumpl}%</span></div>
+        <div class="prog-track"><div class="prog-fill ${pctCumpl>=80?'fill-ok':pctCumpl>=50?'fill-warn':'fill-danger'}" style="width:${pctCumpl}%"></div></div>
+      </div>
+    </div>
+    ${plan.map(item=>{
+      const ens=ensayos.filter(e=>e.itemNum===item.num);
+      const apro=ens.some(e=>e.resultado==='aprobado');
+      const rech=ens.some(e=>e.resultado==='rechazado');
+      const pend=ens.length===0;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid var(--border);">
+        <div style="width:20px;height:20px;border-radius:50%;background:${apro?'#639922':rech?'#E24B4A':pend?'#ddd':'#EF9F27'};flex-shrink:0;"></div>
+        <div style="flex:1;font-size:12px;color:var(--text);">Ítem ${item.num} — ${item.elemento}</div>
+        <div style="font-size:11px;color:var(--text2);">${ens.length>0?ens.length+' ensayo'+(ens.length>1?'s':''):'—'}</div>
+      </div>`;
+    }).join('')}`;
+}
+
+function showFormEnsayo(idx){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.planP6) o.planP6=JSON.parse(JSON.stringify(PLAN_BASE_P6));
+  document.getElementById('ens-idx').value=idx;
+  const esNuevo=idx===-1;
+  document.getElementById('ens-form-title').textContent=esNuevo?'Registrar ensayo':'Editar ensayo';
+  document.getElementById('ens-btn-eliminar').style.display=esNuevo?'none':'block';
+  const sel=document.getElementById('ens-item-sel');
+  sel.innerHTML=o.planP6.map(item=>`<option value="${item.num}">${item.num}. ${item.elemento}</option>`).join('');
+  if(!esNuevo){
+    const e=o.ensayos[idx];
+    sel.value=e.itemNum;
+    document.getElementById('ens-fecha').value=e.fecha||'';
+    document.getElementById('ens-lab').value=e.laboratorio||'';
+    document.getElementById('ens-ninforme').value=e.ninforme||'';
+    document.getElementById('ens-resultado').value=e.resultado||'aprobado';
+    document.getElementById('ens-valor').value=e.valor||'';
+    document.getElementById('ens-obs').value=e.obs||'';
+  } else {
+    document.getElementById('ens-fecha').value=today();
+    document.getElementById('ens-lab').value='';
+    document.getElementById('ens-ninforme').value='';
+    document.getElementById('ens-resultado').value='aprobado';
+    document.getElementById('ens-valor').value='';
+    document.getElementById('ens-obs').value='';
+  }
+  go('s-ensayo-form');
+}
+
+function guardarEnsayo(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.ensayos) o.ensayos=[];
+  const idx=parseInt(document.getElementById('ens-idx').value);
+  const itemNum=parseInt(document.getElementById('ens-item-sel').value);
+  const plan=o.planP6||PLAN_BASE_P6;
+  const itemData=plan.find(p=>p.num===itemNum)||{};
+  const ens={
+    itemNum,
+    elemento:itemData.elemento||'—',
+    fecha:document.getElementById('ens-fecha').value,
+    laboratorio:document.getElementById('ens-lab').value.trim(),
+    ninforme:document.getElementById('ens-ninforme').value.trim(),
+    resultado:document.getElementById('ens-resultado').value,
+    valor:document.getElementById('ens-valor').value.trim(),
+    obs:document.getElementById('ens-obs').value.trim(),
+  };
+  if(idx===-1) o.ensayos.push(ens);
+  else o.ensayos[idx]=ens;
+  saveAndSync(); go('s-ensayos');
+  switchEnsTab('registro');
+  showToast(idx===-1?'Ensayo registrado':'Ensayo actualizado');
+}
+
+function eliminarEnsayo(){
+  const o=state.obras[state.activeObraIdx];
+  const idx=parseInt(document.getElementById('ens-idx').value);
+  if(!confirm('¿Eliminar este registro de ensayo?')) return;
+  o.ensayos.splice(idx,1);
+  saveAndSync(); go('s-ensayos');
+  switchEnsTab('registro');
+  showToast('Ensayo eliminado');
+}
+
+function parseFechaJS(str){
+  if(!str)return null;
+  const[y,m,d]=str.split('-');
+  const f=new Date(parseInt(y),parseInt(m)-1,parseInt(d));
+  f.setHours(0,0,0,0);return f;
 }
 
 let tipoInforme='avance';
@@ -836,6 +1307,9 @@ function guardarObra(){
 }
 
 loadLocal();seedDemo();renderObras();
+const sheetjs=document.createElement('script');
+sheetjs.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+document.head.appendChild(sheetjs);
 const gsi=document.createElement('script');
 gsi.src='https://accounts.google.com/gsi/client';
 gsi.onload=()=>setTimeout(initGoogleAuth,300);
