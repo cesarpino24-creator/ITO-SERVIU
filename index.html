@@ -132,6 +132,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="mod-item" onclick="goModulo('personal')"><div class="mod-left"><div class="mod-icon" style="background:#FBEAF0;">👷</div><div><div class="mod-name">Personal y organigrama</div><div class="mod-desc">Residente, autocontrol, subcontratos</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('informespdf')"><div class="mod-left"><div class="mod-icon" style="background:#F0EBF8;">📄</div><div><div class="mod-name">Exportar informe PDF</div><div class="mod-desc">Avance bimensual y estados de pago</div></div></div><span class="chevron">›</span></div>
   </div>
+  <div style="padding:16px 16px 32px;">
+    <button onclick="confirmarEliminarObra()" style="width:100%;padding:11px;font-size:13px;background:none;color:var(--red);border:0.5px solid #F09595;border-radius:var(--r);cursor:pointer;">Eliminar esta obra</button>
+  </div>
 </div>
 
 <div class="screen" id="s-planificacion">
@@ -811,6 +814,16 @@ function addComEntry(){
 function renderPersonal(o){
   const p=o.personal||{};
   document.getElementById('personal-body').innerHTML=`<div style="padding:16px;">${[['Profesional residente',p.residente||'—'],['Encargado autocontrol',p.autocontrol||'—'],['Jefe de terreno',p.jefTerreno||'—']].map(([k,v])=>`<div class="obra-card" style="cursor:default;"><div class="obra-meta" style="font-size:11px;margin:0 0 2px;">${k}</div><div class="obra-name">${v}</div></div>`).join('')}</div>`;
+}
+
+function confirmarEliminarObra(){
+  const o=state.obras[state.activeObraIdx];
+  if(!confirm(`¿Eliminar "${o.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
+  state.obras.splice(state.activeObraIdx,1);
+  state.activeObraIdx=null;
+  saveAndSync();
+  go('s-obras');
+  showToast('Obra eliminada');
 }
 
 function goNuevaObra(){go('s-nueva-obra');document.getElementById('nw-inicio').value=today();}
