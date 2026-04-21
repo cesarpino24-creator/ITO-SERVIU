@@ -130,6 +130,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="mod-item" onclick="goModulo('medicion')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">📊</div><div><div class="mod-name">Fichas M — Medición</div><div class="mod-desc">Estados de pago, avance por partida</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('comunicaciones')"><div class="mod-left"><div class="mod-icon" style="background:var(--amber-bg);">📝</div><div><div class="mod-name">Comunicaciones</div><div class="mod-desc">Libro inspección, informes, actas</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('personal')"><div class="mod-left"><div class="mod-icon" style="background:#FBEAF0;">👷</div><div><div class="mod-name">Personal y organigrama</div><div class="mod-desc">Residente, autocontrol, subcontratos</div></div></div><span class="chevron">›</span></div>
+    <div class="mod-item" onclick="goModulo('visitas')"><div class="mod-left"><div class="mod-icon" style="background:#E1F5EE;">📍</div><div><div class="mod-name">Visitas ITO</div><div class="mod-desc">Registro con observaciones y fotografías</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('garantias')"><div class="mod-left"><div class="mod-icon" style="background:#EAF3DE;">🔒</div><div><div class="mod-name">Garantías</div><div class="mod-desc">Boletas y pólizas con alertas de vencimiento</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('ensayos')"><div class="mod-left"><div class="mod-icon" style="background:#FAEEDA;">🧪</div><div><div class="mod-name">Ensayos P.6</div><div class="mod-desc">Plan de ensayos y registro de resultados</div></div></div><span class="chevron">›</span></div>
     <div class="mod-item" onclick="goModulo('documentos')"><div class="mod-left"><div class="mod-icon" style="background:#F5F0FF;">🗂️</div><div><div class="mod-name">Gestión documental</div><div class="mod-desc">Actas, resoluciones, oficios, planos y más</div></div></div><span class="chevron">›</span></div>
@@ -424,6 +425,103 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- VISITAS ITO -->
+<div class="screen" id="s-visitas">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button>
+    <div style="font-size:15px;font-weight:500;">Visitas ITO</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div id="visitas-stats" style="padding:12px 16px 0;"></div>
+  <div id="visitas-list"></div>
+  <button class="fab" onclick="nuevaVisita()">+</button>
+</div>
+
+<!-- FORM VISITA -->
+<div class="screen" id="s-visita-form">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('s-visitas')">Visitas</button>
+    <div style="font-size:15px;font-weight:500;" id="visita-form-title">Nueva visita</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="form-wrap" style="padding-top:16px;">
+    <input type="hidden" id="visita-idx" value="-1"/>
+
+    <div class="form-group">
+      <label class="form-label">Tipo de visita</label>
+      <select class="form-input" id="visita-tipo">
+        <option value="Visita de inspección">Visita de inspección</option>
+        <option value="Visita de control de calidad">Visita de control de calidad</option>
+        <option value="Visita de medición EP">Visita de medición EP</option>
+        <option value="Visita de ensayos">Visita de ensayos</option>
+        <option value="Visita administrativa">Visita administrativa</option>
+        <option value="Otra">Otra</option>
+      </select>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Fecha</label>
+        <input class="form-input" type="date" id="visita-fecha"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Hora</label>
+        <input class="form-input" type="time" id="visita-hora"/>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Personas presentes</label>
+      <input class="form-input" id="visita-personas" placeholder="Ej: Residente, Capataz, ITO"/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Observaciones</label>
+      <textarea class="form-input" id="visita-obs" rows="5" placeholder="Describe lo observado, instrucciones impartidas, estado de avance, incumplimientos, etc." style="resize:none;line-height:1.5;"></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Estado de la obra</label>
+      <select class="form-input" id="visita-estado">
+        <option value="normal">Normal — sin observaciones críticas</option>
+        <option value="observada">Con observaciones — requiere seguimiento</option>
+        <option value="paralizada">Paralizada — instrucción ITO</option>
+        <option value="critica">Crítica — incumplimiento grave</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Fotografías (máx. 6)</label>
+      <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px 14px;cursor:pointer;">
+        <input type="file" id="visita-fotos-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handleVisitaFotos(event)"/>
+        <span style="font-size:22px;">📷</span>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);">Agregar fotos</div>
+          <div style="font-size:11px;color:var(--text2);">Desde cámara o galería</div>
+        </div>
+      </label>
+      <div id="visita-fotos-preview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;"></div>
+      <div id="visita-fotos-drive" style="margin-top:6px;"></div>
+    </div>
+
+    <div id="visita-upload-progress" style="display:none;padding:10px;background:var(--bg2);border-radius:var(--r);font-size:12px;color:var(--text2);text-align:center;margin-bottom:8px;">Subiendo fotos a Drive...</div>
+
+    <button class="btn-primary" onclick="guardarVisita()">Guardar visita</button>
+    <button class="btn-secondary" id="visita-btn-eliminar" onclick="eliminarVisita()" style="color:var(--red);border-color:#F09595;display:none;">Eliminar visita</button>
+    <button class="btn-secondary" onclick="go('s-visitas')">Cancelar</button>
+  </div>
+</div>
+
+<!-- DETALLE VISITA -->
+<div class="screen" id="s-visita-detalle">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('s-visitas')">Visitas</button>
+    <div style="font-size:15px;font-weight:500;" id="visita-det-fecha">—</div>
+    <button onclick="editarVisitaActual()" style="font-size:13px;color:var(--blue);background:none;border:none;cursor:pointer;">Editar</button>
+  </div>
+  <div id="visita-det-body"></div>
+</div>
+
 <div class="screen" id="s-nueva-obra">
   <div class="topbar"><button class="back-btn" onclick="go('s-obras')">Obras</button><div style="font-size:15px;font-weight:500;">Nueva obra</div><div style="width:60px;"></div></div>
   <div class="form-wrap" style="padding-top:16px;">
@@ -624,6 +722,7 @@ function goModulo(mod){
   else if(mod==='medicion'){renderMedicion(o);go('s-medicion');}
   else if(mod==='comunicaciones'){renderComunicaciones(o);go('s-comunicaciones');}
   else if(mod==='personal'){renderPersonal(o);go('s-personal');}
+  else if(mod==='visitas'){renderVisitas();go('s-visitas');}
   else if(mod==='garantias'){renderGarantias();go('s-garantias');}
   else if(mod==='ensayos'){renderEnsayos();go('s-ensayos');}
   else if(mod==='documentos'){renderDocumentos();go('s-documentos');}
@@ -924,6 +1023,266 @@ async function adjuntarArchivoGarantia(event, idx){
   } catch(e){
     showToast('Error: '+e.message);
   }
+}
+
+// ══ VISITAS ITO ════════════════════════════════════════════
+
+let visitaFotosNuevas = []; // {file, dataURL} pendientes de subir
+let visitaIdxActual = -1;
+
+function renderVisitas(){
+  const o = state.obras[state.activeObraIdx];
+  if(!o.visitas) o.visitas = [];
+
+  // Stats
+  const stats = document.getElementById('visitas-stats');
+  const total = o.visitas.length;
+  const criticas = o.visitas.filter(v=>v.estado==='critica'||v.estado==='paralizada').length;
+  const conObs = o.visitas.filter(v=>v.estado==='observada').length;
+  const ultimaFecha = total>0 ? o.visitas[total-1].fecha : null;
+  stats.innerHTML = `<div class="stats-row" style="margin-bottom:10px;">
+    <div class="stat-card"><div class="stat-label">Total visitas</div><div class="stat-value">${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Con observaciones</div><div class="stat-value" style="color:${conObs>0?'var(--amber)':'var(--green)'};">${conObs}</div></div>
+    <div class="stat-card"><div class="stat-label">Críticas/Paralizadas</div><div class="stat-value" style="color:${criticas>0?'var(--red)':'var(--green)'};">${criticas}</div></div>
+    <div class="stat-card"><div class="stat-label">Última visita</div><div class="stat-value" style="font-size:13px;">${fmtDate(ultimaFecha)}</div></div>
+  </div>`;
+
+  const list = document.getElementById('visitas-list');
+  if(!total){
+    list.innerHTML='<div class="empty-state">Sin visitas registradas.<br>Presiona + para registrar la primera visita.</div>';
+    return;
+  }
+
+  // Agrupar por mes
+  const porMes = {};
+  o.visitas.slice().reverse().forEach((v,ri)=>{
+    const idx = o.visitas.length-1-ri;
+    const mes = v.fecha ? v.fecha.slice(0,7) : '0000-00';
+    if(!porMes[mes]) porMes[mes]=[];
+    porMes[mes].push({v,idx});
+  });
+
+  const estadoColor = {
+    normal:'var(--green)', observada:'var(--amber)',
+    paralizada:'var(--red)', critica:'var(--red)'
+  };
+  const estadoLabel = {
+    normal:'Normal', observada:'Con observaciones',
+    paralizada:'Paralizada', critica:'Crítica'
+  };
+  const estadoBadge = {
+    normal:'badge-ok', observada:'badge-warn',
+    paralizada:'badge-danger', critica:'badge-danger'
+  };
+
+  list.innerHTML = Object.entries(porMes).map(([mes, items])=>{
+    const [y,m] = mes.split('-');
+    const nombreMes = new Date(parseInt(y),parseInt(m)-1,1)
+      .toLocaleDateString('es-CL',{month:'long',year:'numeric'});
+    return `<div class="section-title">${nombreMes}</div>` +
+      items.map(({v,idx})=>`
+        <div class="obra-card" onclick="verVisita(${idx})" style="cursor:pointer;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+                <span style="font-size:13px;font-weight:500;color:var(--text);">${v.tipo||'Visita de inspección'}</span>
+              </div>
+              <div class="obra-meta">${fmtDate(v.fecha)}${v.hora?' · '+v.hora:''} ${v.personas?'· '+v.personas:''}</div>
+              ${v.obs?`<div style="font-size:12px;color:var(--text2);margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${v.obs}</div>`:''}
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
+              <span class="badge ${estadoBadge[v.estado]||'badge-info'}">${estadoLabel[v.estado]||'Normal'}</span>
+              ${v.fotos&&v.fotos.length?`<span style="font-size:11px;color:var(--text2);">📷 ${v.fotos.length}</span>`:''}
+            </div>
+          </div>
+        </div>`).join('');
+  }).join('');
+}
+
+function nuevaVisita(){
+  visitaFotosNuevas = [];
+  visitaIdxActual = -1;
+  document.getElementById('visita-idx').value = -1;
+  document.getElementById('visita-form-title').textContent = 'Nueva visita';
+  document.getElementById('visita-btn-eliminar').style.display = 'none';
+  document.getElementById('visita-tipo').value = 'Visita de inspección';
+  // Fecha y hora actuales
+  const ahora = new Date();
+  document.getElementById('visita-fecha').value = ahora.toISOString().slice(0,10);
+  document.getElementById('visita-hora').value = ahora.toTimeString().slice(0,5);
+  document.getElementById('visita-personas').value = 'César G., ITO';
+  document.getElementById('visita-obs').value = '';
+  document.getElementById('visita-estado').value = 'normal';
+  document.getElementById('visita-fotos-preview').innerHTML = '';
+  document.getElementById('visita-fotos-drive').innerHTML = '';
+  document.getElementById('visita-upload-progress').style.display = 'none';
+  go('s-visita-form');
+}
+
+function editarVisita(idx){
+  const o = state.obras[state.activeObraIdx];
+  const v = o.visitas[idx];
+  visitaFotosNuevas = [];
+  visitaIdxActual = idx;
+  document.getElementById('visita-idx').value = idx;
+  document.getElementById('visita-form-title').textContent = 'Editar visita';
+  document.getElementById('visita-btn-eliminar').style.display = 'block';
+  document.getElementById('visita-tipo').value = v.tipo||'Visita de inspección';
+  document.getElementById('visita-fecha').value = v.fecha||'';
+  document.getElementById('visita-hora').value = v.hora||'';
+  document.getElementById('visita-personas').value = v.personas||'';
+  document.getElementById('visita-obs').value = v.obs||'';
+  document.getElementById('visita-estado').value = v.estado||'normal';
+  document.getElementById('visita-upload-progress').style.display = 'none';
+  // Mostrar fotos ya guardadas en Drive
+  const driveDiv = document.getElementById('visita-fotos-drive');
+  driveDiv.innerHTML = v.fotos&&v.fotos.length
+    ? v.fotos.map(f=>`<a href="${f.driveLink}" target="_blank" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--blue);padding:4px 0;">📎 ${f.nombre}</a>`).join('')
+    : '';
+  document.getElementById('visita-fotos-preview').innerHTML = '';
+  go('s-visita-form');
+}
+
+function editarVisitaActual(){
+  const idx = parseInt(document.getElementById('visita-det-body').dataset.idx||'-1');
+  if(idx>=0) editarVisita(idx);
+}
+
+function handleVisitaFotos(event){
+  const files = [...event.target.files].slice(0,6);
+  visitaFotosNuevas = [];
+  const preview = document.getElementById('visita-fotos-preview');
+  preview.innerHTML = '';
+  files.forEach(f=>{
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      visitaFotosNuevas.push({file:f, dataURL:ev.target.result});
+      const img = document.createElement('img');
+      img.src = ev.target.result;
+      img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);';
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+async function guardarVisita(){
+  const o = state.obras[state.activeObraIdx];
+  if(!o.visitas) o.visitas=[];
+  const idx = parseInt(document.getElementById('visita-idx').value);
+  const fecha = document.getElementById('visita-fecha').value;
+  const hora = document.getElementById('visita-hora').value;
+
+  if(!fecha){ showToast('Ingresa la fecha de la visita'); return; }
+
+  const base = idx>=0 ? {...o.visitas[idx], fotos:[...(o.visitas[idx].fotos||[])]} : {fotos:[]};
+  const visita = {
+    ...base,
+    tipo: document.getElementById('visita-tipo').value,
+    fecha, hora,
+    personas: document.getElementById('visita-personas').value.trim(),
+    obs: document.getElementById('visita-obs').value.trim(),
+    estado: document.getElementById('visita-estado').value,
+    timestamp: new Date().toISOString(),
+  };
+
+  // Subir fotos nuevas a Drive si hay conexión
+  if(visitaFotosNuevas.length > 0){
+    if(!accessToken){
+      showToast('Conecta Drive para guardar fotos. Visita guardada sin fotos.');
+    } else {
+      const prog = document.getElementById('visita-upload-progress');
+      prog.style.display='block';
+      let subidas=0;
+      for(const foto of visitaFotosNuevas){
+        prog.textContent=`Subiendo foto ${++subidas} de ${visitaFotosNuevas.length}...`;
+        try{
+          const carpeta = `Visitas/${o.nombre}/${fecha}`;
+          const result = await subirArchivoADrive(foto.file, carpeta);
+          visita.fotos.push({
+            nombre: result.name,
+            driveId: result.id,
+            driveLink: result.webViewLink,
+            fecha, hora
+          });
+        }catch(e){
+          showToast('Error subiendo foto: '+e.message);
+        }
+      }
+      prog.style.display='none';
+    }
+  }
+
+  if(idx===-1) o.visitas.push(visita);
+  else o.visitas[idx]=visita;
+
+  saveAndSync();
+  go('s-visitas');
+  renderVisitas();
+  showToast(idx===-1?'Visita registrada':'Visita actualizada');
+}
+
+function eliminarVisita(){
+  const o = state.obras[state.activeObraIdx];
+  const idx = parseInt(document.getElementById('visita-idx').value);
+  if(!confirm('¿Eliminar esta visita?')) return;
+  o.visitas.splice(idx,1);
+  saveAndSync();
+  go('s-visitas');
+  renderVisitas();
+  showToast('Visita eliminada');
+}
+
+function verVisita(idx){
+  const o = state.obras[state.activeObraIdx];
+  const v = o.visitas[idx];
+  const estadoLabel = {normal:'Normal',observada:'Con observaciones',paralizada:'Paralizada',critica:'Crítica'};
+  const estadoBadge = {normal:'badge-ok',observada:'badge-warn',paralizada:'badge-danger',critica:'badge-danger'};
+
+  document.getElementById('visita-det-fecha').textContent = fmtDate(v.fecha)+(v.hora?' · '+v.hora:'');
+  const body = document.getElementById('visita-det-body');
+  body.dataset.idx = idx;
+
+  body.innerHTML = `
+    <div style="padding:14px 16px;">
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div>
+          <div style="font-size:15px;font-weight:500;">${v.tipo||'Visita de inspección'}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">${v.personas||'—'}</div>
+        </div>
+        <span class="badge ${estadoBadge[v.estado]||'badge-info'}">${estadoLabel[v.estado]||'Normal'}</span>
+      </div>
+
+      ${v.obs?`
+      <div style="background:var(--bg2);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Observaciones</div>
+        <div style="font-size:13px;line-height:1.6;color:var(--text);">${v.obs.replace(/\n/g,'<br>')}</div>
+      </div>`:''}
+
+      ${v.fotos&&v.fotos.length?`
+      <div style="margin-bottom:14px;">
+        <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Fotografías (${v.fotos.length})</div>
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
+          ${v.fotos.map(f=>`
+            <a href="${f.driveLink}" target="_blank" style="text-decoration:none;">
+              <div style="background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);overflow:hidden;">
+                <div style="background:var(--blue-bg);height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;">🖼️</div>
+                <div style="padding:6px 8px;">
+                  <div style="font-size:11px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📎 ${f.nombre}</div>
+                  <div style="font-size:10px;color:var(--text2);margin-top:1px;">Toca para abrir en Drive</div>
+                </div>
+              </div>
+            </a>`).join('')}
+        </div>
+      </div>`:''}
+
+      <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;">
+        <div style="font-size:11px;color:var(--text2);">Registrado el ${new Date(v.timestamp||Date.now()).toLocaleString('es-CL')}</div>
+      </div>
+    </div>`;
+
+  go('s-visita-detalle');
 }
 
 // ══ GARANTÍAS ══════════════════════════════════════════════
