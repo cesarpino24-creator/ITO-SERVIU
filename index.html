@@ -144,7 +144,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="grp-admin" style="display:none;background:var(--bg);border:0.5px solid var(--border);border-top:none;border-radius:0 0 var(--rl) var(--rl);overflow:hidden;">
       <div class="mod-list" style="padding:0 16px;">
         <div class="mod-item" onclick="goModulo('planificacion')"><div class="mod-left"><div class="mod-icon" style="background:var(--blue-bg);">📋</div><div><div class="mod-name">Fichas P — Planificación</div><div class="mod-desc">Plazos, programa, financiera, ensayos</div></div></div><span class="chevron">›</span></div>
-        <div class="mod-item" onclick="goModulo('medicion')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">📊</div><div><div class="mod-name">Fichas M — Medición</div><div class="mod-desc">Estados de pago, avance por partida</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('medicion')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">📊</div><div><div class="mod-name">Estados de pago</div><div class="mod-desc">EPs, avance por partida y Curva S</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('personal')"><div class="mod-left"><div class="mod-icon" style="background:#FBEAF0;">👷</div><div><div class="mod-name">Personal y organigrama</div><div class="mod-desc">Residente, autocontrol, subcontratos</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('garantias')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">🔒</div><div><div class="mod-name">Garantías</div><div class="mod-desc">Boletas y pólizas con alertas de vencimiento</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('documentos')"><div class="mod-left"><div class="mod-icon" style="background:#F5F0FF;">🗂️</div><div><div class="mod-name">Gestión documental</div><div class="mod-desc">Actas, resoluciones, oficios, planos y más</div></div></div><span class="chevron">›</span></div>
@@ -185,7 +185,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <div class="screen" id="s-medicion">
-  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Fichas M</div><div style="width:60px;"></div></div>
+  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Estados de pago</div><div style="width:60px;"></div></div>
   <div class="tab-bar" id="m-tabs">
     <button class="tab-btn active" onclick="switchMTab('ep')">Estados de pago</button>
     <button class="tab-btn" onclick="switchMTab('avance')">Avance partidas</button>
@@ -310,17 +310,34 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <input class="form-input" id="gar-numero" placeholder="Ej: 0012345"/>
     </div>
     <div class="form-group">
+      <label class="form-label">N° folio</label>
+      <input class="form-input" id="gar-folio" placeholder="Ej: 00123456"/>
+    </div>
+    <div class="form-group">
       <label class="form-label">Entidad emisora</label>
       <input class="form-input" id="gar-entidad" placeholder="Ej: Banco Estado"/>
     </div>
     <div class="form-row">
       <div class="form-group">
-        <label class="form-label">Monto ($)</label>
-        <input class="form-input" type="number" id="gar-monto" placeholder="0"/>
+        <label class="form-label">Moneda</label>
+        <select class="form-input" id="gar-moneda" onchange="actualizarLabelMonto()">
+          <option value="CLP">$ Pesos chilenos</option>
+          <option value="UF">UF</option>
+        </select>
       </div>
+      <div class="form-group">
+        <label class="form-label" id="gar-monto-label">Monto ($)</label>
+        <input class="form-input" type="text" id="gar-monto" placeholder="Ej: 15.000.000 o 366,23" inputmode="decimal"/>
+      </div>
+    </div>
+    <div class="form-row">
       <div class="form-group">
         <label class="form-label">Fecha vencimiento</label>
         <input class="form-input" type="date" id="gar-vencimiento"/>
+      </div>
+      <div class="form-group" id="gar-monto-uf-wrap" style="display:none;">
+        <label class="form-label">Equivalente en $ (referencial)</label>
+        <input class="form-input" type="text" id="gar-monto-equiv" placeholder="Ej: 13.200.000" inputmode="decimal"/>
       </div>
     </div>
     <div class="form-group">
@@ -528,14 +545,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <div class="form-group">
       <label class="form-label">Fotografías de obra (máx. 6)</label>
-      <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px 14px;cursor:pointer;">
-        <input type="file" id="visita-fotos-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handleVisitaFotos(event)"/>
-        <span style="font-size:22px;">📷</span>
-        <div>
-          <div style="font-size:13px;font-weight:500;color:var(--text);">Agregar fotos de obra</div>
-          <div style="font-size:11px;color:var(--text2);">Desde cámara o galería</div>
-        </div>
-      </label>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+        <label style="display:flex;align-items:center;justify-content:center;gap:8px;border:0.5px solid var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;background:var(--blue);color:#fff;">
+          <input type="file" id="visita-fotos-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handleVisitaFotos(event)"/>
+          <span style="font-size:20px;">📷</span>
+          <div style="text-align:center;">
+            <div style="font-size:13px;font-weight:500;">Cámara</div>
+            <div style="font-size:10px;opacity:.8;">Tomar foto ahora</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:8px;border:0.5px solid var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;background:var(--bg2);">
+          <input type="file" id="visita-fotos-galeria" multiple accept="image/*" style="display:none;" onchange="handleVisitaFotos(event)"/>
+          <span style="font-size:20px;">🖼️</span>
+          <div style="text-align:center;">
+            <div style="font-size:13px;font-weight:500;color:var(--text);">Galería</div>
+            <div style="font-size:10px;color:var(--text2);">Elegir de fotos</div>
+          </div>
+        </label>
+      </div>
       <div id="visita-fotos-preview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;"></div>
       <div id="visita-fotos-drive" style="margin-top:6px;"></div>
     </div>
@@ -543,15 +570,25 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- FOTOS LIBRO DE INSPECCIÓN -->
     <div class="form-group" style="border-top:0.5px solid var(--border);padding-top:14px;margin-top:4px;">
       <label class="form-label" style="font-size:13px;font-weight:600;color:var(--text);">📖 Libro de inspección — fotografía de página firmada</label>
-      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Sube hasta 3 fotos de la(s) página(s) del libro manuscrito y firmado. La IA leerá el contenido y generará un resumen automático vinculado al módulo Comunicaciones.</div>
-      <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px 14px;cursor:pointer;background:var(--bg2);">
-        <input type="file" id="libro-fotos-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handleLibroFotos(event)"/>
-        <span style="font-size:22px;">📖</span>
-        <div>
-          <div style="font-size:13px;font-weight:500;color:var(--text);">Fotografiar página del libro</div>
-          <div style="font-size:11px;color:var(--text2);">Hasta 3 fotos · La IA generará resumen</div>
-        </div>
-      </label>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Hasta 3 fotos del libro manuscrito y firmado. La IA leerá el contenido y generará un resumen automático vinculado al módulo Comunicaciones.</div>
+      <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;">
+        <label style="display:flex;align-items:center;justify-content:center;gap:8px;border:0.5px solid var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;background:#1D9E75;color:#fff;">
+          <input type="file" id="libro-fotos-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handleLibroFotos(event)"/>
+          <span style="font-size:20px;">📷</span>
+          <div style="text-align:center;">
+            <div style="font-size:13px;font-weight:500;">Fotografiar</div>
+            <div style="font-size:10px;opacity:.8;">Cámara directa</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;justify-content:center;gap:8px;border:0.5px solid var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;background:var(--bg2);">
+          <input type="file" id="libro-fotos-galeria" multiple accept="image/*" style="display:none;" onchange="handleLibroFotos(event)"/>
+          <span style="font-size:20px;">🖼️</span>
+          <div style="text-align:center;">
+            <div style="font-size:13px;font-weight:500;color:var(--text);">Galería</div>
+            <div style="font-size:10px;color:var(--text2);">Elegir foto</div>
+          </div>
+        </label>
+      </div>
       <div id="libro-fotos-preview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;"></div>
       <div id="libro-fotos-drive" style="margin-top:6px;"></div>
       <div id="libro-ia-status" style="display:none;margin-top:8px;padding:10px 12px;background:var(--blue-bg);border-radius:var(--r);font-size:12px;color:var(--blue);">🤖 Generando resumen con IA...</div>
@@ -1790,8 +1827,8 @@ function renderGarantias(){
       <div style="display:flex;justify-content:space-between;align-items:flex-start;" onclick="showFormGarantia(${i})">
         <div>
           <div class="obra-name" style="font-size:14px;">${g.tipo}</div>
-          <div class="obra-meta">${g.instrumento} · ${g.entidad||'—'} · N°${g.numero||'—'}</div>
-          <div class="obra-meta" style="margin-top:3px;">Monto: $${fmtM(g.monto||0)} · Vence: ${fmtDate(g.vencimiento)}</div>
+          <div class="obra-meta">${g.instrumento} · ${g.entidad||'—'} · N°${g.numero||'—'}${g.folio?' · Folio: '+g.folio:''}</div>
+          <div class="obra-meta" style="margin-top:3px;">Monto: ${g.moneda==='UF'?g.montoRaw+' UF'+(g.montoEquiv?' (≈$'+fmtM(g.montoEquiv)+')':''):'$'+fmtM(g.monto||0)} · Vence: ${fmtDate(g.vencimiento)}</div>
         </div>
         <div>${badge}</div>
       </div>
@@ -1809,6 +1846,27 @@ function renderGarantias(){
   }).join('');
 }
 
+function actualizarLabelMonto(){
+  const moneda=document.getElementById('gar-moneda').value;
+  document.getElementById('gar-monto-label').textContent=moneda==='UF'?'Monto (UF)':'Monto ($)';
+  document.getElementById('gar-monto').placeholder=moneda==='UF'?'Ej: 366,23':'Ej: 15.000.000';
+  document.getElementById('gar-monto-uf-wrap').style.display=moneda==='UF'?'block':'none';
+}
+
+function parseMonto(str){
+  if(!str) return 0;
+  const s=String(str).trim();
+  if(/^\d{1,3}(\.\d{3})*,\d+$/.test(s)) return parseFloat(s.replace(/\./g,'').replace(',','.'));
+  if(/^\d{1,3}(\.\d{3})+$/.test(s)) return parseInt(s.replace(/\./g,''));
+  if(/^\d{1,3}(,\d{3})*(\.\d+)?$/.test(s)) return parseFloat(s.replace(/,/g,''));
+  return parseFloat(s.replace(/[^0-9.,]/g,'').replace(',','.'))||0;
+}
+
+function fmtMonto(valor, moneda){
+  if(moneda==='UF') return parseFloat(valor).toLocaleString('es-CL',{minimumFractionDigits:0,maximumFractionDigits:2})+' UF';
+  return '$'+fmtM(valor);
+}
+
 function showFormGarantia(idx){
   const o=state.obras[state.activeObraIdx];
   if(!o.garantias) o.garantias=[];
@@ -1821,19 +1879,26 @@ function showFormGarantia(idx){
     document.getElementById('gar-tipo').value=g.tipo||'Fiel cumplimiento de contrato';
     document.getElementById('gar-instrumento').value=g.instrumento||'Boleta bancaria';
     document.getElementById('gar-numero').value=g.numero||'';
+    document.getElementById('gar-folio').value=g.folio||'';
     document.getElementById('gar-entidad').value=g.entidad||'';
-    document.getElementById('gar-monto').value=g.monto||'';
+    document.getElementById('gar-moneda').value=g.moneda||'CLP';
+    document.getElementById('gar-monto').value=g.montoRaw||g.monto||'';
+    document.getElementById('gar-monto-equiv').value=g.montoEquiv||'';
     document.getElementById('gar-vencimiento').value=g.vencimiento||'';
     document.getElementById('gar-obs').value=g.obs||'';
   } else {
     document.getElementById('gar-tipo').value='Fiel cumplimiento de contrato';
     document.getElementById('gar-instrumento').value='Boleta bancaria';
     document.getElementById('gar-numero').value='';
+    document.getElementById('gar-folio').value='';
     document.getElementById('gar-entidad').value='';
+    document.getElementById('gar-moneda').value='CLP';
     document.getElementById('gar-monto').value='';
+    document.getElementById('gar-monto-equiv').value='';
     document.getElementById('gar-vencimiento').value='';
     document.getElementById('gar-obs').value='';
   }
+  actualizarLabelMonto();
   go('s-garantia-form');
 }
 
@@ -1841,12 +1906,18 @@ function guardarGarantia(){
   const o=state.obras[state.activeObraIdx];
   if(!o.garantias) o.garantias=[];
   const idx=parseInt(document.getElementById('gar-idx').value);
+  const moneda=document.getElementById('gar-moneda').value;
+  const montoRaw=document.getElementById('gar-monto').value.trim();
+  const monto=parseMonto(montoRaw);
+  const equivRaw=document.getElementById('gar-monto-equiv').value.trim();
   const g={
     tipo:document.getElementById('gar-tipo').value,
     instrumento:document.getElementById('gar-instrumento').value,
     numero:document.getElementById('gar-numero').value.trim(),
+    folio:document.getElementById('gar-folio').value.trim(),
     entidad:document.getElementById('gar-entidad').value.trim(),
-    monto:parseInt(document.getElementById('gar-monto').value)||0,
+    moneda, monto, montoRaw,
+    montoEquiv:equivRaw?parseMonto(equivRaw):null,
     vencimiento:document.getElementById('gar-vencimiento').value,
     obs:document.getElementById('gar-obs').value.trim(),
   };
