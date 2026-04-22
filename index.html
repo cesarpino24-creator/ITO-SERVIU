@@ -115,28 +115,61 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="stat-card"><div class="stat-label">Avance físico</div><div class="stat-value" id="d-avance">—</div></div>
     <div class="stat-card"><div class="stat-label">Días restantes</div><div class="stat-value" id="d-dias">—</div></div>
     <div class="stat-card"><div class="stat-label">Último EP</div><div class="stat-value" id="d-ep">—</div></div>
-    <div class="stat-card"><div class="stat-label">Retención acum.</div><div class="stat-value" id="d-ret" style="font-size:15px;">—</div></div>
+    <div class="stat-card"><div class="stat-label">EPs acumulado</div><div class="stat-value" id="d-ret" style="font-size:14px;">—</div></div>
   </div>
-  <div class="section-title">avance real vs programado</div>
+
+  <!-- CURVA S EN DASHBOARD -->
+  <div class="section-title" style="margin-top:4px;">curva s — avance financiero</div>
+  <div style="margin:0 16px 4px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:10px 12px;">
+    <div id="dash-curva-s">
+      <div style="text-align:center;padding:16px;font-size:12px;color:var(--text2);">Sin datos suficientes (requiere 2+ EPs)</div>
+    </div>
+  </div>
+
+  <!-- AVANCE REAL VS PROGRAMADO -->
+  <div class="section-title" style="margin-top:4px;">avance real vs programado</div>
   <div class="prog-wrap">
     <div class="prog-labels"><span class="prog-label">Avance real</span><span class="prog-pct" id="bar-real-pct">—%</span></div>
     <div class="prog-track"><div class="prog-fill fill-ok" id="bar-real" style="width:0%"></div></div>
     <div class="prog-labels" style="margin-top:8px;"><span class="prog-label">Avance programado</span><span class="prog-pct" id="bar-prog-pct">—%</span></div>
     <div class="prog-track"><div class="prog-fill fill-warn" id="bar-prog" style="width:0%"></div></div>
   </div>
-  <div class="section-title">módulos</div>
-  <div class="mod-list">
-    <div class="mod-item" onclick="goModulo('planificacion')"><div class="mod-left"><div class="mod-icon" style="background:var(--blue-bg);">📋</div><div><div class="mod-name">Fichas P — Planificación</div><div class="mod-desc">Plazos, programa, financiera, ensayos</div></div></div><span class="chevron">›</span></div>
-    <div class="mod-item" onclick="goModulo('medicion')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">📊</div><div><div class="mod-name">Fichas M — Medición</div><div class="mod-desc">Estados de pago, avance por partida</div></div></div><span class="chevron">›</span></div>
-    <div class="mod-item" onclick="goModulo('comunicaciones')"><div class="mod-left"><div class="mod-icon" style="background:var(--amber-bg);">📝</div><div><div class="mod-name">Comunicaciones</div><div class="mod-desc">Libro inspección, informes, actas</div></div></div><span class="chevron">›</span></div>
-    <div class="mod-item" onclick="goModulo('personal')"><div class="mod-left"><div class="mod-icon" style="background:#FBEAF0;">👷</div><div><div class="mod-name">Personal y organigrama</div><div class="mod-desc">Residente, autocontrol, subcontratos</div></div></div><span class="chevron">›</span></div>
-    <div class="mod-item" onclick="goModulo('visitas')"><div class="mod-left"><div class="mod-icon" style="background:#E1F5EE;">📍</div><div><div class="mod-name">Visitas ITO</div><div class="mod-desc">Registro con observaciones y fotografías</div></div></div><span class="chevron">›</span></div>
-    <div class="mod-item" onclick="goModulo('garantias')"><div class="mod-left"><div class="mod-icon" style="background:#EAF3DE;">🔒</div><div><div class="mod-name">Garantías</div><div class="mod-desc">Boletas y pólizas con alertas de vencimiento</div></div></div><span class="chevron">›</span></div>
-    <div class="mod-item" onclick="goModulo('ensayos')"><div class="mod-left"><div class="mod-icon" style="background:#FAEEDA;">🧪</div><div><div class="mod-name">Ensayos P.6</div><div class="mod-desc">Plan de ensayos y registro de resultados</div></div></div><span class="chevron">›</span></div>
-    <div class="mod-item" onclick="goModulo('documentos')"><div class="mod-left"><div class="mod-icon" style="background:#F5F0FF;">🗂️</div><div><div class="mod-name">Gestión documental</div><div class="mod-desc">Actas, resoluciones, oficios, planos y más</div></div></div><span class="chevron">›</span></div>
-    <div class="mod-item" onclick="goModulo('informespdf')"><div class="mod-left"><div class="mod-icon" style="background:#F0EBF8;">📄</div><div><div class="mod-name">Exportar informe PDF</div><div class="mod-desc">Avance bimensual y estados de pago</div></div></div><span class="chevron">›</span></div>
+
+  <!-- GRUPO ADMINISTRATIVO (desplegable) -->
+  <div style="margin:10px 16px 0;">
+    <button onclick="toggleGrupo('grp-admin')" style="width:100%;background:var(--blue);color:#fff;border:none;border-radius:var(--rl);padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;font-weight:500;">
+      <span style="display:flex;align-items:center;gap:8px;">🗂 Administrativo</span>
+      <span id="grp-admin-arrow" style="font-size:18px;transition:transform .25s;">›</span>
+    </button>
+    <div id="grp-admin" style="display:none;background:var(--bg);border:0.5px solid var(--border);border-top:none;border-radius:0 0 var(--rl) var(--rl);overflow:hidden;">
+      <div class="mod-list" style="padding:0 16px;">
+        <div class="mod-item" onclick="goModulo('planificacion')"><div class="mod-left"><div class="mod-icon" style="background:var(--blue-bg);">📋</div><div><div class="mod-name">Fichas P — Planificación</div><div class="mod-desc">Plazos, programa, financiera, ensayos</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('medicion')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">📊</div><div><div class="mod-name">Fichas M — Medición</div><div class="mod-desc">Estados de pago, avance por partida</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('personal')"><div class="mod-left"><div class="mod-icon" style="background:#FBEAF0;">👷</div><div><div class="mod-name">Personal y organigrama</div><div class="mod-desc">Residente, autocontrol, subcontratos</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('garantias')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">🔒</div><div><div class="mod-name">Garantías</div><div class="mod-desc">Boletas y pólizas con alertas de vencimiento</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('documentos')"><div class="mod-left"><div class="mod-icon" style="background:#F5F0FF;">🗂️</div><div><div class="mod-name">Gestión documental</div><div class="mod-desc">Actas, resoluciones, oficios, planos y más</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('informespdf')" style="border-bottom:none;"><div class="mod-left"><div class="mod-icon" style="background:#F0EBF8;">📄</div><div><div class="mod-name">Exportar informe PDF</div><div class="mod-desc">Avance bimensual y estados de pago</div></div></div><span class="chevron">›</span></div>
+      </div>
+    </div>
   </div>
-  <div style="padding:16px 16px 32px;">
+
+  <!-- GRUPO VISITAS DE INSPECCIÓN (desplegable) -->
+  <div style="margin:10px 16px 0;">
+    <button onclick="toggleGrupo('grp-visitas')" style="width:100%;background:#1D9E75;color:#fff;border:none;border-radius:var(--rl);padding:13px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;font-size:14px;font-weight:500;">
+      <span style="display:flex;align-items:center;gap:8px;">🔍 Visitas de Inspección</span>
+      <span id="grp-visitas-arrow" style="font-size:18px;transition:transform .25s;">›</span>
+    </button>
+    <div id="grp-visitas" style="display:none;background:var(--bg);border:0.5px solid var(--border);border-top:none;border-radius:0 0 var(--rl) var(--rl);overflow:hidden;">
+      <div class="mod-list" style="padding:0 16px;">
+        <div class="mod-item" onclick="goModulo('comunicaciones')"><div class="mod-left"><div class="mod-icon" style="background:var(--amber-bg);">📝</div><div><div class="mod-name">Comunicaciones</div><div class="mod-desc">Libro de obras</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('visitas')"><div class="mod-left"><div class="mod-icon" style="background:#E1F5EE;">📍</div><div><div class="mod-name">Visitas ITO</div><div class="mod-desc">Registro con observaciones y fotografías</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('ensayos')"><div class="mod-left"><div class="mod-icon" style="background:var(--amber-bg);">🧪</div><div><div class="mod-name">Ensayos P.6</div><div class="mod-desc">Plan de ensayos y registro de resultados</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('recepcion')" style="border-bottom:none;"><div class="mod-left"><div class="mod-icon" style="background:#E1F5EE;">🏁</div><div><div class="mod-name">Recepción de obras</div><div class="mod-desc">Flujo de comisión, pase ITO, acta y resolución</div></div></div><span class="chevron">›</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="padding:16px 16px 32px;margin-top:10px;">
     <button onclick="confirmarEliminarObra()" style="width:100%;padding:11px;font-size:13px;background:none;color:var(--red);border:0.5px solid #F09595;border-radius:var(--r);cursor:pointer;">Eliminar esta obra</button>
   </div>
 </div>
@@ -494,17 +527,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
 
     <div class="form-group">
-      <label class="form-label">Fotografías (máx. 6)</label>
+      <label class="form-label">Fotografías de obra (máx. 6)</label>
       <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px 14px;cursor:pointer;">
         <input type="file" id="visita-fotos-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handleVisitaFotos(event)"/>
         <span style="font-size:22px;">📷</span>
         <div>
-          <div style="font-size:13px;font-weight:500;color:var(--text);">Agregar fotos</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);">Agregar fotos de obra</div>
           <div style="font-size:11px;color:var(--text2);">Desde cámara o galería</div>
         </div>
       </label>
       <div id="visita-fotos-preview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;"></div>
       <div id="visita-fotos-drive" style="margin-top:6px;"></div>
+    </div>
+
+    <!-- FOTOS LIBRO DE INSPECCIÓN -->
+    <div class="form-group" style="border-top:0.5px solid var(--border);padding-top:14px;margin-top:4px;">
+      <label class="form-label" style="font-size:13px;font-weight:600;color:var(--text);">📖 Libro de inspección — fotografía de página firmada</label>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:8px;">Sube hasta 3 fotos de la(s) página(s) del libro manuscrito y firmado. La IA leerá el contenido y generará un resumen automático vinculado al módulo Comunicaciones.</div>
+      <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px 14px;cursor:pointer;background:var(--bg2);">
+        <input type="file" id="libro-fotos-input" multiple accept="image/*" capture="environment" style="display:none;" onchange="handleLibroFotos(event)"/>
+        <span style="font-size:22px;">📖</span>
+        <div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);">Fotografiar página del libro</div>
+          <div style="font-size:11px;color:var(--text2);">Hasta 3 fotos · La IA generará resumen</div>
+        </div>
+      </label>
+      <div id="libro-fotos-preview" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;"></div>
+      <div id="libro-fotos-drive" style="margin-top:6px;"></div>
+      <div id="libro-ia-status" style="display:none;margin-top:8px;padding:10px 12px;background:var(--blue-bg);border-radius:var(--r);font-size:12px;color:var(--blue);">🤖 Generando resumen con IA...</div>
+      <div id="libro-ia-resumen" style="display:none;margin-top:8px;padding:12px 14px;background:var(--bg2);border-radius:var(--r);font-size:12px;line-height:1.6;color:var(--text);"></div>
     </div>
 
     <div id="visita-upload-progress" style="display:none;padding:10px;background:var(--bg2);border-radius:var(--r);font-size:12px;color:var(--text2);text-align:center;margin-bottom:8px;">Subiendo fotos a Drive...</div>
@@ -523,6 +574,74 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button onclick="editarVisitaActual()" style="font-size:13px;color:var(--blue);background:none;border:none;cursor:pointer;">Editar</button>
   </div>
   <div id="visita-det-body"></div>
+</div>
+
+<!-- RECEPCIÓN DE OBRAS -->
+<div class="screen" id="s-recepcion">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button>
+    <div style="font-size:15px;font-weight:500;">Recepción de obras</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div id="recepcion-progress" style="padding:12px 16px 0;"></div>
+  <div id="recepcion-list"></div>
+</div>
+
+<!-- FORM SUBMODULO RECEPCIÓN -->
+<div class="screen" id="s-recepcion-form">
+  <div class="topbar">
+    <button class="back-btn" onclick="go('s-recepcion')">Recepción</button>
+    <div style="font-size:15px;font-weight:500;" id="rec-form-title">—</div>
+    <div style="width:60px;"></div>
+  </div>
+  <div class="form-wrap" style="padding-top:16px;">
+    <input type="hidden" id="rec-step-idx"/>
+
+    <div id="rec-estado-wrap" style="margin-bottom:14px;"></div>
+
+    <div class="form-group">
+      <label class="form-label">Fecha del documento</label>
+      <input class="form-input" type="date" id="rec-fecha"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">N° documento</label>
+      <input class="form-input" id="rec-numero" placeholder="Ej: 1234/2025"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observaciones</label>
+      <textarea class="form-input" id="rec-obs" rows="4" style="resize:none;line-height:1.5;" placeholder="Observaciones, instrucciones, notas..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Documento adjunto (PDF)</label>
+      <div id="rec-archivo-actual" style="display:none;margin-bottom:8px;">
+        <a id="rec-archivo-link" href="#" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);font-size:13px;color:var(--blue);">
+          📎 <span id="rec-archivo-nombre">Documento adjunto</span>
+        </a>
+      </div>
+      <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;">
+        <input type="file" id="rec-file-input" accept=".pdf,.doc,.docx" style="display:none;" onchange="handleRecUpload(event)"/>
+        <span style="font-size:20px;">☁️</span>
+        <div>
+          <div style="font-size:13px;font-weight:500;">Subir a Google Drive</div>
+          <div style="font-size:11px;color:var(--text2);">PDF o Word</div>
+        </div>
+      </label>
+      <div id="rec-upload-progress" style="display:none;font-size:12px;color:var(--text2);text-align:center;margin-top:6px;padding:8px;">Subiendo...</div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Estado</label>
+      <select class="form-input" id="rec-estado-sel">
+        <option value="pendiente">Pendiente</option>
+        <option value="en_proceso">En proceso</option>
+        <option value="completado">Completado ✓</option>
+      </select>
+    </div>
+
+    <button class="btn-primary" onclick="guardarRecepcionStep()">Guardar</button>
+    <button class="btn-secondary" onclick="go('s-recepcion')">Cancelar</button>
+  </div>
 </div>
 
 <div class="screen" id="s-nueva-obra">
@@ -688,6 +807,47 @@ function renderObras(){
   const badge=document.getElementById('alert-badge');badge.style.display=total?'inline':'none';badge.textContent=total;
 }
 
+function toggleGrupo(id){
+  const el=document.getElementById(id);
+  const arrow=document.getElementById(id+'-arrow');
+  const abierto=el.style.display==='block';
+  el.style.display=abierto?'none':'block';
+  arrow.style.transform=abierto?'rotate(0deg)':'rotate(90deg)';
+}
+
+function renderDashCurvaS(o){
+  const c=document.getElementById('dash-curva-s');
+  if(!c)return;
+  if(!o.eps||o.eps.length<2){
+    c.innerHTML='<div style="text-align:center;padding:16px;font-size:12px;color:var(--text2);">Sin datos suficientes (requiere 2+ EPs)</div>';
+    return;
+  }
+  const W=320,H=150,PL=38,PB=22,PR=10,PT=10,cW=W-PL-PR,cH=H-PT-PB;
+  const monto=o.monto||1;
+  const data=[{x:0,real:0,prog:0},...o.eps.map((ep,i)=>({
+    x:(i+1)/(o.eps.length+1),
+    real:Math.min(100,Math.round(o.eps.slice(0,i+1).reduce((s,e)=>s+(e.monto||0),0)/monto*100)),
+    prog:Math.round((i+1)/(o.eps.length+1)*100)
+  }))];
+  const tX=x=>PL+x*cW, tY=y=>PT+cH-y/100*cH;
+  const pReal=data.map((d,i)=>`${i===0?'M':'L'}${tX(d.x).toFixed(1)},${tY(d.real).toFixed(1)}`).join(' ');
+  const pProg=data.map((d,i)=>`${i===0?'M':'L'}${tX(d.x).toFixed(1)},${tY(d.prog).toFixed(1)}`).join(' ');
+  // Área bajo curva real
+  const areaReal=`${pReal} L${tX(1).toFixed(1)},${tY(0).toFixed(1)} L${tX(0).toFixed(1)},${tY(0).toFixed(1)} Z`;
+  c.innerHTML=`
+    <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">
+      ${[0,25,50,75,100].map(v=>`
+        <line x1="${PL}" y1="${tY(v)}" x2="${W-PR}" y2="${tY(v)}" stroke="var(--border)" stroke-width="0.5"/>
+        <text x="${PL-4}" y="${tY(v)+4}" text-anchor="end" font-size="9" fill="var(--text2)" font-family="sans-serif">${v}%</text>`).join('')}
+      <path d="${areaReal}" fill="#185FA5" fill-opacity="0.08"/>
+      <path d="${pProg}" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="5,3"/>
+      <path d="${pReal}" fill="none" stroke="#185FA5" stroke-width="2"/>
+      ${data.slice(1).map(d=>`<circle cx="${tX(d.x)}" cy="${tY(d.real)}" r="3.5" fill="#185FA5" stroke="#fff" stroke-width="1.5"/>`).join('')}
+      <text x="${PL+cW*0.15}" y="${H-4}" font-size="9" fill="#185FA5" font-family="sans-serif">— Real</text>
+      <text x="${PL+cW*0.4}" y="${H-4}" font-size="9" fill="#EF9F27" font-family="sans-serif">-- Programado</text>
+    </svg>`;
+}
+
 function openObra(idx){
   state.activeObraIdx=idx;saveLocal();
   const o=state.obras[idx];
@@ -696,8 +856,8 @@ function openObra(idx){
   document.getElementById('d-avance').innerHTML=`${o.avance||0}<span class="stat-unit">%</span>`;
   document.getElementById('d-dias').textContent=calcDR(o);
   document.getElementById('d-ep').textContent=o.eps.length?`N°${o.eps[o.eps.length-1].num}`:'—';
-  const tr=o.eps.reduce((s,e)=>s+(e.retencion||0),0);
-  document.getElementById('d-ret').textContent='$'+fmtM(tr);
+  const totalEPAcum=o.eps.reduce((s,e)=>s+(e.monto||0),0);
+  document.getElementById('d-ret').textContent='$'+fmtM(totalEPAcum);
   document.getElementById('bar-real').style.width=(o.avance||0)+'%';
   document.getElementById('bar-prog').style.width=(o.avanceProg||0)+'%';
   document.getElementById('bar-real-pct').textContent=(o.avance||0)+'%';
@@ -705,6 +865,7 @@ function openObra(idx){
   const at=(o.avanceProg||0)-(o.avance||0);
   document.getElementById('bar-real').className='prog-fill '+(at>=10?'fill-danger':at>=5?'fill-warn':'fill-ok');
   document.getElementById('obra-alertas-wrap').innerHTML=getAlerts(o).map(a=>`<div class="alert-item alert-${a.tipo}"><div class="alert-title alert-title-${a.tipo}">${a.texto}</div><div class="alert-desc">${a.desc}</div></div>`).join('');
+  renderDashCurvaS(o);
   go('s-obra-dashboard');
 }
 
@@ -725,6 +886,7 @@ function goModulo(mod){
   else if(mod==='medicion'){renderMedicion(o);go('s-medicion');}
   else if(mod==='comunicaciones'){renderComunicaciones(o);go('s-comunicaciones');}
   else if(mod==='personal'){renderPersonal(o);go('s-personal');}
+  else if(mod==='recepcion'){renderRecepcion();go('s-recepcion');}
   else if(mod==='visitas'){renderVisitas();go('s-visitas');}
   else if(mod==='garantias'){renderGarantias();go('s-garantias');}
   else if(mod==='ensayos'){renderEnsayos();go('s-ensayos');}
@@ -1097,6 +1259,142 @@ async function adjuntarArchivoGarantia(event, idx){
   }
 }
 
+// ══ RECEPCIÓN DE OBRAS ═════════════════════════════════════
+
+const RECEPCION_STEPS = [
+  { key:'orden_servicio',    label:'Orden de servicio de la comisión',  icon:'📋', desc:'Orden emitida por SERVIU para conformar comisión receptora' },
+  { key:'carta_solicitud',   label:'Carta solicitud de pase de la ITO', icon:'✉️', desc:'Carta del ITO solicitando el pase para recepción' },
+  { key:'pase_ito',          label:'Pase de la ITO',                    icon:'🔖', desc:'Documento que habilita la recepción provisional' },
+  { key:'observaciones_com', label:'Observaciones de la comisión',      icon:'📝', desc:'Registro de observaciones levantadas por la comisión' },
+  { key:'acta_calificacion', label:'Acta de calificación',              icon:'📄', desc:'Acta que califica el estado de la obra' },
+  { key:'res_aprueba_acta',  label:'Resolución que aprueba el acta',    icon:'✅', desc:'Resolución SERVIU que aprueba el acta de calificación' },
+];
+
+let recUploadPendiente = null;
+
+function renderRecepcion(){
+  const o = state.obras[state.activeObraIdx];
+  if(!o.recepcion) o.recepcion = {};
+  RECEPCION_STEPS.forEach(s=>{ if(!o.recepcion[s.key]) o.recepcion[s.key]={estado:'pendiente'}; });
+
+  const completados = RECEPCION_STEPS.filter(s=>o.recepcion[s.key]?.estado==='completado').length;
+  const pct = Math.round(completados/RECEPCION_STEPS.length*100);
+
+  // Barra de progreso general
+  document.getElementById('recepcion-progress').innerHTML=`
+    <div class="prog-wrap" style="margin:0 0 12px;">
+      <div class="prog-labels">
+        <span class="prog-label">Progreso recepción</span>
+        <span class="prog-pct" style="color:${pct===100?'var(--green)':pct>50?'var(--blue)':'var(--amber)'};">${completados}/${RECEPCION_STEPS.length} pasos</span>
+      </div>
+      <div class="prog-track"><div class="prog-fill ${pct===100?'fill-ok':pct>50?'fill-ok':'fill-warn'}" style="width:${pct}%"></div></div>
+    </div>`;
+
+  // Lista de pasos con semáforo
+  const list = document.getElementById('recepcion-list');
+  list.innerHTML = RECEPCION_STEPS.map((step, i)=>{
+    const data = o.recepcion[step.key]||{estado:'pendiente'};
+    const prevCompletado = i===0 || o.recepcion[RECEPCION_STEPS[i-1].key]?.estado==='completado';
+    const bloqueado = !prevCompletado;
+    const estadoColor = data.estado==='completado'?'var(--green)':data.estado==='en_proceso'?'var(--blue)':'var(--text2)';
+    const estadoBg = data.estado==='completado'?'var(--green-bg)':data.estado==='en_proceso'?'var(--blue-bg)':'var(--bg2)';
+    const estadoLabel = data.estado==='completado'?'Completado':data.estado==='en_proceso'?'En proceso':'Pendiente';
+    const dotColor = data.estado==='completado'?'#639922':data.estado==='en_proceso'?'#185FA5':'#ccc';
+
+    return `<div style="margin:0 16px 8px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);overflow:hidden;opacity:${bloqueado?'0.5':'1'};">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:${bloqueado?'default':'pointer'};"
+        onclick="${bloqueado?'showToast(\'Completa el paso anterior primero\')':'abrirRecepcionStep('+i+')'}">
+        <div style="width:32px;height:32px;border-radius:50%;background:${estadoBg};display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${step.icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:10px;height:10px;border-radius:50%;background:${dotColor};flex-shrink:0;"></div>
+            <div style="font-size:13px;font-weight:500;color:var(--text);">${i+1}. ${step.label}</div>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;padding-left:18px;">${step.desc}</div>
+          ${data.fecha||data.numero?`<div style="font-size:11px;color:var(--text2);padding-left:18px;margin-top:2px;">${data.fecha?fmtDate(data.fecha):''}${data.numero?' · N°'+data.numero:''}</div>`:''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
+          <span style="font-size:11px;font-weight:500;color:${estadoColor};">${bloqueado?'🔒':estadoLabel}</span>
+          ${data.driveLink?`<a href="${data.driveLink}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--blue);padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 Ver</a>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function abrirRecepcionStep(idx){
+  const o = state.obras[state.activeObraIdx];
+  const step = RECEPCION_STEPS[idx];
+  const data = o.recepcion[step.key]||{};
+  recUploadPendiente = null;
+
+  document.getElementById('rec-form-title').textContent = step.label;
+  document.getElementById('rec-step-idx').value = idx;
+  document.getElementById('rec-fecha').value = data.fecha||today();
+  document.getElementById('rec-numero').value = data.numero||'';
+  document.getElementById('rec-obs').value = data.obs||'';
+  document.getElementById('rec-estado-sel').value = data.estado||'pendiente';
+  document.getElementById('rec-upload-progress').style.display='none';
+
+  // Estado visual
+  const estadoBg = data.estado==='completado'?'var(--green-bg)':data.estado==='en_proceso'?'var(--blue-bg)':'var(--amber-bg)';
+  const estadoColor = data.estado==='completado'?'var(--green)':data.estado==='en_proceso'?'var(--blue)':'var(--amber)';
+  const estadoLabel = data.estado==='completado'?'✓ Completado':data.estado==='en_proceso'?'En proceso':'Pendiente';
+  document.getElementById('rec-estado-wrap').innerHTML=`
+    <div style="padding:10px 14px;border-radius:var(--r);background:${estadoBg};font-size:13px;font-weight:500;color:${estadoColor};">${estadoLabel}</div>`;
+
+  // Archivo actual
+  const archivoWrap = document.getElementById('rec-archivo-actual');
+  if(data.driveLink){
+    archivoWrap.style.display='block';
+    document.getElementById('rec-archivo-link').href=data.driveLink;
+    document.getElementById('rec-archivo-nombre').textContent=data.archivoNombre||'Ver documento';
+  } else {
+    archivoWrap.style.display='none';
+  }
+
+  go('s-recepcion-form');
+}
+
+async function handleRecUpload(event){
+  const file=event.target.files[0]; if(!file)return;
+  if(!accessToken){showToast('Conecta Drive para subir');return;}
+  const idx=parseInt(document.getElementById('rec-step-idx').value);
+  const step=RECEPCION_STEPS[idx];
+  const prog=document.getElementById('rec-upload-progress');
+  prog.style.display='block'; prog.textContent=`Subiendo "${file.name}"...`;
+  try{
+    const result=await subirArchivoADrive(file,`Recepción de Obras/${step.label}`);
+    recUploadPendiente={driveLink:result.webViewLink,archivoNombre:result.name,driveId:result.id};
+    prog.style.display='none';
+    document.getElementById('rec-archivo-actual').style.display='block';
+    document.getElementById('rec-archivo-link').href=result.webViewLink;
+    document.getElementById('rec-archivo-nombre').textContent=result.name;
+    showToast('Archivo subido a Drive ✓');
+  }catch(e){prog.style.display='none';showToast('Error: '+e.message);}
+}
+
+function guardarRecepcionStep(){
+  const o=state.obras[state.activeObraIdx];
+  const idx=parseInt(document.getElementById('rec-step-idx').value);
+  const step=RECEPCION_STEPS[idx];
+  if(!o.recepcion) o.recepcion={};
+  const base=o.recepcion[step.key]||{};
+  const entry={
+    ...base,
+    fecha:document.getElementById('rec-fecha').value,
+    numero:document.getElementById('rec-numero').value.trim(),
+    obs:document.getElementById('rec-obs').value.trim(),
+    estado:document.getElementById('rec-estado-sel').value,
+  };
+  if(recUploadPendiente) Object.assign(entry,recUploadPendiente);
+  o.recepcion[step.key]=entry;
+  saveAndSync();
+  go('s-recepcion');
+  renderRecepcion();
+  showToast('Paso guardado');
+}
+
 // ══ VISITAS ITO ════════════════════════════════════════════
 
 let visitaFotosNuevas = []; // {file, dataURL} pendientes de subir
@@ -1187,6 +1485,11 @@ function nuevaVisita(){
   document.getElementById('visita-estado').value = 'normal';
   document.getElementById('visita-fotos-preview').innerHTML = '';
   document.getElementById('visita-fotos-drive').innerHTML = '';
+  document.getElementById('libro-fotos-preview').innerHTML = '';
+  document.getElementById('libro-fotos-drive').innerHTML = '';
+  document.getElementById('libro-ia-status').style.display = 'none';
+  document.getElementById('libro-ia-resumen').style.display = 'none';
+  libroFotosNuevas = []; libroResumenIA = '';
   document.getElementById('visita-upload-progress').style.display = 'none';
   go('s-visita-form');
 }
@@ -1194,7 +1497,7 @@ function nuevaVisita(){
 function editarVisita(idx){
   const o = state.obras[state.activeObraIdx];
   const v = o.visitas[idx];
-  visitaFotosNuevas = [];
+  visitaFotosNuevas = []; libroFotosNuevas = []; libroResumenIA = '';
   visitaIdxActual = idx;
   document.getElementById('visita-idx').value = idx;
   document.getElementById('visita-form-title').textContent = 'Editar visita';
@@ -1220,18 +1523,81 @@ function editarVisitaActual(){
   if(idx>=0) editarVisita(idx);
 }
 
+// ── FOTOS LIBRO DE INSPECCIÓN ─────────────────────────────
+let libroFotosNuevas = [];
+let libroResumenIA = '';
+
+function handleLibroFotos(event){
+  const files=[...event.target.files].slice(0,3);
+  libroFotosNuevas=[]; libroResumenIA='';
+  const preview=document.getElementById('libro-fotos-preview');
+  const iaStatus=document.getElementById('libro-ia-status');
+  const iaResumen=document.getElementById('libro-ia-resumen');
+  preview.innerHTML=''; iaStatus.style.display='none'; iaResumen.style.display='none';
+  const promises=files.map(f=>new Promise(res=>{
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      libroFotosNuevas.push({file:f,dataURL:ev.target.result});
+      const img=document.createElement('img');
+      img.src=ev.target.result;
+      img.style.cssText='width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);cursor:pointer;';
+      img.onclick=()=>window.open(ev.target.result,'_blank');
+      preview.appendChild(img);
+      res();
+    };
+    reader.readAsDataURL(f);
+  }));
+  Promise.all(promises).then(()=>{ if(libroFotosNuevas.length>0) generarResumenIA(); });
+}
+
+async function generarResumenIA(){
+  const iaStatus=document.getElementById('libro-ia-status');
+  const iaResumen=document.getElementById('libro-ia-resumen');
+  iaStatus.style.display='block'; iaResumen.style.display='none'; libroResumenIA='';
+  try{
+    const o=state.obras[state.activeObraIdx];
+    const imagenes=libroFotosNuevas.map(f=>({
+      type:'image',
+      source:{type:'base64',media_type:f.file.type||'image/jpeg',data:f.dataURL.split(',')[1]}
+    }));
+    const response=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:'Eres asistente del Inspector Técnico de Obra (ITO) de SERVIU Metropolitano en Chile. Lee fotografías del libro de inspección manuscrito y genera un resumen estructurado conciso y técnico. Solo en español. Sin markdown con #.',
+        messages:[{role:'user',content:[
+          ...imagenes,
+          {type:'text',text:`Obra: ${o.nombre}. Lee el contenido manuscrito del libro de inspección en esta(s) imagen(es) y genera un resumen con: (1) fecha y hora si aparece, (2) instrucciones u observaciones principales, (3) estado de avance mencionado, (4) compromisos o plazos, (5) firmas o personas presentes. Si hay texto ilegible indícalo. Sé conciso y técnico.`}
+        ]}]
+      })
+    });
+    const data=await response.json();
+    const texto=data.content?.find(b=>b.type==='text')?.text||'No se pudo generar el resumen.';
+    libroResumenIA=texto;
+    iaStatus.style.display='none';
+    iaResumen.style.display='block';
+    iaResumen.innerHTML=texto.replace(/\n/g,'<br>');
+  }catch(e){
+    iaStatus.style.display='none';
+    iaResumen.style.display='block';
+    iaResumen.innerHTML='Error generando resumen: '+e.message;
+  }
+}
+
 function handleVisitaFotos(event){
-  const files = [...event.target.files].slice(0,6);
-  visitaFotosNuevas = [];
-  const preview = document.getElementById('visita-fotos-preview');
-  preview.innerHTML = '';
+  const files=[...event.target.files].slice(0,6);
+  visitaFotosNuevas=[];
+  const preview=document.getElementById('visita-fotos-preview');
+  preview.innerHTML='';
   files.forEach(f=>{
-    const reader = new FileReader();
-    reader.onload = ev=>{
-      visitaFotosNuevas.push({file:f, dataURL:ev.target.result});
-      const img = document.createElement('img');
-      img.src = ev.target.result;
-      img.style.cssText = 'width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);';
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      visitaFotosNuevas.push({file:f,dataURL:ev.target.result});
+      const img=document.createElement('img');
+      img.src=ev.target.result;
+      img.style.cssText='width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);';
       preview.appendChild(img);
     };
     reader.readAsDataURL(f);
@@ -1239,54 +1605,79 @@ function handleVisitaFotos(event){
 }
 
 async function guardarVisita(){
-  const o = state.obras[state.activeObraIdx];
+  const o=state.obras[state.activeObraIdx];
   if(!o.visitas) o.visitas=[];
-  const idx = parseInt(document.getElementById('visita-idx').value);
-  const fecha = document.getElementById('visita-fecha').value;
-  const hora = document.getElementById('visita-hora').value;
+  const idx=parseInt(document.getElementById('visita-idx').value);
+  const fecha=document.getElementById('visita-fecha').value;
+  const hora=document.getElementById('visita-hora').value;
+  if(!fecha){showToast('Ingresa la fecha de la visita');return;}
 
-  if(!fecha){ showToast('Ingresa la fecha de la visita'); return; }
-
-  const base = idx>=0 ? {...o.visitas[idx], fotos:[...(o.visitas[idx].fotos||[])]} : {fotos:[]};
-  const visita = {
+  const base=idx>=0?{...o.visitas[idx],fotos:[...(o.visitas[idx].fotos||[])],fotosLibro:[...(o.visitas[idx].fotosLibro||[])]}:{fotos:[],fotosLibro:[]};
+  const visita={
     ...base,
-    tipo: document.getElementById('visita-tipo').value,
-    fecha, hora,
-    personas: document.getElementById('visita-personas').value.trim(),
-    obs: document.getElementById('visita-obs').value.trim(),
-    estado: document.getElementById('visita-estado').value,
-    timestamp: new Date().toISOString(),
+    tipo:document.getElementById('visita-tipo').value,
+    fecha,hora,
+    personas:document.getElementById('visita-personas').value.trim(),
+    obs:document.getElementById('visita-obs').value.trim(),
+    estado:document.getElementById('visita-estado').value,
+    timestamp:new Date().toISOString(),
   };
+  if(libroResumenIA) visita.libroResumenIA=libroResumenIA;
+  else if(base.libroResumenIA) visita.libroResumenIA=base.libroResumenIA;
 
-  // Subir fotos nuevas a Drive si hay conexión
-  if(visitaFotosNuevas.length > 0){
-    if(!accessToken){
-      showToast('Conecta Drive para guardar fotos. Visita guardada sin fotos.');
-    } else {
-      const prog = document.getElementById('visita-upload-progress');
+  const prog=document.getElementById('visita-upload-progress');
+
+  // Subir fotos de obra
+  if(visitaFotosNuevas.length>0){
+    if(!accessToken){showToast('Conecta Drive para guardar fotos de obra.');}
+    else{
       prog.style.display='block';
-      let subidas=0;
+      let sub=0;
       for(const foto of visitaFotosNuevas){
-        prog.textContent=`Subiendo foto ${++subidas} de ${visitaFotosNuevas.length}...`;
+        prog.textContent=`Subiendo foto obra ${++sub}/${visitaFotosNuevas.length}...`;
         try{
-          const carpeta = `Visitas/${o.nombre}/${fecha}`;
-          const result = await subirArchivoADrive(foto.file, carpeta);
-          visita.fotos.push({
-            nombre: result.name,
-            driveId: result.id,
-            driveLink: result.webViewLink,
-            fecha, hora
-          });
-        }catch(e){
-          showToast('Error subiendo foto: '+e.message);
-        }
+          const r=await subirArchivoADrive(foto.file,`Visitas/${o.nombre}/${fecha}`);
+          visita.fotos.push({nombre:r.name,driveId:r.id,driveLink:r.webViewLink,fecha,hora});
+        }catch(e){showToast('Error: '+e.message);}
       }
-      prog.style.display='none';
     }
   }
 
+  // Subir fotos del libro
+  if(libroFotosNuevas.length>0){
+    if(!accessToken){showToast('Conecta Drive para guardar fotos del libro.');}
+    else{
+      prog.style.display='block';
+      let sub=0;
+      for(const foto of libroFotosNuevas){
+        prog.textContent=`Subiendo foto libro ${++sub}/${libroFotosNuevas.length}...`;
+        try{
+          const r=await subirArchivoADrive(foto.file,`Visitas/${o.nombre}/${fecha}/Libro`);
+          visita.fotosLibro.push({nombre:r.name,driveId:r.id,driveLink:r.webViewLink,fecha,hora});
+        }catch(e){showToast('Error: '+e.message);}
+      }
+    }
+  }
+  prog.style.display='none';
+
   if(idx===-1) o.visitas.push(visita);
   else o.visitas[idx]=visita;
+
+  // ── VINCULAR CON COMUNICACIONES ──────────────────────────
+  if(visita.fotosLibro?.length>0||visita.libroResumenIA){
+    if(!o.libro) o.libro=[];
+    const resumen=visita.libroResumenIA||'Fotografía del libro de inspección registrada.';
+    const entradaIdx=o.libro.findIndex(e=>e.visitaRef===visita.timestamp);
+    const entrada={
+      fecha,hora,autor:'César G., ITO',
+      texto:`[Libro de inspección — ${visita.tipo}]\n${resumen}`,
+      fotosLibro:visita.fotosLibro||[],
+      visitaRef:visita.timestamp,
+      tieneLibroFoto:true,
+    };
+    if(entradaIdx>=0) o.libro[entradaIdx]=entrada;
+    else o.libro.push(entrada);
+  }
 
   saveAndSync();
   go('s-visitas');
@@ -1328,29 +1719,46 @@ function verVisita(idx){
 
       ${v.obs?`
       <div style="background:var(--bg2);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Observaciones</div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Observaciones ITO</div>
         <div style="font-size:13px;line-height:1.6;color:var(--text);">${v.obs.replace(/\n/g,'<br>')}</div>
       </div>`:''}
 
       ${v.fotos&&v.fotos.length?`
       <div style="margin-bottom:14px;">
-        <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Fotografías (${v.fotos.length})</div>
+        <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Fotografías de obra (${v.fotos.length})</div>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
           ${v.fotos.map(f=>`
             <a href="${f.driveLink}" target="_blank" style="text-decoration:none;">
               <div style="background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);overflow:hidden;">
-                <div style="background:var(--blue-bg);height:80px;display:flex;align-items:center;justify-content:center;font-size:28px;">🖼️</div>
-                <div style="padding:6px 8px;">
-                  <div style="font-size:11px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📎 ${f.nombre}</div>
-                  <div style="font-size:10px;color:var(--text2);margin-top:1px;">Toca para abrir en Drive</div>
-                </div>
+                <div style="background:var(--blue-bg);height:70px;display:flex;align-items:center;justify-content:center;font-size:24px;">🖼️</div>
+                <div style="padding:5px 8px;"><div style="font-size:10px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📎 ${f.nombre}</div></div>
               </div>
             </a>`).join('')}
         </div>
       </div>`:''}
 
+      ${v.fotosLibro&&v.fotosLibro.length?`
+      <div style="margin-bottom:14px;border-top:0.5px solid var(--border);padding-top:14px;">
+        <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">📖 Libro de inspección (${v.fotosLibro.length} foto${v.fotosLibro.length>1?'s':''})</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">
+          ${v.fotosLibro.map(f=>`
+            <a href="${f.driveLink}" target="_blank" style="text-decoration:none;">
+              <div style="background:var(--amber-bg);border-radius:var(--r);border:0.5px solid var(--border);overflow:hidden;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
+                <div style="font-size:22px;">📖</div>
+                <div style="font-size:9px;color:var(--amber);text-align:center;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;text-align:center;">Ver</div>
+              </div>
+            </a>`).join('')}
+        </div>
+        ${v.libroResumenIA?`
+        <div style="background:var(--blue-bg);border-radius:var(--r);padding:12px 14px;border-left:3px solid var(--blue);">
+          <div style="font-size:11px;font-weight:500;color:var(--blue);margin-bottom:6px;">🤖 Resumen generado por IA</div>
+          <div style="font-size:12px;line-height:1.6;color:var(--text);">${v.libroResumenIA.replace(/\n/g,'<br>')}</div>
+        </div>`:''}
+      </div>`:''}
+
       <div style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;">
         <div style="font-size:11px;color:var(--text2);">Registrado el ${new Date(v.timestamp||Date.now()).toLocaleString('es-CL')}</div>
+        ${v.fotosLibro?.length?`<div style="font-size:11px;color:var(--blue);margin-top:3px;">📝 Vinculado con módulo Comunicaciones</div>`:''}
       </div>
     </div>`;
 
@@ -2429,13 +2837,27 @@ function renderLibro(o){
   if(!o.libro?.length){c.innerHTML='<div class="empty-state">Sin entradas en el libro de obras.<br>Presiona + para agregar.</div>';return;}
   c.innerHTML=o.libro.slice().reverse().map((e,ri)=>{
     const idx=o.libro.length-1-ri;
-    return `<div class="libro-entry">
+    const esAutomatica=e.tieneLibroFoto;
+    return `<div class="libro-entry" style="${esAutomatica?'border-left:3px solid var(--blue);':''}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
-        <div class="libro-date">${fmtDate(e.fecha)}${e.hora?' · '+e.hora:''}</div>
+        <div>
+          <div class="libro-date">${fmtDate(e.fecha)}${e.hora?' · '+e.hora:''}</div>
+          ${esAutomatica?'<span style="font-size:10px;color:var(--blue);font-weight:500;">📖 Desde libro de inspección</span>':''}
+        </div>
         <button onclick="eliminarEntradaLibro(${idx})" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;">✕</button>
       </div>
-      <div class="libro-text">${e.texto}</div>
-      <div class="libro-autor">${e.autor}</div>
+      <div class="libro-text" style="margin-top:6px;">${e.texto.replace(/\n/g,'<br>')}</div>
+      ${e.fotosLibro?.length?`
+      <div style="margin-top:8px;">
+        <div style="font-size:11px;color:var(--text2);margin-bottom:5px;">Fotografías del libro (${e.fotosLibro.length}):</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${e.fotosLibro.map(f=>`
+            <a href="${f.driveLink}" target="_blank" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--blue);padding:4px 8px;border:0.5px solid var(--border);border-radius:20px;text-decoration:none;">
+              📖 Ver foto
+            </a>`).join('')}
+        </div>
+      </div>`:''}
+      <div class="libro-autor" style="margin-top:6px;">${e.autor}</div>
     </div>`;
   }).join('');
 }
