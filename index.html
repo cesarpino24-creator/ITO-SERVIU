@@ -839,22 +839,34 @@ function getAlerts(o){
 function renderObras(){
   const list=document.getElementById('obras-list');list.innerHTML='';let total=0;
 
-  // Banner global de próximos EPs (todos en los próximos 15 días)
+  // Banner semáforo de próximos EPs
   const hoy=today();
   const proximosEPs=state.obras
     .filter(o=>o.proximoEP)
-    .map(o=>({nombre:o.nombre, dias:diffDays(hoy,o.proximoEP), fecha:o.proximoEP, epNum:o.eps.length+1}))
-    .filter(x=>x.dias>=0&&x.dias<=15)
+    .map(o=>({nombre:o.nombre,dias:diffDays(hoy,o.proximoEP),fecha:o.proximoEP,epNum:o.eps.length+1}))
+    .filter(x=>x.dias>=-7&&x.dias<=30)
     .sort((a,b)=>a.dias-b.dias);
 
   if(proximosEPs.length>0){
     const banner=document.createElement('div');
-    banner.style.cssText='margin:10px 16px 4px;background:var(--amber-bg);border:0.5px solid #FAC775;border-radius:var(--rl);padding:12px 14px;';
-    banner.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--amber);margin-bottom:6px;">⏰ Próximos estados de pago</div>`+
-      proximosEPs.map(x=>`<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text);padding:3px 0;border-bottom:0.5px solid rgba(0,0,0,.06);">
-        <span>${x.nombre} — EP N°${x.epNum}</span>
-        <span style="font-weight:500;color:${x.dias<=5?'var(--red)':'var(--amber)'};">${x.dias===0?'HOY':x.dias+'d'} · ${fmtDate(x.fecha)}</span>
-      </div>`).join('');
+    banner.style.cssText='margin:10px 16px 4px;border-radius:var(--rl);overflow:hidden;border:0.5px solid var(--border);';
+    banner.innerHTML=`<div style="padding:8px 14px;background:#1a1a18;color:#fff;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;">⏰ Estados de pago — calendario</div>`+
+      proximosEPs.map(x=>{
+        let bg,color,dot,label;
+        if(x.dias<0){bg='var(--red-bg)';color='var(--red)';dot='#E24B4A';label=`Vencido hace ${Math.abs(x.dias)}d`;}
+        else if(x.dias===0){bg='var(--red-bg)';color='var(--red)';dot='#E24B4A';label='HOY';}
+        else if(x.dias<=5){bg='var(--red-bg)';color='var(--red)';dot='#E24B4A';label=`${x.dias}d restantes`;}
+        else if(x.dias<=15){bg='var(--amber-bg)';color='var(--amber)';dot='#EF9F27';label=`${x.dias}d restantes`;}
+        else{bg='var(--green-bg)';color='var(--green)';dot='#639922';label=`${x.dias}d restantes`;}
+        return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:${bg};border-bottom:0.5px solid var(--border);">
+          <div style="width:10px;height:10px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.nombre}</div>
+            <div style="font-size:11px;color:var(--text2);">EP N°${x.epNum} · ${fmtDate(x.fecha)}</div>
+          </div>
+          <div style="font-size:12px;font-weight:600;color:${color};flex-shrink:0;">${label}</div>
+        </div>`;
+      }).join('');
     list.appendChild(banner);
   }
 
@@ -2897,34 +2909,32 @@ function updatePartida(i){
 
 function parsearExcelEP(arrayBuffer){
   if(!window.XLSX) throw new Error('Librería XLSX no cargada');
-  const wb = XLSX.read(new Uint8Array(arrayBuffer),{type:'array'});
+  const wb = XLSX.read(new Uint8Array(arrayBuffer),{type:'array', cellDates:true});
 
   // 1. CONTROL AVANCE PARTIDAS
   const wsCAP = wb.Sheets['CONTROL AVANCE PARTIDAS'] ||
                 wb.Sheets[wb.SheetNames.find(n=>n.includes('AVANCE PARTIDAS')||n.includes('CONTROL'))];
   let partidas = [];
   if(wsCAP){
-    const rows = XLSX.utils.sheet_to_json(wsCAP,{header:1,defval:''});
+    const rows = XLSX.utils.sheet_to_json(wsCAP,{header:1,defval:'',raw:false});
+    const rowsRaw = XLSX.utils.sheet_to_json(wsCAP,{header:1,defval:'',raw:true});
     rows.forEach((row,ri)=>{
-      if(ri < 16) return; // encabezados hasta fila 16 (índice base 0 = fila 17)
+      if(ri < 16) return;
       const item=row[0], desc=row[1], unidad=row[2];
-      const cant=row[3], punit=row[4], ptotal=row[5];
-      const cantHF=row[6], valHF=row[7];
-      const valEPAnt=row[8], valEPAct=row[9];
-      const pctCol=row[10];
+      const rawRow=rowsRaw[ri]||[];
+      const cant=rawRow[3], punit=rawRow[4], ptotal=rawRow[5];
+      const cantHF=rawRow[6], valHF=rawRow[7];
+      const valEPAct=rawRow[9];
+      const pctCol=rawRow[10];
       if(!item||!desc||String(item).trim()==='ITEM'||String(item).trim()==='') return;
-      const esCapitulo=!unidad&&(!cant||cant==='');
-      const cantN=typeof cant==='number'?cant:parseFloat(String(cant).replace(',','.'))||0;
-      const punitN=typeof punit==='number'?punit:parseFloat(String(punit).replace(',','.'))||0;
-      const ptotalN=typeof ptotal==='number'?ptotal:Math.round(cantN*punitN);
-      const cantHFN=typeof cantHF==='number'?cantHF:parseFloat(String(cantHF).replace(',','.'))||0;
-      const valHFN=typeof valHF==='number'?valHF:parseFloat(String(valHF).replace(',','.'))||0;
-      const valEPActN=typeof valEPAct==='number'?valEPAct:parseFloat(String(valEPAct).replace(',','.'))||0;
+      const esCapitulo=(!unidad||unidad==='')&&(!cant||cant==='');
+      const n=v=>typeof v==='number'?v:parseFloat(String(v||0).replace(',','.'))||0;
+      const ptotalN=n(ptotal)||Math.round(n(cant)*n(punit));
       const pctN=typeof pctCol==='number'?Math.round(pctCol*100):0;
       const p={
         item:String(item).trim(), desc:String(desc).trim(),
-        unidad:String(unidad||''), cant:cantN, punit:punitN, ptotal:ptotalN,
-        cantHF:cantHFN, valHF:valHFN, valEP:valEPActN,
+        unidad:String(unidad||''), cant:n(cant), punit:n(punit), ptotal:ptotalN,
+        cantHF:n(cantHF), valHF:n(valHF), valEP:n(valEPAct),
         pct:pctN
       };
       if(esCapitulo) p.esCapitulo=true;
@@ -2932,25 +2942,32 @@ function parsearExcelEP(arrayBuffer){
     });
   }
 
-  // 2. PROGRAMACION FINANC — extraer programa de EPs (avance programado y fechas)
+  // 2. PROGRAMACION FINANC — columna C=DESDE, D=HASTA (fechas reales datetime)
   const wsPF = wb.Sheets['PROGRAMACION FINANC'] ||
                wb.Sheets[wb.SheetNames.find(n=>n.includes('PROGRAM'))];
   let programaEPs = [];
   if(wsPF){
-    const rows = XLSX.utils.sheet_to_json(wsPF,{header:1,defval:''});
+    // Leer con cellDates:true para obtener fechas JS nativas
+    const rows = XLSX.utils.sheet_to_json(wsPF,{header:1,defval:'',raw:false});
+    const rowsRaw = XLSX.utils.sheet_to_json(wsPF,{header:1,defval:'',raw:true});
     rows.forEach((row,ri)=>{
       if(ri < 18) return; // datos desde fila 19 (índice 18)
-      const nep=row[0];
-      if(!nep||typeof nep!=='number'||nep<1) return;
-      const dias=row[1];
-      const desde=row[2]; const hasta=row[3];
-      const pctProg=row[4]; const pctAcumProg=row[5];
+      const rawRow = rowsRaw[ri]||[];
+      const nep = rawRow[0];
+      if(typeof nep!=='number'||nep<1) return;
+      const pctProg = rawRow[4];   // col E = % AVANCE programado parcial
+      const pctAcum = rawRow[5];   // col F = % ACUM. programado
+
+      // Columnas C y D: fechas — pueden venir como string "dd/mm/yyyy" o Date JS
+      const desde = parseFechaExcel(row[2], rawRow[2]);
+      const hasta  = parseFechaExcel(row[3], rawRow[3]);
+
       programaEPs.push({
-        num:nep, dias:typeof dias==='number'?dias:28,
-        desde:typeof desde==='number'?excelDateToISO(desde):String(desde||''),
-        hasta:typeof hasta==='number'?excelDateToISO(hasta):String(hasta||''),
-        pctProg:typeof pctProg==='number'?Math.round(pctProg*100):0,
-        pctAcumProg:typeof pctAcumProg==='number'?Math.round(pctAcumProg*100):0,
+        num: nep,
+        desde,
+        hasta,
+        pctProg: typeof pctProg==='number'?Math.round(pctProg*100):0,
+        pctAcumProg: typeof pctAcum==='number'?Math.round(pctAcum*100):0,
       });
     });
   }
@@ -2958,8 +2975,27 @@ function parsearExcelEP(arrayBuffer){
   return {partidas, programaEPs};
 }
 
+function parseFechaExcel(strVal, rawVal){
+  // Intenta extraer fecha ISO yyyy-mm-dd desde distintos formatos
+  if(!strVal && !rawVal) return null;
+  // Si XLSX ya entregó un string formateado (con cellDates:false es serial numérico)
+  const s = String(strVal||'').trim();
+  // Formato ISO o con slash
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // Formato dd/mm/yyyy o d/m/yyyy
+  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(dmy) return `${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;
+  // Formato m/d/yyyy (anglosajón que Excel a veces entrega)
+  const mdy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(mdy) return `${mdy[3]}-${mdy[1].padStart(2,'0')}-${mdy[2].padStart(2,'0')}`;
+  // Si rawVal es número serial de Excel
+  if(typeof rawVal==='number'&&rawVal>40000){
+    return excelDateToISO(rawVal);
+  }
+  return null;
+}
+
 function excelDateToISO(serial){
-  // Excel serial date → ISO string
   const utc = new Date(Date.UTC(1899,11,30) + serial * 86400000);
   return utc.toISOString().slice(0,10);
 }
