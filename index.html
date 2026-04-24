@@ -2968,6 +2968,7 @@ function parsearExcelEP(arrayBuffer){
         hasta,
         pctProg: typeof pctProg==='number'?Math.round(pctProg*100):0,
         pctAcumProg: typeof pctAcum==='number'?Math.round(pctAcum*100):0,
+        pctAcumReal: typeof rawRow[9]==='number'?Math.round(rawRow[9]*100):null, // col J = % ACUM. real
       });
     });
   }
@@ -3000,30 +3001,41 @@ function excelDateToISO(serial){
   return utc.toISOString().slice(0,10);
 }
 
+function aplicarProgramaEPs(o, partidas, programaEPs){
+  if(partidas.length>0) o.partidas=partidas;
+  if(programaEPs.length>0){
+    o.programaEPs=programaEPs;
+    const nEPs=o.eps.length;
+    // Avance programado (col F = pctAcumProg): fila del último EP registrado
+    const filaProg=programaEPs.find(p=>p.num===nEPs)
+                 ||programaEPs.slice().reverse().find(p=>p.pctAcumProg>0)
+                 ||programaEPs[0];
+    if(filaProg) o.avanceProg=filaProg.pctAcumProg||o.avanceProg;
+    // Avance real (col J = pctAcumReal): misma fila, si tiene valor
+    if(filaProg&&filaProg.pctAcumReal!==null&&filaProg.pctAcumReal>0){
+      o.avance=filaProg.pctAcumReal;
+    } else {
+      // Fallback: calcular desde % completado de partidas
+      const noC=(o.partidas||[]).filter(p=>!p.esCapitulo);
+      if(noC.length>0&&noC.some(p=>(p.pct||0)>0))
+        o.avance=Math.round(noC.reduce((s,p)=>s+(p.pct||0),0)/noC.length);
+    }
+    // Próximo EP: fecha "hasta" de la fila N+1
+    const sigEP=programaEPs.find(p=>p.num===nEPs+1);
+    if(sigEP?.hasta) o.proximoEP=sigEP.hasta;
+  }
+}
+
 function cargarPartidasExcel(event){
-  const file=event.target.files[0]; if(!file)return;
+  const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onload=ev=>{
     try{
-      const {partidas, programaEPs} = parsearExcelEP(ev.target.result);
+      const {partidas,programaEPs}=parsearExcelEP(ev.target.result);
       const o=state.obras[state.activeObraIdx];
-      if(partidas.length>0){
-        o.partidas=partidas;
-        // Calcular avance real promedio desde las partidas
-        const noCapitulo=partidas.filter(p=>!p.esCapitulo);
-        o.avance=noCapitulo.length?Math.round(noCapitulo.reduce((s,p)=>s+(p.pct||0),0)/noCapitulo.length):o.avance;
-      }
-      if(programaEPs.length>0){
-        o.programaEPs=programaEPs;
-        // Tomar avance programado acumulado del EP actual (último con datos)
-        const epActual=programaEPs.find(p=>p.num===o.eps.length)||programaEPs[programaEPs.length-1];
-        if(epActual) o.avanceProg=epActual.pctAcumProg||o.avanceProg;
-        // Próximo EP: fecha "hasta" del siguiente EP
-        const sigEP=programaEPs.find(p=>p.num===o.eps.length+1);
-        if(sigEP?.hasta) o.proximoEP=sigEP.hasta;
-      }
-      saveAndSync(); renderAvance(o);
-      showToast(`✓ ${partidas.length} partidas cargadas · ${programaEPs.length} EPs programados`);
+      aplicarProgramaEPs(o,partidas,programaEPs);
+      saveAndSync();renderAvance(o);
+      showToast(`✓ ${partidas.length} partidas · Real ${o.avance}% · Prog. ${o.avanceProg}%`);
     }catch(e){showToast('Error leyendo Excel: '+e.message);}
   };
   reader.readAsArrayBuffer(file);
@@ -3034,10 +3046,7 @@ function cargarPartidasExcel(event){
 async function cargarDesdeUltimoEP(){
   const o=state.obras[state.activeObraIdx];
   const lastEP=o.eps.slice().reverse().find(ep=>ep.adjuntos?.length>0);
-  if(!lastEP){
-    showToast('El último EP no tiene archivo adjunto. Adjunta el Excel en Estados de pago.');
-    return;
-  }
+  if(!lastEP){showToast('El último EP no tiene archivo adjunto. Adjúntalo en Estados de pago.');return;}
   const adj=lastEP.adjuntos[lastEP.adjuntos.length-1];
   if(!adj.driveId){showToast('Sin ID de Drive para descargar');return;}
   if(!accessToken){showToast('Conecta Drive para leer el archivo');return;}
@@ -3046,20 +3055,9 @@ async function cargarDesdeUltimoEP(){
     const res=await apiFetch(`https://www.googleapis.com/drive/v3/files/${adj.driveId}?alt=media`);
     const buffer=await res.arrayBuffer();
     const {partidas,programaEPs}=parsearExcelEP(buffer);
-    if(partidas.length>0){
-      o.partidas=partidas;
-      const noCapitulo=partidas.filter(p=>!p.esCapitulo);
-      o.avance=noCapitulo.length?Math.round(noCapitulo.reduce((s,p)=>s+(p.pct||0),0)/noCapitulo.length):o.avance;
-    }
-    if(programaEPs.length>0){
-      o.programaEPs=programaEPs;
-      const epActual=programaEPs.find(p=>p.num===o.eps.length)||programaEPs[programaEPs.length-1];
-      if(epActual) o.avanceProg=epActual.pctAcumProg||o.avanceProg;
-      const sigEP=programaEPs.find(p=>p.num===o.eps.length+1);
-      if(sigEP?.hasta) o.proximoEP=sigEP.hasta;
-    }
-    saveAndSync(); renderAvance(o);
-    showToast(`✓ ${partidas.length} partidas · ${programaEPs.length} EPs desde EP N°${lastEP.num}`);
+    aplicarProgramaEPs(o,partidas,programaEPs);
+    saveAndSync();renderAvance(o);
+    showToast(`✓ ${partidas.length} partidas · Real ${o.avance}% · Prog. ${o.avanceProg}% · EP N°${lastEP.num}`);
   }catch(e){showToast('Error: '+e.message);}
 }
 
