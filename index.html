@@ -158,7 +158,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="mod-item" onclick="goModulo('personal')"><div class="mod-left"><div class="mod-icon" style="background:#FBEAF0;">👷</div><div><div class="mod-name">Personal y organigrama</div><div class="mod-desc">Residente, autocontrol, subcontratos</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('garantias')"><div class="mod-left"><div class="mod-icon" style="background:var(--green-bg);">🔒</div><div><div class="mod-name">Garantías</div><div class="mod-desc">Boletas y pólizas con alertas de vencimiento</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('documentos')"><div class="mod-left"><div class="mod-icon" style="background:#F5F0FF;">🗂️</div><div><div class="mod-name">Gestión documental</div><div class="mod-desc">Actas, resoluciones, oficios, planos y más</div></div></div><span class="chevron">›</span></div>
-        <div class="mod-item" onclick="goModulo('informespdf')" style="border-bottom:none;"><div class="mod-left"><div class="mod-icon" style="background:#F0EBF8;">📄</div><div><div class="mod-name">Exportar informe PDF</div><div class="mod-desc">Avance bimensual y estados de pago</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('informespdf')" style="border-bottom:none;"><div class="mod-left"><div class="mod-icon" style="background:#F0EBF8;">📄</div><div><div class="mod-name">Informe de obras</div><div class="mod-desc">Genera informe con fotos, partidas y Curva S</div></div></div><span class="chevron">›</span></div>
       </div>
     </div>
   </div>
@@ -171,8 +171,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </button>
     <div id="grp-visitas" style="display:none;background:var(--bg);border:0.5px solid var(--border);border-top:none;border-radius:0 0 var(--rl) var(--rl);overflow:hidden;">
       <div class="mod-list" style="padding:0 16px;">
+        <div class="mod-item" onclick="goModulo('checklist')"><div class="mod-left"><div class="mod-icon" style="background:#E1F5EE;">✅</div><div><div class="mod-name">Checklist inicio de obra</div><div class="mod-desc">Requisitos DS 236, DS 283 y MITO</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('comunicaciones')"><div class="mod-left"><div class="mod-icon" style="background:var(--amber-bg);">📝</div><div><div class="mod-name">Comunicaciones</div><div class="mod-desc">Libro de obras</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('visitas')"><div class="mod-left"><div class="mod-icon" style="background:#E1F5EE;">📍</div><div><div class="mod-name">Visitas ITO</div><div class="mod-desc">Registro con observaciones y fotografías</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('multas')"><div class="mod-left"><div class="mod-icon" style="background:var(--red-bg);">⚠️</div><div><div class="mod-name">Multas</div><div class="mod-desc">Registro y cálculo según DS 236/283</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('ensayos')"><div class="mod-left"><div class="mod-icon" style="background:var(--amber-bg);">🧪</div><div><div class="mod-name">Ensayos P.6</div><div class="mod-desc">Plan de ensayos y registro de resultados</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('recepcion')" style="border-bottom:none;"><div class="mod-left"><div class="mod-icon" style="background:#E1F5EE;">🏁</div><div><div class="mod-name">Recepción de obras</div><div class="mod-desc">Flujo de comisión, pase ITO, acta y resolución</div></div></div><span class="chevron">›</span></div>
       </div>
@@ -512,14 +514,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
     <div class="form-group">
       <label class="form-label">Tipo de visita</label>
-      <select class="form-input" id="visita-tipo">
+      <select class="form-input" id="visita-tipo" onchange="onTipoVisitaChange()">
         <option value="Visita de inspección">Visita de inspección</option>
         <option value="Visita de control de calidad">Visita de control de calidad</option>
         <option value="Visita de medición EP">Visita de medición EP</option>
         <option value="Visita de ensayos">Visita de ensayos</option>
+        <option value="Pase de la ITO">Pase de la ITO</option>
         <option value="Visita administrativa">Visita administrativa</option>
         <option value="Otra">Otra</option>
       </select>
+    </div>
+    <div id="pase-ito-banner" style="display:none;margin-bottom:14px;padding:10px 14px;background:#E1F5EE;border:0.5px solid #1D9E75;border-radius:var(--r);font-size:12px;color:#1D9E75;">
+      🏁 Al guardar esta visita se registrará automáticamente el <strong>Pase de la ITO</strong> en el módulo Recepción de obras y se habilitará el paso siguiente.
     </div>
 
     <div class="form-row">
@@ -624,6 +630,121 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <!-- RECEPCIÓN DE OBRAS -->
+<!-- CHECKLIST INICIO DE OBRA -->
+<div class="screen" id="s-checklist">
+  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Checklist inicio de obra</div><div style="width:60px;"></div></div>
+  <div id="checklist-progress" style="padding:10px 16px 0;"></div>
+  <div class="tab-bar" id="chk-tabs">
+    <button class="tab-btn active" onclick="switchChkTab('ds236')">DS 236</button>
+    <button class="tab-btn" onclick="switchChkTab('ds283')">DS 283</button>
+    <button class="tab-btn" onclick="switchChkTab('mito')">MITO</button>
+  </div>
+  <div id="chk-content"></div>
+</div>
+
+<!-- CARTA GANTT P3 -->
+<div class="screen" id="s-gantt">
+  <div class="topbar"><button class="back-btn" onclick="go('s-planificacion')">Fichas P</button><div style="font-size:15px;font-weight:500;">Carta Gantt — P.3</div><div style="width:60px;"></div></div>
+  <div style="padding:10px 16px 0;">
+    <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;background:var(--bg2);margin-bottom:8px;">
+      <input type="file" id="gantt-file-input" accept=".xlsx,.xls" style="display:none;" onchange="cargarGantt(event)"/>
+      <span style="font-size:20px;">📊</span>
+      <div><div style="font-size:13px;font-weight:500;">Cargar Carta Gantt (Excel)</div><div style="font-size:11px;color:var(--text2);">Estructura: columnas Ítem, Partida, Días inicio, Duración, Días término</div></div>
+    </label>
+  </div>
+  <div id="gantt-atrasadas" style="display:none;padding:0 16px 8px;">
+    <div class="section-title" style="padding:8px 0 4px;">🔴 Top 5 partidas más atrasadas</div>
+    <div id="gantt-top5"></div>
+  </div>
+  <div id="gantt-list"></div>
+</div>
+
+<!-- MULTAS -->
+<div class="screen" id="s-multas">
+  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Multas</div><div style="width:60px;"></div></div>
+  <div id="multas-resumen" style="padding:10px 16px 0;"></div>
+  <div id="multas-list"></div>
+  <div style="padding:10px 16px 16px;"><button class="add-btn" onclick="showFormMulta(-1)">+ Registrar multa</button></div>
+</div>
+
+<!-- FORM MULTA -->
+<div class="screen" id="s-multa-form">
+  <div class="topbar"><button class="back-btn" onclick="go('s-multas')">Multas</button><div style="font-size:15px;font-weight:500;" id="multa-form-title">Nueva multa</div><div style="width:60px;"></div></div>
+  <div class="form-wrap" style="padding-top:16px;">
+    <input type="hidden" id="multa-idx" value="-1"/>
+    <div class="form-group">
+      <label class="form-label">Tipo de multa</label>
+      <select class="form-input" id="multa-tipo" onchange="onMultaTipoChange()">
+        <option value="atraso">Art. 49 DS 236 — Multa por atraso (% diario)</option>
+        <option value="instruccion_ito">Art. 50 DS 236 — Incumplimiento instrucción ITO</option>
+        <option value="libro_obras">Art. 51 DS 236 — No mantener libro de obras</option>
+        <option value="subcontrato_no_autorizado">Art. 52 DS 236 — Subcontrato no autorizado</option>
+        <option value="personal_no_calificado">Art. 53 DS 236 — Personal no calificado</option>
+        <option value="seguridad">Art. 54 DS 236 — Incumplimiento normas seguridad</option>
+        <option value="ds283_otra">DS 283 — Incumplimiento bases tipo</option>
+        <option value="otra">Otra causa</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha de aplicación</label>
+      <input class="form-input" type="date" id="multa-fecha"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción / causa específica</label>
+      <textarea class="form-input" id="multa-causa" rows="3" style="resize:none;" placeholder="Descripción detallada de la infracción..."></textarea>
+    </div>
+    <div id="multa-atraso-wrap" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">N° días de atraso</label>
+        <input class="form-input" type="number" id="multa-dias" placeholder="0" min="1" oninput="calcularMulta()"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">% diario sobre contrato (DS 236 Art. 49)</label>
+        <input class="form-input" type="number" id="multa-pct-diario" value="0.1" step="0.01" oninput="calcularMulta()"/>
+      </div>
+    </div>
+    <div id="multa-fija-wrap" style="display:none;">
+      <div class="form-group">
+        <label class="form-label">Monto en UF (multa fija DS 236)</label>
+        <input class="form-input" type="number" id="multa-uf-fija" step="0.01" placeholder="Ej: 5" oninput="calcularMulta()"/>
+      </div>
+    </div>
+    <div id="multa-calculo" style="display:none;padding:12px 14px;background:var(--red-bg);border-radius:var(--r);margin-bottom:14px;">
+      <div style="font-size:11px;color:var(--red);font-weight:600;margin-bottom:4px;">Multa calculada</div>
+      <div id="multa-calculo-texto" style="font-size:14px;font-weight:500;color:var(--red);"></div>
+      <div id="multa-calculo-uf" style="font-size:12px;color:var(--text2);margin-top:2px;"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Monto final aplicado ($)</label>
+      <input class="form-input" type="number" id="multa-monto-final" placeholder="0"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Monto en UF</label>
+      <input class="form-input" type="number" id="multa-uf-final" step="0.01" placeholder="0.00"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Estado</label>
+      <select class="form-input" id="multa-estado">
+        <option value="aplicada">Aplicada</option>
+        <option value="notificada">Notificada — pendiente descuento</option>
+        <option value="apelada">Apelada por contratista</option>
+        <option value="descontada">Descontada en EP</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">EP donde se descuenta</label>
+      <input class="form-input" id="multa-ep" placeholder="Ej: EP N°3"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Observaciones</label>
+      <input class="form-input" id="multa-obs" placeholder="Opcional"/>
+    </div>
+    <button class="btn-primary" onclick="guardarMulta()">Guardar multa</button>
+    <button class="btn-secondary" id="multa-btn-eliminar" onclick="eliminarMulta()" style="color:var(--red);border-color:#F09595;display:none;">Eliminar multa</button>
+    <button class="btn-secondary" onclick="go('s-multas')">Cancelar</button>
+  </div>
+</div>
+
 <div class="screen" id="s-recepcion">
   <div class="topbar">
     <button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button>
@@ -1005,6 +1126,8 @@ function goModulo(mod){
   else if(mod==='medicion'){renderMedicion(o);go('s-medicion');}
   else if(mod==='comunicaciones'){renderComunicaciones(o);go('s-comunicaciones');}
   else if(mod==='personal'){renderPersonal(o);go('s-personal');}
+  else if(mod==='checklist'){renderChecklist();go('s-checklist');}
+  else if(mod==='multas'){renderMultas();go('s-multas');}
   else if(mod==='recepcion'){renderRecepcion();go('s-recepcion');}
   else if(mod==='visitas'){renderVisitas();go('s-visitas');}
   else if(mod==='garantias'){renderGarantias();go('s-garantias');}
@@ -1378,6 +1501,392 @@ async function adjuntarArchivoGarantia(event, idx){
   }
 }
 
+// ══ TIPO VISITA — Pase ITO ═══════════════════════════════
+function onTipoVisitaChange(){
+  const tipo=document.getElementById('visita-tipo').value;
+  document.getElementById('pase-ito-banner').style.display=tipo==='Pase de la ITO'?'block':'none';
+}
+
+// ══ CHECKLIST INICIO DE OBRA (DS 236, DS 283, MITO) ══════
+
+const CHECKLIST_ITEMS = {
+  ds236:[
+    {id:'c1',texto:'Entrega de terreno formalizada mediante acta firmada',ref:'Art. 28 DS 236'},
+    {id:'c2',texto:'Libro de Inspección de Obras habilitado y en terreno',ref:'Art. 30 DS 236'},
+    {id:'c3',texto:'Cartel de obra instalado según especificaciones SERVIU',ref:'Art. 29 DS 236'},
+    {id:'c4',texto:'Programa de trabajo recibido y aprobado por ITO',ref:'Art. 31 DS 236'},
+    {id:'c5',texto:'Nómina de personal presentada al ITO',ref:'Art. 32 DS 236'},
+    {id:'c6',texto:'Instalación de faenas operativa',ref:'Art. 33 DS 236'},
+    {id:'c7',texto:'Garantía de fiel cumplimiento entregada y vigente',ref:'Art. 40 DS 236'},
+    {id:'c8',texto:'Garantía de correcta inversión del anticipo (si aplica)',ref:'Art. 41 DS 236'},
+    {id:'c9',texto:'Profesional residente acreditado en terreno',ref:'Art. 35 DS 236'},
+    {id:'c10',texto:'Plan de autocontrol de calidad presentado',ref:'Art. 36 DS 236'},
+    {id:'c11',texto:'Póliza de seguro de accidentes del trabajo vigente',ref:'Art. 37 DS 236'},
+    {id:'c12',texto:'Medidas de seguridad perimetral implementadas',ref:'Art. 38 DS 236'},
+  ],
+  ds283:[
+    {id:'d1',texto:'Bases técnicas y especificaciones en terreno',ref:'Art. 5 DS 283'},
+    {id:'d2',texto:'Planos de proyecto recibidos por contratista',ref:'Art. 6 DS 283'},
+    {id:'d3',texto:'Plan de ensayos entregado por contratista',ref:'Art. 7 DS 283'},
+    {id:'d4',texto:'Lista de materiales y proveedores presentada',ref:'Art. 8 DS 283'},
+    {id:'d5',texto:'Subcontratos informados y autorizados por ITO',ref:'Art. 9 DS 283'},
+    {id:'d6',texto:'Organigrama de la obra presentado y aprobado',ref:'Art. 10 DS 283'},
+    {id:'d7',texto:'Programa financiero de EPs entregado',ref:'Art. 11 DS 283'},
+    {id:'d8',texto:'Carta Gantt aprobada por ITO',ref:'Art. 12 DS 283'},
+  ],
+  mito:[
+    {id:'m1',texto:'Carpeta técnica de obra organizada y disponible',ref:'MITO MINVU'},
+    {id:'m2',texto:'Informe fotográfico de estado inicial del terreno',ref:'MITO MINVU'},
+    {id:'m3',texto:'Acta de inicio de obras firmada por todas las partes',ref:'MITO MINVU'},
+    {id:'m4',texto:'Contactos de emergencia del contratista registrados',ref:'MITO MINVU'},
+    {id:'m5',texto:'Cronograma de visitas ITO acordado con contratista',ref:'MITO MINVU'},
+    {id:'m6',texto:'Procedimiento de gestión de No Conformidades establecido',ref:'MITO MINVU'},
+    {id:'m7',texto:'Ficha de datos de la obra completa y firmada',ref:'MITO MINVU'},
+  ]
+};
+
+let chkTabActiva='ds236';
+
+function renderChecklist(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.checklist) o.checklist={};
+  const allItems=[...CHECKLIST_ITEMS.ds236,...CHECKLIST_ITEMS.ds283,...CHECKLIST_ITEMS.mito];
+  const total=allItems.length;
+  const ok=allItems.filter(i=>o.checklist[i.id]==='ok').length;
+  const pct=Math.round(ok/total*100);
+  document.getElementById('checklist-progress').innerHTML=`
+    <div class="prog-wrap" style="margin:0 0 8px;">
+      <div class="prog-labels"><span class="prog-label">Cumplimiento general</span><span class="prog-pct" style="color:${pct===100?'var(--green)':pct>60?'var(--blue)':'var(--amber)'};">${ok}/${total} ítems</span></div>
+      <div class="prog-track"><div class="prog-fill ${pct===100?'fill-ok':pct>60?'fill-ok':'fill-warn'}" style="width:${pct}%"></div></div>
+    </div>`;
+  switchChkTab(chkTabActiva);
+}
+
+function switchChkTab(tab){
+  chkTabActiva=tab;
+  ['ds236','ds283','mito'].forEach((t,i)=>document.querySelectorAll('#chk-tabs .tab-btn')[i].classList.toggle('active',t===tab));
+  const o=state.obras[state.activeObraIdx];
+  if(!o.checklist) o.checklist={};
+  const items=CHECKLIST_ITEMS[tab];
+  const ok=items.filter(i=>o.checklist[i.id]==='ok').length;
+  document.getElementById('chk-content').innerHTML=`
+    <div style="padding:8px 16px 2px;display:flex;justify-content:space-between;align-items:center;">
+      <span style="font-size:12px;color:var(--text2);">${ok}/${items.length} completados</span>
+      <button onclick="marcarTodoOk('${tab}')" style="font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;">Marcar todos OK</button>
+    </div>
+    ${items.map(item=>{
+      const estado=o.checklist[item.id]||'pendiente';
+      const colBg=estado==='ok'?'var(--green-bg)':estado==='na'?'var(--bg2)':'var(--bg)';
+      const colBorder=estado==='ok'?'var(--green)':estado==='na'?'var(--border)':'var(--border)';
+      return `<div style="margin:6px 16px;padding:12px 14px;background:${colBg};border:0.5px solid ${colBorder};border-radius:var(--r);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+          <div style="flex:1;">
+            <div style="font-size:13px;color:var(--text);">${item.texto}</div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;">${item.ref}</div>
+          </div>
+          <div style="display:flex;gap:4px;flex-shrink:0;">
+            <button onclick="setChkItem('${item.id}','ok')" style="font-size:11px;padding:3px 8px;border-radius:20px;border:0.5px solid var(--border);cursor:pointer;background:${estado==='ok'?'var(--green)':'var(--bg)'};color:${estado==='ok'?'#fff':'var(--text2)'};">✓ OK</button>
+            <button onclick="setChkItem('${item.id}','na')" style="font-size:11px;padding:3px 8px;border-radius:20px;border:0.5px solid var(--border);cursor:pointer;background:${estado==='na'?'#888':'var(--bg)'};color:${estado==='na'?'#fff':'var(--text2)'};">N/A</button>
+            <button onclick="setChkItem('${item.id}','pendiente')" style="font-size:11px;padding:3px 8px;border-radius:20px;border:0.5px solid var(--border);cursor:pointer;background:${estado==='pendiente'?'var(--amber)':'var(--bg)'};color:${estado==='pendiente'?'#fff':'var(--text2)'};">⏳</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
+
+function setChkItem(id,estado){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.checklist) o.checklist={};
+  o.checklist[id]=estado;
+  saveAndSync(); renderChecklist();
+}
+
+function marcarTodoOk(tab){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.checklist) o.checklist={};
+  CHECKLIST_ITEMS[tab].forEach(i=>{ o.checklist[i.id]='ok'; });
+  saveAndSync(); renderChecklist();
+  showToast('Todos marcados como OK');
+}
+
+// ══ CARTA GANTT P3 ════════════════════════════════════════
+
+function abrirGantt(){
+  const o=state.obras[state.activeObraIdx];
+  renderGantt(o);
+  go('s-gantt');
+}
+
+function renderGantt(o){
+  if(!o.gantt||!o.gantt.length){
+    document.getElementById('gantt-atrasadas').style.display='none';
+    document.getElementById('gantt-list').innerHTML='<div class="empty-state">Sin Carta Gantt cargada.<br>Usa el botón para cargar el Excel.</div>';
+    return;
+  }
+  const hoy=new Date(); hoy.setHours(0,0,0,0);
+  const inicio=o.inicio?new Date(o.inicio):new Date();
+  inicio.setHours(0,0,0,0);
+  const diasTranscurridos=Math.round((hoy-inicio)/(864e5));
+
+  // Calcular atraso de cada partida
+  const partidas=o.gantt.filter(p=>!p.esCapitulo).map(p=>{
+    const diaInicio=p.diasInicio||0;
+    const duracion=p.duracion||0;
+    const diaTermino=p.diasTermino||diaInicio+duracion;
+    // Si la partida debería haber empezado
+    const deberiaHaberEmpezado=diasTranscurridos>=diaInicio;
+    // % esperado a esta altura
+    let pctEsperado=0;
+    if(diasTranscurridos>=diaTermino) pctEsperado=100;
+    else if(diasTranscurridos>diaInicio) pctEsperado=Math.round((diasTranscurridos-diaInicio)/duracion*100);
+    // Buscar avance real en partidas de obra
+    const partidaReal=(o.partidas||[]).find(pr=>pr.desc&&pr.desc.toLowerCase().includes(p.desc.toLowerCase().slice(0,15)));
+    const pctReal=partidaReal?(partidaReal.pct||0):0;
+    const atraso=deberiaHaberEmpezado?Math.max(0,pctEsperado-pctReal):0;
+    return {...p,pctEsperado,pctReal,atraso,deberiaHaberEmpezado};
+  });
+
+  // Top 5 más atrasadas
+  const atrasadas=partidas.filter(p=>p.atraso>0).sort((a,b)=>b.atraso-a.atraso).slice(0,5);
+  const top5Wrap=document.getElementById('gantt-atrasadas');
+  const top5=document.getElementById('gantt-top5');
+  if(atrasadas.length>0){
+    top5Wrap.style.display='block';
+    top5.innerHTML=atrasadas.map((p,i)=>`
+      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);">
+        <div style="width:22px;height:22px;border-radius:50%;background:${p.atraso>=30?'var(--red-bg)':'var(--amber-bg)'};color:${p.atraso>=30?'var(--red)':'var(--amber)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;">${i+1}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.item} ${p.desc}</div>
+          <div style="font-size:11px;color:var(--text2);">Esperado ${p.pctEsperado}% · Real ${p.pctReal}%</div>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:${p.atraso>=30?'var(--red)':'var(--amber)'};flex-shrink:0;">-${p.atraso}%</div>
+      </div>`).join('');
+  } else {
+    top5Wrap.style.display='none';
+  }
+
+  // Listado completo
+  document.getElementById('gantt-list').innerHTML=`
+    <div class="section-title" style="padding:12px 16px 4px;">Todas las partidas</div>
+    ${o.gantt.map(p=>p.esCapitulo
+      ? `<div style="padding:8px 16px;background:var(--blue-bg);font-size:12px;font-weight:600;color:var(--blue);">${p.item} ${p.desc}</div>`
+      : (()=>{
+          const dp=partidas.find(x=>x.item===p.item&&x.desc===p.desc)||{pctEsperado:0,pctReal:0,atraso:0};
+          const col=dp.atraso>=30?'var(--red)':dp.atraso>0?'var(--amber)':'var(--green)';
+          return `<div style="padding:8px 16px;border-bottom:0.5px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-size:12px;color:var(--text);flex:1;padding-right:8px;">${p.item} ${p.desc}</span>
+              <span style="font-size:11px;font-weight:500;color:${col};flex-shrink:0;">${dp.atraso>0?'-'+dp.atraso+'%':'OK'}</span>
+            </div>
+            <div style="font-size:10px;color:var(--text2);">Día ${p.diasInicio}→${p.diasTermino} · Esp. ${dp.pctEsperado}% · Real ${dp.pctReal}%</div>
+          </div>`;
+        })()
+    ).join('')}`;
+}
+
+function cargarGantt(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      if(!window.XLSX){showToast('Cargando librería...');return;}
+      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      const items=[];
+      rows.forEach((row,ri)=>{
+        if(ri<6)return; // encabezados
+        const item=row[0],desc=row[1];
+        if(!item&&!desc)return;
+        const diasInicio=typeof row[2]==='number'?row[2]:parseInt(row[2])||0;
+        const duracion=typeof row[3]==='number'?row[3]:parseInt(row[3])||0;
+        const diasTermino=typeof row[4]==='number'?row[4]:parseInt(row[4])||diasInicio+duracion;
+        const esCapitulo=!row[2]&&!row[3];
+        items.push({item:String(item||'').trim(),desc:String(desc||'').trim(),diasInicio,duracion,diasTermino,esCapitulo});
+      });
+      if(items.length>0){
+        const o=state.obras[state.activeObraIdx];
+        o.gantt=items;
+        saveAndSync();renderGantt(o);
+        showToast(`✓ Carta Gantt cargada: ${items.filter(i=>!i.esCapitulo).length} partidas`);
+      } else showToast('No se encontraron partidas en el Excel');
+    }catch(e){showToast('Error: '+e.message);}
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function getTop5Atrasadas(o){
+  if(!o.gantt||!o.gantt.length) return [];
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const inicio=o.inicio?new Date(o.inicio):new Date();inicio.setHours(0,0,0,0);
+  const diasTrans=Math.round((hoy-inicio)/(864e5));
+  return o.gantt.filter(p=>!p.esCapitulo).map(p=>{
+    const dI=p.diasInicio||0,dur=p.duracion||1,dT=p.diasTermino||dI+dur;
+    let pctEsp=0;
+    if(diasTrans>=dT)pctEsp=100;
+    else if(diasTrans>dI)pctEsp=Math.round((diasTrans-dI)/dur*100);
+    const pr=(o.partidas||[]).find(x=>x.desc&&x.desc.toLowerCase().includes(p.desc.toLowerCase().slice(0,12)));
+    const pctReal=pr?(pr.pct||0):0;
+    return {...p,pctEsperado:pctEsp,pctReal,atraso:Math.max(0,pctEsp-pctReal)};
+  }).filter(p=>p.atraso>0).sort((a,b)=>b.atraso-a.atraso).slice(0,5);
+}
+
+// ══ MULTAS DS 236/283 ════════════════════════════════════
+
+const UF_HOY = 38500; // valor referencial UF — actualizable
+
+const MULTA_INFO = {
+  atraso:          {label:'Multa por atraso (Art. 49 DS 236)',tipo:'pct_diario',ufFija:null,pctDiario:0.1},
+  instruccion_ito: {label:'Incumplimiento instrucción ITO (Art. 50 DS 236)',tipo:'uf_fija',ufFija:5,pctDiario:null},
+  libro_obras:     {label:'No mantener libro de obras (Art. 51 DS 236)',tipo:'uf_fija',ufFija:2,pctDiario:null},
+  subcontrato_no_autorizado:{label:'Subcontrato no autorizado (Art. 52 DS 236)',tipo:'uf_fija',ufFija:10,pctDiario:null},
+  personal_no_calificado:   {label:'Personal no calificado (Art. 53 DS 236)',tipo:'uf_fija',ufFija:3,pctDiario:null},
+  seguridad:       {label:'Incumplimiento normas seguridad (Art. 54 DS 236)',tipo:'uf_fija',ufFija:5,pctDiario:null},
+  ds283_otra:      {label:'Incumplimiento DS 283',tipo:'uf_fija',ufFija:5,pctDiario:null},
+  otra:            {label:'Otra causa',tipo:'manual',ufFija:null,pctDiario:null},
+};
+
+function renderMultas(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.multas) o.multas=[];
+  const totalMonto=o.multas.reduce((s,m)=>s+(m.montoFinal||0),0);
+  const totalUF=o.multas.reduce((s,m)=>s+(m.ufFinal||0),0);
+  document.getElementById('multas-resumen').innerHTML=o.multas.length?`
+    <div class="stats-row" style="margin-bottom:8px;">
+      <div class="stat-card"><div class="stat-label">Total multas</div><div class="stat-value" style="color:var(--red);">${o.multas.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Monto total ($)</div><div class="stat-value" style="font-size:13px;color:var(--red);">$${fmtM(totalMonto)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total UF</div><div class="stat-value" style="font-size:14px;color:var(--red);">${totalUF.toFixed(2)}</div></div>
+      <div class="stat-card"><div class="stat-label">Descontadas</div><div class="stat-value" style="color:var(--green);">${o.multas.filter(m=>m.estado==='descontada').length}</div></div>
+    </div>`:'';
+  const list=document.getElementById('multas-list');
+  if(!o.multas.length){list.innerHTML='<div class="empty-state">Sin multas registradas.</div>';return;}
+  const estadoLabel={aplicada:'Aplicada',notificada:'Notificada',apelada:'Apelada',descontada:'Descontada'};
+  const estadoBadge={aplicada:'badge-danger',notificada:'badge-warn',apelada:'badge-warn',descontada:'badge-ok'};
+  list.innerHTML=o.multas.map((m,i)=>`
+    <div class="obra-card" onclick="showFormMulta(${i})">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:500;color:var(--text);">${MULTA_INFO[m.tipo]?.label||m.tipo}</div>
+          <div class="obra-meta">${fmtDate(m.fecha)}${m.ep?' · '+m.ep:''}</div>
+          ${m.causa?`<div class="obra-meta" style="margin-top:2px;">${m.causa.slice(0,60)}${m.causa.length>60?'...':''}</div>`:''}
+        </div>
+        <div style="text-align:right;flex-shrink:0;">
+          <span class="badge ${estadoBadge[m.estado]||'badge-info'}">${estadoLabel[m.estado]||m.estado}</span>
+          <div style="font-size:12px;font-weight:600;color:var(--red);margin-top:4px;">$${fmtM(m.montoFinal||0)}</div>
+          ${m.ufFinal?`<div style="font-size:11px;color:var(--text2);">${(m.ufFinal).toFixed(2)} UF</div>`:''}
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function onMultaTipoChange(){
+  const tipo=document.getElementById('multa-tipo').value;
+  const info=MULTA_INFO[tipo];
+  document.getElementById('multa-atraso-wrap').style.display=info?.tipo==='pct_diario'?'block':'none';
+  document.getElementById('multa-fija-wrap').style.display=info?.tipo==='uf_fija'?'block':'none';
+  if(info?.ufFija) document.getElementById('multa-uf-fija').value=info.ufFija;
+  calcularMulta();
+}
+
+function calcularMulta(){
+  const tipo=document.getElementById('multa-tipo').value;
+  const info=MULTA_INFO[tipo];
+  const calculo=document.getElementById('multa-calculo');
+  const texto=document.getElementById('multa-calculo-texto');
+  const ufDiv=document.getElementById('multa-calculo-uf');
+  const o=state.obras[state.activeObraIdx];
+  if(!info||info.tipo==='manual'){calculo.style.display='none';return;}
+  if(info.tipo==='pct_diario'){
+    const dias=parseInt(document.getElementById('multa-dias').value)||0;
+    const pct=parseFloat(document.getElementById('multa-pct-diario').value)||0.1;
+    if(!dias){calculo.style.display='none';return;}
+    const monto=Math.round((o.monto||0)*pct/100*dias);
+    const uf=(monto/UF_HOY).toFixed(2);
+    calculo.style.display='block';
+    texto.textContent=`$${fmtM(monto)} (${dias}d × ${pct}% × $${fmtM(o.monto||0)})`;
+    ufDiv.textContent=`≈ ${uf} UF (UF referencial $${fmtM(UF_HOY)})`;
+    document.getElementById('multa-monto-final').value=monto;
+    document.getElementById('multa-uf-final').value=uf;
+  } else if(info.tipo==='uf_fija'){
+    const uf=parseFloat(document.getElementById('multa-uf-fija').value)||info.ufFija||0;
+    const monto=Math.round(uf*UF_HOY);
+    calculo.style.display='block';
+    texto.textContent=`${uf} UF = $${fmtM(monto)}`;
+    ufDiv.textContent=`UF referencial: $${fmtM(UF_HOY)}`;
+    document.getElementById('multa-monto-final').value=monto;
+    document.getElementById('multa-uf-final').value=uf;
+  }
+}
+
+function showFormMulta(idx){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.multas) o.multas=[];
+  document.getElementById('multa-idx').value=idx;
+  const esNueva=idx===-1;
+  document.getElementById('multa-form-title').textContent=esNueva?'Nueva multa':'Editar multa';
+  document.getElementById('multa-btn-eliminar').style.display=esNueva?'none':'block';
+  document.getElementById('multa-calculo').style.display='none';
+  if(!esNueva){
+    const m=o.multas[idx];
+    document.getElementById('multa-tipo').value=m.tipo||'atraso';
+    document.getElementById('multa-fecha').value=m.fecha||'';
+    document.getElementById('multa-causa').value=m.causa||'';
+    document.getElementById('multa-dias').value=m.dias||'';
+    document.getElementById('multa-pct-diario').value=m.pctDiario||0.1;
+    document.getElementById('multa-uf-fija').value=m.ufFija||'';
+    document.getElementById('multa-monto-final').value=m.montoFinal||'';
+    document.getElementById('multa-uf-final').value=m.ufFinal||'';
+    document.getElementById('multa-estado').value=m.estado||'aplicada';
+    document.getElementById('multa-ep').value=m.ep||'';
+    document.getElementById('multa-obs').value=m.obs||'';
+  } else {
+    document.getElementById('multa-tipo').value='atraso';
+    document.getElementById('multa-fecha').value=today();
+    document.getElementById('multa-causa').value='';
+    document.getElementById('multa-dias').value='';
+    document.getElementById('multa-pct-diario').value=0.1;
+    document.getElementById('multa-uf-fija').value='';
+    document.getElementById('multa-monto-final').value='';
+    document.getElementById('multa-uf-final').value='';
+    document.getElementById('multa-estado').value='aplicada';
+    document.getElementById('multa-ep').value='';
+    document.getElementById('multa-obs').value='';
+  }
+  onMultaTipoChange();
+  go('s-multa-form');
+}
+
+function guardarMulta(){
+  const o=state.obras[state.activeObraIdx];
+  if(!o.multas) o.multas=[];
+  const idx=parseInt(document.getElementById('multa-idx').value);
+  const m={
+    tipo:document.getElementById('multa-tipo').value,
+    fecha:document.getElementById('multa-fecha').value,
+    causa:document.getElementById('multa-causa').value.trim(),
+    dias:parseInt(document.getElementById('multa-dias').value)||0,
+    pctDiario:parseFloat(document.getElementById('multa-pct-diario').value)||0.1,
+    ufFija:parseFloat(document.getElementById('multa-uf-fija').value)||0,
+    montoFinal:parseInt(document.getElementById('multa-monto-final').value)||0,
+    ufFinal:parseFloat(document.getElementById('multa-uf-final').value)||0,
+    estado:document.getElementById('multa-estado').value,
+    ep:document.getElementById('multa-ep').value.trim(),
+    obs:document.getElementById('multa-obs').value.trim(),
+  };
+  if(idx===-1) o.multas.push(m); else o.multas[idx]=m;
+  saveAndSync(); go('s-multas'); renderMultas();
+  showToast(idx===-1?'Multa registrada':'Multa actualizada');
+}
+
+function eliminarMulta(){
+  const o=state.obras[state.activeObraIdx];
+  const idx=parseInt(document.getElementById('multa-idx').value);
+  if(!confirm('¿Eliminar esta multa?'))return;
+  o.multas.splice(idx,1);
+  saveAndSync(); go('s-multas'); renderMultas();
+  showToast('Multa eliminada');
+}
+
 // ══ RECEPCIÓN DE OBRAS ═════════════════════════════════════
 
 const RECEPCION_STEPS = [
@@ -1706,21 +2215,38 @@ async function generarResumenIA(){
 }
 
 function handleVisitaFotos(event){
-  const files=[...event.target.files].slice(0,6);
-  visitaFotosNuevas=[];
+  const nuevas=[...event.target.files];
+  const restantes=6-visitaFotosNuevas.length;
+  if(restantes<=0){showToast('Ya tienes 6 fotos. Elimina alguna para agregar más.');return;}
+  const aAgregar=nuevas.slice(0,restantes);
   const preview=document.getElementById('visita-fotos-preview');
-  preview.innerHTML='';
-  files.forEach(f=>{
+  aAgregar.forEach(f=>{
     const reader=new FileReader();
     reader.onload=ev=>{
       visitaFotosNuevas.push({file:f,dataURL:ev.target.result});
+      const wrap=document.createElement('div');
+      wrap.style.cssText='position:relative;';
       const img=document.createElement('img');
+      const idx=visitaFotosNuevas.length-1;
       img.src=ev.target.result;
-      img.style.cssText='width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);';
-      preview.appendChild(img);
+      img.style.cssText='width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;border:0.5px solid var(--border);display:block;';
+      const btn=document.createElement('button');
+      btn.textContent='✕';
+      btn.style.cssText='position:absolute;top:2px;right:2px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;';
+      btn.onclick=()=>{visitaFotosNuevas.splice(idx,1);wrap.remove();actualizarContadorFotos();};
+      wrap.appendChild(img);wrap.appendChild(btn);
+      preview.appendChild(wrap);
+      actualizarContadorFotos();
     };
     reader.readAsDataURL(f);
   });
+  if(nuevas.length>restantes) showToast(`Solo se agregaron ${aAgregar.length} fotos (límite 6)`);
+}
+
+function actualizarContadorFotos(){
+  const resto=6-visitaFotosNuevas.length;
+  const label=document.querySelector('label[for="visita-fotos-input"] div div:last-child, label:has(#visita-fotos-input) div div:last-child');
+  // Actualizar texto dinámicamente si existe
 }
 
 async function guardarVisita(){
@@ -1781,6 +2307,20 @@ async function guardarVisita(){
 
   if(idx===-1) o.visitas.push(visita);
   else o.visitas[idx]=visita;
+
+  // ── VINCULAR PASE ITO CON RECEPCIÓN ──────────────────────
+  if(visita.tipo==='Pase de la ITO'){
+    if(!o.recepcion) o.recepcion={};
+    if(!o.recepcion['pase_ito']) o.recepcion['pase_ito']={};
+    o.recepcion['pase_ito']={
+      estado:'completado',
+      fecha:visita.fecha,
+      obs:`Visita ITO registrada el ${visita.fecha} a las ${visita.hora||''}. ${visita.obs||''}`.trim(),
+      driveLink:visita.fotos?.[0]?.driveLink||null,
+      archivoNombre:visita.fotos?.[0]?.nombre||null,
+    };
+    showToast('✓ Pase ITO registrado en Recepción de obras');
+  }
 
   // ── VINCULAR CON COMUNICACIONES ──────────────────────────
   if(visita.fotosLibro?.length>0||visita.libroResumenIA){
@@ -2393,7 +2933,7 @@ function generarPDF(){
   </style></head><body>`;
 
   // HEADER
-  const tipoLabel=tipoInforme==='avance'?'Informe de Avance Bimensual':'Estado de Pago';
+  const tipoLabel=tipoInforme==='avance'?'Informe de Obras':'Estado de Pago';
   html+=`<div class="header">
     <div class="header-left">
       <div class="logo-box">SERVI<br>U</div>
@@ -2494,9 +3034,37 @@ function generarPDF(){
       </tbody></table></div>`;
   }
 
-  // FOTOS
-  if(fotosData.length){
-    html+=`<div class="section"><h3>Registro fotográfico</h3><div class="fotos-grid">
+  // FOTOS ÚLTIMAS 2 VISITAS
+  if(tipoInforme==='avance'){
+    const ultimasVisitas=(o.visitas||[]).slice(-2).reverse();
+    if(ultimasVisitas.length>0){
+      html+=`<div class="section"><h3>Registro fotográfico — últimas visitas ITO</h3>`;
+      ultimasVisitas.forEach(v=>{
+        if(v.fotos?.length){
+          html+=`<div style="margin-bottom:8px;"><div style="font-size:10px;color:#666;margin-bottom:4px;">${v.tipo} · ${fmtDate(v.fecha)}${v.hora?' · '+v.hora:''}</div>`;
+          html+=`<div class="fotos-grid">`;
+          v.fotos.slice(0,2).forEach((f,i)=>{
+            html+=`<div class="foto-item"><a href="${f.driveLink}" target="_blank" style="display:block;background:#E6F1FB;height:120px;display:flex;align-items:center;justify-content:center;border-radius:5px;text-decoration:none;"><div style="text-align:center;"><div style="font-size:24px;">🖼️</div><div style="font-size:9px;color:#185FA5;margin-top:4px;">Ver foto ${i+1}</div></div></a><p style="font-size:9px;color:#666;margin-top:3px;text-align:center;">${f.nombre}</p></div>`;
+          });
+          html+=`</div></div>`;
+        }
+      });
+      html+=`</div>`;
+    }
+    // TOP 5 PARTIDAS ATRASADAS
+    const top5=getTop5Atrasadas(o);
+    if(top5.length>0){
+      html+=`<div class="section"><h3>Partidas con mayor atraso</h3><table><thead><tr><th>#</th><th>Partida</th><th>% Esperado</th><th>% Real</th><th>Atraso</th></tr></thead><tbody>`;
+      top5.forEach((p,i)=>{
+        html+=`<tr><td>${i+1}</td><td>${p.item} ${p.desc}</td><td>${p.pctEsperado}%</td><td>${p.pctReal}%</td><td style="color:#A32D2D;font-weight:600;">-${p.atraso}%</td></tr>`;
+      });
+      html+=`</tbody></table></div>`;
+    }
+  }
+
+  // FOTOS CARGADAS MANUALMENTE
+  if(fotosData.length>0){
+    html+=`<div class="section"><h3>Registro fotográfico adicional</h3><div class="fotos-grid">
     ${fotosData.map((d,i)=>`<div class="foto-item"><img src="${d}"/><p style="font-size:9px;color:#666;margin-top:3px;text-align:center;">Foto ${i+1} — ${hoy}</p></div>`).join('')}
     </div></div>`;
   }
@@ -2581,6 +3149,7 @@ function openFichaDetalle(id,nombre){
   } else if(id==='P.3'){
     const tieneAdj=o.adjuntos?.['P.3']?.length>0;
     const estado=o.p3Estado||'pendiente';
+    const tieneGantt=o.gantt?.length>0;
     html=`<div style="padding:16px;">
       <div style="padding:14px;border-radius:var(--r);margin-bottom:14px;${estado==='ok'?'background:var(--green-bg);border:0.5px solid #C0DD97;':'background:var(--amber-bg);border:0.5px solid #FAC775;'}">
         <div style="font-size:13px;font-weight:500;color:${estado==='ok'?'var(--green)':'var(--amber)'};">${estado==='ok'?'✓ Programa de trabajo recibido':'⏳ Pendiente envío por parte del contratista'}</div>
@@ -2590,9 +3159,13 @@ function openFichaDetalle(id,nombre){
         <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;">
           <input type="file" accept=".pdf,.xlsx" style="display:none;" onchange="adjuntarP3YActivar(event)"/>
           <span style="font-size:20px;">📄</span>
-          <div><div style="font-size:13px;font-weight:500;">Cargar programa de trabajo</div><div style="font-size:11px;color:var(--text2);">PDF o Excel — al cargar cambia estado a OK</div></div>
+          <div><div style="font-size:13px;font-weight:500;">Cargar programa de trabajo (PDF/Excel)</div><div style="font-size:11px;color:var(--text2);">Al cargar cambia estado a OK</div></div>
         </label>
       </div>
+      <button class="btn-primary" style="margin-top:8px;" onclick="abrirGantt()">
+        ${tieneGantt?'📊 Ver Carta Gantt y partidas atrasadas':'📊 Cargar Carta Gantt (Excel)'}
+      </button>
+      ${tieneGantt?`<div style="margin-top:8px;font-size:12px;color:var(--text2);">${o.gantt.filter(p=>!p.esCapitulo).length} partidas cargadas</div>`:''}
     </div>`;
 
   } else if(id==='P.4'){
