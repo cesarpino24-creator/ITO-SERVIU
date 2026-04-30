@@ -172,6 +172,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="grp-visitas" style="display:none;background:var(--bg);border:0.5px solid var(--border);border-top:none;border-radius:0 0 var(--rl) var(--rl);overflow:hidden;">
       <div class="mod-list" style="padding:0 16px;">
         <div class="mod-item" onclick="goModulo('checklist')"><div class="mod-left"><div class="mod-icon" style="background:#E1F5EE;">✅</div><div><div class="mod-name">Checklist inicio de obra</div><div class="mod-desc">Requisitos DS 236, DS 283 y MITO</div></div></div><span class="chevron">›</span></div>
+        <div class="mod-item" onclick="goModulo('gantt')"><div class="mod-left"><div class="mod-icon" style="background:#E6F1FB;">📅</div><div><div class="mod-name">Carta Gantt — Análisis</div><div class="mod-desc">Carga y análisis semanal de programa de trabajo</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('comunicaciones')"><div class="mod-left"><div class="mod-icon" style="background:var(--amber-bg);">📝</div><div><div class="mod-name">Comunicaciones</div><div class="mod-desc">Libro de obras</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('visitas')"><div class="mod-left"><div class="mod-icon" style="background:#E1F5EE;">📍</div><div><div class="mod-name">Visitas ITO</div><div class="mod-desc">Registro con observaciones y fotografías</div></div></div><span class="chevron">›</span></div>
         <div class="mod-item" onclick="goModulo('multas')"><div class="mod-left"><div class="mod-icon" style="background:var(--red-bg);">⚠️</div><div><div class="mod-name">Multas</div><div class="mod-desc">Registro y cálculo según DS 236/283</div></div></div><span class="chevron">›</span></div>
@@ -642,20 +643,33 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div id="chk-content"></div>
 </div>
 
-<!-- CARTA GANTT P3 -->
+<!-- CARTA GANTT — MÓDULO INDEPENDIENTE -->
 <div class="screen" id="s-gantt">
-  <div class="topbar"><button class="back-btn" onclick="go('s-planificacion')">Fichas P</button><div style="font-size:15px;font-weight:500;">Carta Gantt — P.3</div><div style="width:60px;"></div></div>
+  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Carta Gantt — Análisis</div><div style="width:60px;"></div></div>
+
+  <!-- Carga y estado -->
   <div style="padding:10px 16px 0;">
-    <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;background:var(--bg2);margin-bottom:8px;">
+    <div id="gantt-estado-banner" style="display:none;margin-bottom:8px;"></div>
+    <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;background:var(--bg2);margin-bottom:6px;">
       <input type="file" id="gantt-file-input" accept=".xlsx,.xls" style="display:none;" onchange="cargarGantt(event)"/>
       <span style="font-size:20px;">📊</span>
-      <div><div style="font-size:13px;font-weight:500;">Cargar Carta Gantt (Excel)</div><div style="font-size:11px;color:var(--text2);">Estructura: columnas Ítem, Partida, Días inicio, Duración, Días término</div></div>
+      <div>
+        <div style="font-size:13px;font-weight:500;">Cargar / actualizar Carta Gantt</div>
+        <div style="font-size:11px;color:var(--text2);">Excel con columnas: Ítem, Partida, Días inicio, Duración, Días término</div>
+      </div>
     </label>
+    <div id="gantt-info-carga" style="display:none;font-size:11px;color:var(--text2);margin-bottom:4px;"></div>
   </div>
-  <div id="gantt-atrasadas" style="display:none;padding:0 16px 8px;">
-    <div class="section-title" style="padding:8px 0 4px;">🔴 Top 5 partidas más atrasadas</div>
+
+  <!-- Análisis semanal -->
+  <div id="gantt-semana-wrap" style="display:none;padding:0 16px 8px;">
+    <div class="section-title" style="padding:10px 0 4px;">📅 Análisis semanal</div>
+    <div id="gantt-semana-resumen" style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;font-size:12px;color:var(--text2);"></div>
+    <div class="section-title" style="padding:4px 0;">🔴 Top 5 partidas más atrasadas</div>
     <div id="gantt-top5"></div>
   </div>
+
+  <!-- Listado completo -->
   <div id="gantt-list"></div>
 </div>
 
@@ -1126,6 +1140,7 @@ function goModulo(mod){
   else if(mod==='medicion'){renderMedicion(o);go('s-medicion');}
   else if(mod==='comunicaciones'){renderComunicaciones(o);go('s-comunicaciones');}
   else if(mod==='personal'){renderPersonal(o);go('s-personal');}
+  else if(mod==='gantt'){renderGanttModulo();go('s-gantt');}
   else if(mod==='checklist'){renderChecklist();go('s-checklist');}
   else if(mod==='multas'){renderMultas();go('s-multas');}
   else if(mod==='recepcion'){renderRecepcion();go('s-recepcion');}
@@ -1611,77 +1626,76 @@ function marcarTodoOk(tab){
 
 // ══ CARTA GANTT P3 ════════════════════════════════════════
 
-function abrirGantt(){
+// ══ CARTA GANTT — MÓDULO INDEPENDIENTE ═══════════════════
+
+function renderGanttModulo(){
   const o=state.obras[state.activeObraIdx];
+  if(!o.gantt||!o.gantt.length){
+    document.getElementById('gantt-estado-banner').style.display='none';
+    document.getElementById('gantt-semana-wrap').style.display='none';
+    const ic=document.getElementById('gantt-info-carga');if(ic)ic.style.display='none';
+    document.getElementById('gantt-list').innerHTML='<div class="empty-state" style="padding-top:32px;"><div style="font-size:32px;margin-bottom:10px;">📅</div>Sin Carta Gantt cargada.<br>Usa el botón para cargar el Excel del programa de trabajo.</div>';
+    return;
+  }
   renderGantt(o);
-  go('s-gantt');
+}
+
+function abrirGantt(){renderGanttModulo();go('s-gantt');}
+
+function calcularAvanceGantt(o,diasTranscurridos){
+  return o.gantt.filter(p=>!p.esCapitulo).map(p=>{
+    const dI=p.diasInicio||0,dur=Math.max(1,p.duracion||1),dT=p.diasTermino||dI+dur;
+    const deberiaHaberEmpezado=diasTranscurridos>=dI;
+    let pctEsperado=0;
+    if(diasTranscurridos>=dT)pctEsperado=100;
+    else if(diasTranscurridos>dI)pctEsperado=Math.round((diasTranscurridos-dI)/dur*100);
+    const pr=(o.partidas||[]).find(x=>x.desc&&x.desc.toLowerCase().includes(p.desc.toLowerCase().slice(0,12)));
+    const pctReal=pr?(pr.pct||0):0;
+    return {...p,pctEsperado,pctReal,atraso:deberiaHaberEmpezado?Math.max(0,pctEsperado-pctReal):0,deberiaHaberEmpezado};
+  });
 }
 
 function renderGantt(o){
-  if(!o.gantt||!o.gantt.length){
-    document.getElementById('gantt-atrasadas').style.display='none';
-    document.getElementById('gantt-list').innerHTML='<div class="empty-state">Sin Carta Gantt cargada.<br>Usa el botón para cargar el Excel.</div>';
-    return;
-  }
-  const hoy=new Date(); hoy.setHours(0,0,0,0);
-  const inicio=o.inicio?new Date(o.inicio):new Date();
-  inicio.setHours(0,0,0,0);
+  if(!o.gantt||!o.gantt.length)return;
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const inicio=o.inicio?new Date(o.inicio):new Date();inicio.setHours(0,0,0,0);
   const diasTranscurridos=Math.round((hoy-inicio)/(864e5));
-
-  // Calcular atraso de cada partida
-  const partidas=o.gantt.filter(p=>!p.esCapitulo).map(p=>{
-    const diaInicio=p.diasInicio||0;
-    const duracion=p.duracion||0;
-    const diaTermino=p.diasTermino||diaInicio+duracion;
-    // Si la partida debería haber empezado
-    const deberiaHaberEmpezado=diasTranscurridos>=diaInicio;
-    // % esperado a esta altura
-    let pctEsperado=0;
-    if(diasTranscurridos>=diaTermino) pctEsperado=100;
-    else if(diasTranscurridos>diaInicio) pctEsperado=Math.round((diasTranscurridos-diaInicio)/duracion*100);
-    // Buscar avance real en partidas de obra
-    const partidaReal=(o.partidas||[]).find(pr=>pr.desc&&pr.desc.toLowerCase().includes(p.desc.toLowerCase().slice(0,15)));
-    const pctReal=partidaReal?(partidaReal.pct||0):0;
-    const atraso=deberiaHaberEmpezado?Math.max(0,pctEsperado-pctReal):0;
-    return {...p,pctEsperado,pctReal,atraso,deberiaHaberEmpezado};
-  });
-
-  // Top 5 más atrasadas
-  const atrasadas=partidas.filter(p=>p.atraso>0).sort((a,b)=>b.atraso-a.atraso).slice(0,5);
-  const top5Wrap=document.getElementById('gantt-atrasadas');
-  const top5=document.getElementById('gantt-top5');
-  if(atrasadas.length>0){
-    top5Wrap.style.display='block';
-    top5.innerHTML=atrasadas.map((p,i)=>`
-      <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border);">
-        <div style="width:22px;height:22px;border-radius:50%;background:${p.atraso>=30?'var(--red-bg)':'var(--amber-bg)'};color:${p.atraso>=30?'var(--red)':'var(--amber)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;">${i+1}</div>
-        <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.item} ${p.desc}</div>
-          <div style="font-size:11px;color:var(--text2);">Esperado ${p.pctEsperado}% · Real ${p.pctReal}%</div>
-        </div>
-        <div style="font-size:13px;font-weight:600;color:${p.atraso>=30?'var(--red)':'var(--amber)'};flex-shrink:0;">-${p.atraso}%</div>
-      </div>`).join('');
-  } else {
-    top5Wrap.style.display='none';
+  const semanaActual=Math.ceil(diasTranscurridos/7);
+  const ic=document.getElementById('gantt-info-carga');
+  if(ic){
+    ic.style.display='block';
+    ic.textContent=`${o.gantt.filter(p=>!p.esCapitulo).length} partidas · Cargado: ${fmtDate(o.ganttFechaCarga||today())} · Día ${diasTranscurridos} de ${o.plazo||'—'}`;
   }
-
-  // Listado completo
-  document.getElementById('gantt-list').innerHTML=`
-    <div class="section-title" style="padding:12px 16px 4px;">Todas las partidas</div>
-    ${o.gantt.map(p=>p.esCapitulo
-      ? `<div style="padding:8px 16px;background:var(--blue-bg);font-size:12px;font-weight:600;color:var(--blue);">${p.item} ${p.desc}</div>`
-      : (()=>{
-          const dp=partidas.find(x=>x.item===p.item&&x.desc===p.desc)||{pctEsperado:0,pctReal:0,atraso:0};
-          const col=dp.atraso>=30?'var(--red)':dp.atraso>0?'var(--amber)':'var(--green)';
-          return `<div style="padding:8px 16px;border-bottom:0.5px solid var(--border);">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-              <span style="font-size:12px;color:var(--text);flex:1;padding-right:8px;">${p.item} ${p.desc}</span>
-              <span style="font-size:11px;font-weight:500;color:${col};flex-shrink:0;">${dp.atraso>0?'-'+dp.atraso+'%':'OK'}</span>
-            </div>
-            <div style="font-size:10px;color:var(--text2);">Día ${p.diasInicio}→${p.diasTermino} · Esp. ${dp.pctEsperado}% · Real ${dp.pctReal}%</div>
-          </div>`;
-        })()
-    ).join('')}`;
+  const partidas=calcularAvanceGantt(o,diasTranscurridos);
+  const atrasadas=partidas.filter(p=>p.atraso>0).sort((a,b)=>b.atraso-a.atraso);
+  const enTiempo=partidas.filter(p=>p.deberiaHaberEmpezado&&p.atraso===0).length;
+  const sinIniciar=partidas.filter(p=>!p.deberiaHaberEmpezado).length;
+  const activas=partidas.filter(p=>p.deberiaHaberEmpezado).length;
+  const pctCumpl=activas>0?Math.round(enTiempo/activas*100):100;
+  const banner=document.getElementById('gantt-estado-banner');
+  banner.style.display='block';
+  banner.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px;">
+    <div class="stat-card"><div class="stat-label">Semana</div><div class="stat-value" style="font-size:18px;">S${semanaActual}</div></div>
+    <div class="stat-card"><div class="stat-label">En tiempo</div><div class="stat-value" style="font-size:18px;color:var(--green);">${enTiempo}</div></div>
+    <div class="stat-card"><div class="stat-label">Atrasadas</div><div class="stat-value" style="font-size:18px;color:${atrasadas.length>0?'var(--red)':'var(--green)'};">${atrasadas.length}</div></div>
+  </div>`;
+  const sw=document.getElementById('gantt-semana-wrap');sw.style.display='block';
+  document.getElementById('gantt-semana-resumen').innerHTML=`Día <b>${diasTranscurridos}</b> de <b>${o.plazo||'—'}</b> · Semana <b>${semanaActual}</b> · ${activas} partidas activas · ${sinIniciar} por iniciar · Cumplimiento: <b style="color:${pctCumpl>=80?'var(--green)':pctCumpl>=50?'var(--amber)':'var(--red)'};">${pctCumpl}%</b>`;
+  const top5=atrasadas.slice(0,5);
+  const top5El=document.getElementById('gantt-top5');
+  top5El.innerHTML=top5.length===0?'<div style="padding:10px;font-size:12px;color:var(--green);">✓ Sin partidas atrasadas esta semana</div>':
+    top5.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border);">
+      <div style="width:24px;height:24px;border-radius:50%;background:${p.atraso>=30?'var(--red-bg)':'var(--amber-bg)'};color:${p.atraso>=30?'var(--red)':'var(--amber)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
+      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.item} ${p.desc}</div><div style="font-size:11px;color:var(--text2);">Esp. ${p.pctEsperado}% · Real ${p.pctReal}% · Día ${p.diasInicio}→${p.diasTermino}</div></div>
+      <div style="font-size:14px;font-weight:700;color:${p.atraso>=30?'var(--red)':'var(--amber)'};flex-shrink:0;">-${p.atraso}%</div>
+    </div>`).join('');
+  document.getElementById('gantt-list').innerHTML=`<div class="section-title" style="padding:12px 16px 4px;">Todas las partidas (${o.gantt.filter(p=>!p.esCapitulo).length})</div>`+
+    o.gantt.map(p=>{
+      if(p.esCapitulo)return`<div style="padding:8px 16px;background:var(--blue-bg);border-bottom:0.5px solid var(--border);font-size:12px;font-weight:600;color:var(--blue);">${p.item} ${p.desc}</div>`;
+      const dp=partidas.find(x=>x.item===p.item&&x.desc===p.desc)||{pctEsperado:0,pctReal:0,atraso:0,deberiaHaberEmpezado:false};
+      const col=dp.atraso>=30?'var(--red)':dp.atraso>0?'var(--amber)':dp.deberiaHaberEmpezado?'var(--green)':'var(--text2)';
+      return`<div style="padding:8px 16px;border-bottom:0.5px solid var(--border);"><div style="display:flex;justify-content:space-between;gap:8px;"><span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.item} ${p.desc}</span><span style="font-size:12px;font-weight:600;color:${col};flex-shrink:0;">${dp.atraso>0?'-'+dp.atraso+'%':dp.deberiaHaberEmpezado?'OK':'Por iniciar'}</span></div><div style="font-size:10px;color:var(--text2);">Día ${p.diasInicio}→${p.diasTermino} · Esp. ${dp.pctEsperado}% · Real ${dp.pctReal}%</div></div>`;
+    }).join('');
 }
 
 function cargarGantt(event){
@@ -1695,40 +1709,39 @@ function cargarGantt(event){
       const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
       const items=[];
       rows.forEach((row,ri)=>{
-        if(ri<6)return; // encabezados
+        if(ri<6)return;
         const item=row[0],desc=row[1];
         if(!item&&!desc)return;
+        if(String(item).trim()===''&&String(desc).trim()==='')return;
         const diasInicio=typeof row[2]==='number'?row[2]:parseInt(row[2])||0;
         const duracion=typeof row[3]==='number'?row[3]:parseInt(row[3])||0;
         const diasTermino=typeof row[4]==='number'?row[4]:parseInt(row[4])||diasInicio+duracion;
-        const esCapitulo=!row[2]&&!row[3];
+        const esCapitulo=(!row[2]&&!row[3])||duracion===0;
         items.push({item:String(item||'').trim(),desc:String(desc||'').trim(),diasInicio,duracion,diasTermino,esCapitulo});
       });
       if(items.length>0){
         const o=state.obras[state.activeObraIdx];
-        o.gantt=items;
+        o.gantt=items; o.ganttFechaCarga=today();
+        // Vincular automáticamente con P.3
+        o.p3Estado='ok';
+        if(!o.adjuntos)o.adjuntos={};
+        if(!o.adjuntos['P.3'])o.adjuntos['P.3']=[];
+        const idx=o.adjuntos['P.3'].findIndex(a=>a.esGantt);
+        const entrada={nombre:`Carta Gantt — ${file.name} (${fmtDate(today())})`,esGantt:true,driveLink:null,driveId:null};
+        if(idx>=0)o.adjuntos['P.3'][idx]=entrada;else o.adjuntos['P.3'].unshift(entrada);
         saveAndSync();renderGantt(o);
-        showToast(`✓ Carta Gantt cargada: ${items.filter(i=>!i.esCapitulo).length} partidas`);
-      } else showToast('No se encontraron partidas en el Excel');
+        showToast(`✓ ${items.filter(i=>!i.esCapitulo).length} partidas · Vinculada a P.3`);
+      }else showToast('No se encontraron partidas en el Excel');
     }catch(e){showToast('Error: '+e.message);}
   };
   reader.readAsArrayBuffer(file);
 }
 
 function getTop5Atrasadas(o){
-  if(!o.gantt||!o.gantt.length) return [];
+  if(!o.gantt||!o.gantt.length)return[];
   const hoy=new Date();hoy.setHours(0,0,0,0);
   const inicio=o.inicio?new Date(o.inicio):new Date();inicio.setHours(0,0,0,0);
-  const diasTrans=Math.round((hoy-inicio)/(864e5));
-  return o.gantt.filter(p=>!p.esCapitulo).map(p=>{
-    const dI=p.diasInicio||0,dur=p.duracion||1,dT=p.diasTermino||dI+dur;
-    let pctEsp=0;
-    if(diasTrans>=dT)pctEsp=100;
-    else if(diasTrans>dI)pctEsp=Math.round((diasTrans-dI)/dur*100);
-    const pr=(o.partidas||[]).find(x=>x.desc&&x.desc.toLowerCase().includes(p.desc.toLowerCase().slice(0,12)));
-    const pctReal=pr?(pr.pct||0):0;
-    return {...p,pctEsperado:pctEsp,pctReal,atraso:Math.max(0,pctEsp-pctReal)};
-  }).filter(p=>p.atraso>0).sort((a,b)=>b.atraso-a.atraso).slice(0,5);
+  return calcularAvanceGantt(o,Math.round((hoy-inicio)/(864e5))).filter(p=>p.atraso>0).sort((a,b)=>b.atraso-a.atraso).slice(0,5);
 }
 
 // ══ MULTAS DS 236/283 ════════════════════════════════════
@@ -3162,10 +3175,10 @@ function openFichaDetalle(id,nombre){
           <div><div style="font-size:13px;font-weight:500;">Cargar programa de trabajo (PDF/Excel)</div><div style="font-size:11px;color:var(--text2);">Al cargar cambia estado a OK</div></div>
         </label>
       </div>
-      <button class="btn-primary" style="margin-top:8px;" onclick="abrirGantt()">
-        ${tieneGantt?'📊 Ver Carta Gantt y partidas atrasadas':'📊 Cargar Carta Gantt (Excel)'}
+      <button class="btn-secondary" style="margin-top:8px;" onclick="goModulo('gantt')">
+        ${tieneGantt?'📊 Ver análisis Carta Gantt →':'📊 Ir a módulo Carta Gantt →'}
       </button>
-      ${tieneGantt?`<div style="margin-top:8px;font-size:12px;color:var(--text2);">${o.gantt.filter(p=>!p.esCapitulo).length} partidas cargadas</div>`:''}
+      ${tieneGantt?`<div style="margin-top:6px;font-size:12px;color:var(--green);">✓ Carta Gantt vinculada — ${o.gantt.filter(p=>!p.esCapitulo).length} partidas</div>`:`<div style="margin-top:6px;font-size:11px;color:var(--text2);">Carga la Carta Gantt desde el módulo para vincularla automáticamente aquí.</div>`}
     </div>`;
 
   } else if(id==='P.4'){
