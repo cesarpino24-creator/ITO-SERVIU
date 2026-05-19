@@ -208,13 +208,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 
 <div class="screen" id="s-comunicaciones">
-  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Comunicaciones</div><div style="width:60px;"></div></div>
-  <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchCTab('libro')">Libro inspección</button>
-    <button class="tab-btn" onclick="switchCTab('informes')">Informes</button>
-    <button class="tab-btn" onclick="switchCTab('actas')">Actas</button>
-  </div>
-  <div id="c-libro"></div><div id="c-informes" style="display:none;"></div><div id="c-actas" style="display:none;"></div>
+  <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Comunicaciones — Libro de obras</div><div style="width:60px;"></div></div>
+  <div id="c-libro"></div>
   <button class="fab" onclick="addComEntry()">+</button>
 </div>
 
@@ -857,7 +852,7 @@ const CLIENT_ID='429442217795-7a84j3h84cr46l4bpkiurnbim4rdra3u.apps.googleuserco
 const SCOPES='https://www.googleapis.com/auth/drive.appdata https://www.googleapis.com/auth/drive.file';
 const FILE_NAME='ito_obras_serviu.json';
 const LS_KEY='ito_v3';const LS_TOK='ito_tok';
-let state={obras:[],activeObraIdx:null,activeComTab:'libro'};
+let state={obras:[],activeObraIdx:null};
 let tokenClient=null,accessToken=null,driveFileId=null,syncTO=null;
 
 const today=()=>new Date().toISOString().slice(0,10);
@@ -951,8 +946,8 @@ function seedDemo(){
   function dF(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);}
   const hoy=new Date(),i1=dF(hoy,-120),i2=dF(hoy,-60),i3=dF(hoy,-30);
   state.obras=[
-    {nombre:'Parque Pudahuel Norte',contrato:'2024-001-SERVIU',contratista:'Constructora Andes SpA',inicio:i1,plazo:365,monto:850000000,anticipo:20,avance:38,avanceProg:45,eps:[{num:1,fecha:dF(i1,28),monto:42500000,descAnt:8500000,retencion:2125000,pagado:31875000,estado:'pagado'},{num:2,fecha:dF(i1,56),monto:38200000,descAnt:7640000,retencion:1910000,pagado:28650000,estado:'pagado'},{num:3,fecha:dF(i1,84),monto:41000000,descAnt:8200000,retencion:2050000,pagado:30750000,estado:'en_revision'}],partidas:[{nombre:'Movimiento de tierras',pct:100},{nombre:'Pavimentación accesos',pct:80},{nombre:'Áreas verdes',pct:45},{nombre:'Juegos infantiles',pct:30},{nombre:'Iluminación LED',pct:20},{nombre:'Cierre perimetral',pct:60},{nombre:'Mobiliario urbano',pct:10}],libro:[{fecha:dF(hoy,-7),texto:'Se instruye al contratista acelerar partida de áreas verdes. Plazo perentorio 15 días.',autor:'César G., ITO'},{fecha:dF(hoy,-14),texto:'Fiscalización detecta hormigón sin ensayo previo. Se paraliza partida hasta resultados de laboratorio.',autor:'César G., ITO'}],personal:{residente:'Arq. Juan Muñoz',autocontrol:'Ing. Claudia Rojas',jefTerreno:'Carlos Soto'},proximoEP:dF(i1,112)},
-    {nombre:'Parque La Pintana Sur',contrato:'2024-002-SERVIU',contratista:'RyC Construcciones Ltda.',inicio:i2,plazo:300,monto:620000000,anticipo:20,avance:22,avanceProg:18,eps:[{num:1,fecha:dF(i2,28),monto:31000000,descAnt:6200000,retencion:1550000,pagado:23250000,estado:'pagado'},{num:2,fecha:dF(i2,56),monto:28500000,descAnt:5700000,retencion:1425000,pagado:21375000,estado:'pendiente'}],partidas:[{nombre:'Demolición existentes',pct:100},{nombre:'Movimiento de tierras',pct:75},{nombre:'Redes agua potable',pct:40},{nombre:'Pavimentación',pct:15},{nombre:'Áreas verdes',pct:5}],libro:[{fecha:dF(hoy,-3),texto:'Reunión en terreno. Sector norte cumple programa. Sector sur presenta atraso de 8 días.',autor:'César G., ITO'}],personal:{residente:'Ing. Marcelo Vera',autocontrol:'Arq. Sandra Pérez',jefTerreno:'Luis Fuentes'},proximoEP:dF(i2,84)},
+    {nombre:'Parque Pudahuel Norte',contrato:'2024-001-SERVIU',contratista:'Constructora Andes SpA',inicio:i1,plazo:365,monto:850000000,anticipo:20,avance:38,avanceProg:45,eps:[{num:1,fecha:dF(i1,28),monto:42500000,descAnt:8500000,retencion:2125000,pagado:31875000,estado:'pagado'},{num:2,fecha:dF(i1,56),monto:38200000,descAnt:7640000,retencion:1910000,pagado:28650000,estado:'pagado'},{num:3,fecha:dF(i1,84),monto:41000000,descAnt:8200000,retencion:2050000,pagado:30750000,estado:'en_revision'}],partidas:[{nombre:'Movimiento de tierras',pct:100},{nombre:'Pavimentación accesos',pct:80},{nombre:'Áreas verdes',pct:45},{nombre:'Juegos infantiles',pct:30},{nombre:'Iluminación LED',pct:20},{nombre:'Cierre perimetral',pct:60},{nombre:'Mobiliario urbano',pct:10}],libro:[{fecha:dF(hoy,-7),texto:'Se instruye al contratista acelerar partida de áreas verdes. Plazo perentorio 15 días.',autor:'César Pino, ITO'},{fecha:dF(hoy,-14),texto:'Fiscalización detecta hormigón sin ensayo previo. Se paraliza partida hasta resultados de laboratorio.',autor:'César Pino, ITO'}],personal:{residente:'Arq. Juan Muñoz',autocontrol:'Ing. Claudia Rojas',jefTerreno:'Carlos Soto'},proximoEP:dF(i1,112)},
+    {nombre:'Parque La Pintana Sur',contrato:'2024-002-SERVIU',contratista:'RyC Construcciones Ltda.',inicio:i2,plazo:300,monto:620000000,anticipo:20,avance:22,avanceProg:18,eps:[{num:1,fecha:dF(i2,28),monto:31000000,descAnt:6200000,retencion:1550000,pagado:23250000,estado:'pagado'},{num:2,fecha:dF(i2,56),monto:28500000,descAnt:5700000,retencion:1425000,pagado:21375000,estado:'pendiente'}],partidas:[{nombre:'Demolición existentes',pct:100},{nombre:'Movimiento de tierras',pct:75},{nombre:'Redes agua potable',pct:40},{nombre:'Pavimentación',pct:15},{nombre:'Áreas verdes',pct:5}],libro:[{fecha:dF(hoy,-3),texto:'Reunión en terreno. Sector norte cumple programa. Sector sur presenta atraso de 8 días.',autor:'César Pino, ITO'}],personal:{residente:'Ing. Marcelo Vera',autocontrol:'Arq. Sandra Pérez',jefTerreno:'Luis Fuentes'},proximoEP:dF(i2,84)},
     {nombre:'Pasaje Hermanos Matte',contrato:'2023-015-SERVIU',contratista:'Pavimentos del Centro SA',inicio:i3,plazo:120,monto:95000000,anticipo:0,avance:12,avanceProg:20,eps:[],partidas:[{nombre:'Preparación subbase',pct:40},{nombre:'Pavimento adoquines',pct:5},{nombre:'Soleras y cunetas',pct:10}],libro:[],personal:{residente:'Ing. Roberto Mora',autocontrol:'N/A',jefTerreno:'Pedro Rojas'},proximoEP:dF(hoy,12)},
   ];
 }
@@ -1080,9 +1075,36 @@ function renderDashCurvaS(o){
     </svg>`;
 }
 
+// Inicialización defensiva de estructura de obra. Garantiza que todas las
+// propiedades existen antes de que cualquier renderer las acceda. Llamar al abrir obra.
+function inicObra(o){
+  if(!o) return;
+  if(!o.eps) o.eps=[];
+  if(!o.partidas) o.partidas=[];
+  if(!o.gantt) o.gantt=[];
+  if(!o.visitas) o.visitas=[];
+  if(!o.libro) o.libro=[];
+  if(!o.garantias) o.garantias=[];
+  if(!o.ensayos) o.ensayos=[];
+  if(!o.planP6) o.planP6=[];
+  if(!o.multas) o.multas=[];
+  if(!o.documentos) o.documentos={};
+  if(!o.adjuntos) o.adjuntos={};
+  if(!o.personal) o.personal={};
+  if(!o.profesionales) o.profesionales=[];
+  if(!o.recepcion) o.recepcion={};
+  if(!o.checklist) o.checklist={};
+}
+
 function openObra(idx){
   state.activeObraIdx=idx;saveLocal();
+  // Limpiar variables globales pendientes que podrían contaminar otra obra
+  recUploadPendiente=null;
+  visitaFotosNuevas=[];
+  libroFotosNuevas=[];
+  libroResumenIA='';
   const o=state.obras[idx];
+  inicObra(o);
   document.getElementById('dash-nombre').textContent=o.nombre;
   document.getElementById('dash-contrato').textContent=o.contrato;
   document.getElementById('d-avance').innerHTML=`${o.avance||0}<span class="stat-unit">%</span>`;
@@ -1104,7 +1126,9 @@ function openObra(idx){
   go('s-obra-dashboard');
 }
 
+let avanceManualTO=null;
 function actualizarAvanceManual(){
+  if(state.activeObraIdx===null) return;
   const o=state.obras[state.activeObraIdx];
   if(!o) return;
   const real=parseInt(document.getElementById('dash-avance-real').value)||0;
@@ -1119,8 +1143,13 @@ function actualizarAvanceManual(){
   const at=o.avanceProg-o.avance;
   document.getElementById('bar-real').className='prog-fill '+(at>=10?'fill-danger':at>=5?'fill-warn':'fill-ok');
   renderDashCurvaS(o);
-  saveAndSync();
-  showToast(`Avance guardado: real ${o.avance}% · prog. ${o.avanceProg}%`);
+  // Debounce: si el usuario cambia ambos campos rápido, una sola sincronización
+  saveLocal();
+  if(avanceManualTO) clearTimeout(avanceManualTO);
+  avanceManualTO=setTimeout(()=>{
+    saveAndSync();
+    showToast(`Avance guardado: real ${o.avance}% · prog. ${o.avanceProg}%`);
+  },800);
 }
 
 function showAlertasGlobal(){
@@ -1161,7 +1190,39 @@ const DOC_LABELS = {
 let docCatActiva = 'actas';
 let docUploadPendiente = null; // {fileId, nombre, link} esperando guardar
 
+// Comprime imagen a JPEG max 1600px, ~80% calidad. Reduce ~5MB a ~400KB.
+// Para fotos no-imagen retorna el file original. Mitiga consumo Drive en terreno con 4G.
+function comprimirImagen(file){
+  return new Promise(resolve=>{
+    if(!file||!file.type||!file.type.startsWith('image/')) return resolve(file);
+    const img=new Image();
+    const url=URL.createObjectURL(file);
+    img.onload=()=>{
+      URL.revokeObjectURL(url);
+      const MAX=1600;
+      let w=img.width,h=img.height;
+      if(w>MAX||h>MAX){
+        if(w>h){h=Math.round(h*MAX/w);w=MAX;}
+        else{w=Math.round(w*MAX/h);h=MAX;}
+      }
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      canvas.toBlob(blob=>{
+        if(!blob) return resolve(file);
+        resolve(new File([blob],file.name.replace(/\.[^.]+$/,'.jpg'),{type:'image/jpeg'}));
+      },'image/jpeg',0.8);
+    };
+    img.onerror=()=>{URL.revokeObjectURL(url);resolve(file);};
+    img.src=url;
+  });
+}
+
 async function subirArchivoADrive(file, carpeta){
+  // Comprimir si es imagen — ahorra ancho de banda y cuota Drive
+  if(file.type&&file.type.startsWith('image/')){
+    try{ file=await comprimirImagen(file); }catch(e){/* fallback al original */}
+  }
   if(!accessToken) throw new Error('Sin conexión Drive');
   // 1. Obtener o crear carpeta ITO SERVIU / obra / categoria
   const obraNombre = state.obras[state.activeObraIdx].nombre;
@@ -1585,6 +1646,9 @@ function switchChkTab(tab){
   const items=CHECKLIST_ITEMS[tab];
   const ok=items.filter(i=>o.checklist[i.id]==='ok').length;
   document.getElementById('chk-content').innerHTML=`
+    <div style="margin:8px 16px;padding:8px 12px;background:var(--amber-bg);border:0.5px solid #FAC775;border-radius:var(--r);font-size:11px;color:var(--amber);">
+      ⚠ Las referencias a artículos son indicativas. Verificar texto vigente en DS 236, DS 283 y MITO antes de uso oficial.
+    </div>
     <div style="padding:8px 16px 2px;display:flex;justify-content:space-between;align-items:center;">
       <span style="font-size:12px;color:var(--text2);">${ok}/${items.length} completados</span>
       <button onclick="marcarTodoOk('${tab}')" style="font-size:11px;color:var(--blue);background:none;border:none;cursor:pointer;">Marcar todos OK</button>
@@ -1642,14 +1706,43 @@ function renderGanttModulo(){
 
 function abrirGantt(){renderGanttModulo();go('s-gantt');}
 
+function matchPartidaGantt(p, partidasReales){
+  if(!partidasReales||!partidasReales.length) return null;
+  const itemG=String(p.item||'').trim().toUpperCase().replace(/\s+/g,'');
+  const descG=String(p.desc||'').toLowerCase().trim();
+  // Prioridad 1: match exacto por código de ítem
+  let m=partidasReales.find(x=>{
+    const itemR=String(x.item||'').trim().toUpperCase().replace(/\s+/g,'');
+    return itemR && itemG && itemR===itemG;
+  });
+  if(m) return m;
+  // Prioridad 2: descripción idéntica
+  m=partidasReales.find(x=>x.desc&&x.desc.toLowerCase().trim()===descG);
+  if(m) return m;
+  // Prioridad 3: scoring por palabras coincidentes (≥3 palabras o ≥70% match)
+  const palabrasG=descG.split(/\s+/).filter(w=>w.length>=4);
+  if(palabrasG.length===0) return null;
+  let mejor=null,mejorScore=0;
+  partidasReales.forEach(x=>{
+    if(!x.desc||x.esCapitulo) return;
+    const descR=x.desc.toLowerCase();
+    const coincidencias=palabrasG.filter(w=>descR.includes(w)).length;
+    const score=coincidencias/palabrasG.length;
+    if(score>mejorScore){mejorScore=score;mejor=x;}
+  });
+  return mejorScore>=0.7?mejor:null;
+}
+
 function calcularAvanceGantt(o,diasTranscurridos){
+  if(!o.gantt||!o.gantt.length) return [];
+  const partidasReales=o.partidas||[];
   return o.gantt.filter(p=>!p.esCapitulo).map(p=>{
     const dI=p.diasInicio||0,dur=Math.max(1,p.duracion||1),dT=p.diasTermino||dI+dur;
     const deberiaHaberEmpezado=diasTranscurridos>=dI;
     let pctEsperado=0;
     if(diasTranscurridos>=dT)pctEsperado=100;
     else if(diasTranscurridos>dI)pctEsperado=Math.round((diasTranscurridos-dI)/dur*100);
-    const pr=(o.partidas||[]).find(x=>x.desc&&x.desc.toLowerCase().includes(p.desc.toLowerCase().slice(0,12)));
+    const pr=matchPartidaGantt(p,partidasReales);
     const pctReal=pr?(pr.pct||0):0;
     return {...p,pctEsperado,pctReal,atraso:deberiaHaberEmpezado?Math.max(0,pctEsperado-pctReal):0,deberiaHaberEmpezado};
   });
@@ -1701,6 +1794,7 @@ function renderGantt(o){
 function cargarGantt(event){
   const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
+  reader.onerror=()=>showToast('⚠ Error leyendo el archivo');
   reader.onload=ev=>{
     try{
       if(!window.XLSX){showToast('Cargando librería...');return;}
@@ -1746,7 +1840,9 @@ function getTop5Atrasadas(o){
 
 // ══ MULTAS DS 236/283 ════════════════════════════════════
 
-const UF_HOY = 38500; // valor referencial UF — actualizable
+// UF referencial editable desde módulo multas. Se guarda en state global.
+// Valor inicial mayo 2026 (~$39.500). César debe actualizarla mensualmente desde el módulo.
+function getUF(){ return state.ufReferencial||39500; }
 
 const MULTA_INFO = {
   atraso:          {label:'Multa por atraso (Art. 49 DS 236)',tipo:'pct_diario',ufFija:null,pctDiario:0.1},
@@ -1764,13 +1860,20 @@ function renderMultas(){
   if(!o.multas) o.multas=[];
   const totalMonto=o.multas.reduce((s,m)=>s+(m.montoFinal||0),0);
   const totalUF=o.multas.reduce((s,m)=>s+(m.ufFinal||0),0);
-  document.getElementById('multas-resumen').innerHTML=o.multas.length?`
-    <div class="stats-row" style="margin-bottom:8px;">
+  document.getElementById('multas-resumen').innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--bg2);border-radius:var(--r);padding:8px 12px;margin-bottom:8px;">
+      <div style="font-size:11px;color:var(--text2);">Valor UF referencial</div>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <span style="font-size:11px;color:var(--text2);">$</span>
+        <input type="number" id="uf-referencial" value="${getUF()}" min="0" style="width:90px;padding:4px 8px;font-size:13px;text-align:right;border:0.5px solid var(--border2);border-radius:4px;" onchange="actualizarUFReferencial(this.value)"/>
+      </div>
+    </div>
+    ${o.multas.length?`<div class="stats-row" style="margin-bottom:8px;">
       <div class="stat-card"><div class="stat-label">Total multas</div><div class="stat-value" style="color:var(--red);">${o.multas.length}</div></div>
       <div class="stat-card"><div class="stat-label">Monto total ($)</div><div class="stat-value" style="font-size:13px;color:var(--red);">$${fmtM(totalMonto)}</div></div>
       <div class="stat-card"><div class="stat-label">Total UF</div><div class="stat-value" style="font-size:14px;color:var(--red);">${totalUF.toFixed(2)}</div></div>
       <div class="stat-card"><div class="stat-label">Descontadas</div><div class="stat-value" style="color:var(--green);">${o.multas.filter(m=>m.estado==='descontada').length}</div></div>
-    </div>`:'';
+    </div>`:''}`;
   const list=document.getElementById('multas-list');
   if(!o.multas.length){list.innerHTML='<div class="empty-state">Sin multas registradas.</div>';return;}
   const estadoLabel={aplicada:'Aplicada',notificada:'Notificada',apelada:'Apelada',descontada:'Descontada'};
@@ -1790,6 +1893,13 @@ function renderMultas(){
         </div>
       </div>
     </div>`).join('');
+}
+
+function actualizarUFReferencial(v){
+  const val=parseInt(v)||39500;
+  state.ufReferencial=val;
+  saveAndSync();
+  showToast(`UF referencial actualizada: $${fmtM(val)}`);
 }
 
 function onMultaTipoChange(){
@@ -1814,18 +1924,18 @@ function calcularMulta(){
     const pct=parseFloat(document.getElementById('multa-pct-diario').value)||0.1;
     if(!dias){calculo.style.display='none';return;}
     const monto=Math.round((o.monto||0)*pct/100*dias);
-    const uf=(monto/UF_HOY).toFixed(2);
+    const uf=(monto/getUF()).toFixed(2);
     calculo.style.display='block';
     texto.textContent=`$${fmtM(monto)} (${dias}d × ${pct}% × $${fmtM(o.monto||0)})`;
-    ufDiv.textContent=`≈ ${uf} UF (UF referencial $${fmtM(UF_HOY)})`;
+    ufDiv.textContent=`≈ ${uf} UF (UF referencial $${fmtM(getUF())})`;
     document.getElementById('multa-monto-final').value=monto;
     document.getElementById('multa-uf-final').value=uf;
   } else if(info.tipo==='uf_fija'){
     const uf=parseFloat(document.getElementById('multa-uf-fija').value)||info.ufFija||0;
-    const monto=Math.round(uf*UF_HOY);
+    const monto=Math.round(uf*getUF());
     calculo.style.display='block';
     texto.textContent=`${uf} UF = $${fmtM(monto)}`;
-    ufDiv.textContent=`UF referencial: $${fmtM(UF_HOY)}`;
+    ufDiv.textContent=`UF referencial: $${fmtM(getUF())}`;
     document.getElementById('multa-monto-final').value=monto;
     document.getElementById('multa-uf-final').value=uf;
   }
@@ -2121,7 +2231,7 @@ function nuevaVisita(){
   const ahora = new Date();
   document.getElementById('visita-fecha').value = ahora.toISOString().slice(0,10);
   document.getElementById('visita-hora').value = ahora.toTimeString().slice(0,5);
-  document.getElementById('visita-personas').value = 'César G., ITO';
+  document.getElementById('visita-personas').value = 'César Pino, ITO';
   document.getElementById('visita-obs').value = '';
   document.getElementById('visita-estado').value = 'normal';
   document.getElementById('visita-fotos-preview').innerHTML = '';
@@ -2177,6 +2287,7 @@ function handleLibroFotos(event){
   preview.innerHTML=''; iaStatus.style.display='none'; iaResumen.style.display='none';
   const promises=files.map(f=>new Promise(res=>{
     const reader=new FileReader();
+    reader.onerror=()=>showToast('⚠ Error leyendo el archivo');
     reader.onload=ev=>{
       libroFotosNuevas.push({file:f,dataURL:ev.target.result});
       const img=document.createElement('img');
@@ -2235,6 +2346,7 @@ function handleVisitaFotos(event){
   const preview=document.getElementById('visita-fotos-preview');
   aAgregar.forEach(f=>{
     const reader=new FileReader();
+    reader.onerror=()=>showToast('⚠ Error leyendo el archivo');
     reader.onload=ev=>{
       visitaFotosNuevas.push({file:f,dataURL:ev.target.result});
       const wrap=document.createElement('div');
@@ -2341,7 +2453,7 @@ async function guardarVisita(){
     const resumen=visita.libroResumenIA||'Fotografía del libro de inspección registrada.';
     const entradaIdx=o.libro.findIndex(e=>e.visitaRef===visita.timestamp);
     const entrada={
-      fecha,hora,autor:'César G., ITO',
+      fecha,hora,autor:'César Pino, ITO',
       texto:`[Libro de inspección — ${visita.tipo}]\n${resumen}`,
       fotosLibro:visita.fotosLibro||[],
       visitaRef:visita.timestamp,
@@ -2656,6 +2768,7 @@ function cargarPlanillaP6(event){
   const file=event.target.files[0];
   if(!file){return;}
   const reader=new FileReader();
+  reader.onerror=()=>showToast('⚠ Error leyendo el archivo');
   reader.onload=function(e){
     const data=new Uint8Array(e.target.result);
     // Parseo básico: extraer texto del xlsx como TSV usando SheetJS si disponible
@@ -2823,6 +2936,8 @@ function eliminarEnsayo(){
   showToast('Ensayo eliminado');
 }
 
+// parseFechaJS: convierte ISO yyyy-mm-dd o dd/mm/yyyy a objeto Date JS.
+// Usado en módulos de UI (garantías, vencimientos).
 function parseFechaJS(str){
   if(!str)return null;
   const[y,m,d]=str.split('-');
@@ -2861,6 +2976,7 @@ function handleFotos(e){
   prev.innerHTML='';
   files.forEach(f=>{
     const reader=new FileReader();
+    reader.onerror=()=>showToast('⚠ Error leyendo el archivo');
     reader.onload=ev=>{
       fotosData.push(ev.target.result);
       const img=document.createElement('img');
@@ -2966,7 +3082,7 @@ function generarPDF(){
     <div class="obra-field"><label>Fecha término</label><p>${fmtDate(fin)}</p></div>
     <div class="obra-field"><label>Residente</label><p>${o.personal?.residente||'—'}</p></div>
     <div class="obra-field"><label>Autocontrol</label><p>${o.personal?.autocontrol||'—'}</p></div>
-    <div class="obra-field"><label>ITO</label><p>César G., ITO</p></div>
+    <div class="obra-field"><label>ITO</label><p>César Pino, ITO</p></div>
   </div></div>`;
 
   // RESUMEN
@@ -3167,7 +3283,10 @@ function openFichaDetalle(id,nombre){
       <div style="padding:14px;border-radius:var(--r);margin-bottom:14px;${estado==='ok'?'background:var(--green-bg);border:0.5px solid #C0DD97;':'background:var(--amber-bg);border:0.5px solid #FAC775;'}">
         <div style="font-size:13px;font-weight:500;color:${estado==='ok'?'var(--green)':'var(--amber)'};">${estado==='ok'?'✓ Programa de trabajo recibido':'⏳ Pendiente envío por parte del contratista'}</div>
       </div>
-      ${tieneAdj?o.adjuntos['P.3'].map(a=>`<a href="${a.driveLink}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--blue);">📎 ${a.nombre}</a>`).join(''):''}
+      ${tieneAdj?o.adjuntos['P.3'].map(a=>a.driveLink
+        ? `<a href="${a.driveLink}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--blue);">📎 ${a.nombre}</a>`
+        : `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--green-bg);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--green);">${a.esGantt?'📅':'📄'} ${a.nombre}</div>`
+      ).join(''):''}
       <div class="form-group" style="margin-top:8px;">
         <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;">
           <input type="file" accept=".pdf,.xlsx" style="display:none;" onchange="adjuntarP3YActivar(event)"/>
@@ -3594,6 +3713,8 @@ function parsearExcelEP(arrayBuffer){
   return {partidas, programaEPs};
 }
 
+// parseFechaExcel: extrae ISO yyyy-mm-dd desde celda Excel.
+// Maneja Date JS, string dd/mm/yyyy y serial numérico. Solo para lecturas XLSX.
 function parseFechaExcel(strVal, rawVal){
   // Intenta extraer fecha ISO yyyy-mm-dd desde distintos formatos
   if(!strVal && !rawVal) return null;
@@ -3614,6 +3735,8 @@ function parseFechaExcel(strVal, rawVal){
   return null;
 }
 
+// excelDateToISO: convierte serial numérico Excel (días desde 1900) a ISO yyyy-mm-dd.
+// Auxiliar interno usado por parseFechaExcel.
 function excelDateToISO(serial){
   const utc = new Date(Date.UTC(1899,11,30) + serial * 86400000);
   return utc.toISOString().slice(0,10);
@@ -3653,6 +3776,7 @@ function aplicarProgramaEPs(o, partidas, programaEPs){
 function cargarPartidasExcel(event){
   const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
+  reader.onerror=()=>showToast('⚠ Error leyendo el archivo');
   reader.onload=ev=>{
     try{
       const {partidas,programaEPs}=parsearExcelEP(ev.target.result);
@@ -3739,7 +3863,7 @@ function addComEntry(){
   const txt=prompt('Nueva entrada libro de obras:');if(!txt)return;
   if(!o.libro)o.libro=[];
   const ahora=new Date();
-  o.libro.push({fecha:ahora.toISOString().slice(0,10),hora:ahora.toTimeString().slice(0,5),texto:txt,autor:'César G., ITO'});
+  o.libro.push({fecha:ahora.toISOString().slice(0,10),hora:ahora.toTimeString().slice(0,5),texto:txt,autor:'César Pino, ITO'});
   saveAndSync();renderLibro(o);showToast('Entrada registrada');
 }
 function eliminarEntradaLibro(idx){
