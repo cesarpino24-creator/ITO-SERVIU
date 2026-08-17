@@ -694,9 +694,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <option value="otra">Otra causa</option>
       </select>
     </div>
-    <div class="form-group">
-      <label class="form-label">Fecha de aplicación</label>
-      <input class="form-input" type="date" id="multa-fecha"/>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Fecha de aplicación</label>
+        <input class="form-input" type="date" id="multa-fecha" onchange="calcularMulta()"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Valor UF a esa fecha ($)</label>
+        <input class="form-input" type="number" id="multa-uf-valor" step="0.01" placeholder="39500" oninput="calcularMulta()"/>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--text2);margin:-8px 0 14px;padding:0 2px;">
+      La UF se fija por multa según su fecha de aplicación. Valor por defecto: referencial del módulo ($<span id="multa-uf-default">—</span>). Consulta el valor exacto en sii.cl.
     </div>
     <div class="form-group">
       <label class="form-label">Descripción / causa específica</label>
@@ -714,8 +723,23 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div id="multa-fija-wrap" style="display:none;">
       <div class="form-group">
-        <label class="form-label">Monto en UF (multa fija DS 236)</label>
+        <label class="form-label" id="multa-uf-fija-label">Monto en UF</label>
         <input class="form-input" type="number" id="multa-uf-fija" step="0.01" placeholder="Ej: 5" oninput="calcularMulta()"/>
+      </div>
+    </div>
+    <div id="multa-diaria-wrap" style="display:none;">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">UF por día</label>
+          <input class="form-input" type="number" id="multa-uf-dia" step="0.01" placeholder="Ej: 1" oninput="calcularMulta()"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Días que se mantuvo</label>
+          <input class="form-input" type="number" id="multa-dias-mantenida" min="1" placeholder="0" oninput="calcularMulta()"/>
+        </div>
+      </div>
+      <div style="font-size:11px;color:var(--text2);margin:-8px 0 14px;padding:0 2px;">
+        Total = UF/día × días × valor UF. Se aplica mientras persista el incumplimiento.
       </div>
     </div>
     <div id="multa-calculo" style="display:none;padding:12px 14px;background:var(--red-bg);border-radius:var(--r);margin-bottom:14px;">
@@ -1042,37 +1066,96 @@ function toggleGrupo(id){
   arrow.style.transform=abierto?'rotate(0deg)':'rotate(90deg)';
 }
 
+// Construye los puntos de la Curva S. Fuente prioritaria: hoja PROGRAMACION FINANC
+// del Excel del último EP cargado (col F = % acum. programado, col J = % acum. real).
+// Fallback: cálculo desde montos de EPs registrados manualmente.
+function getCurvaSData(o){
+  const prog=o.programaEPs||[];
+  if(prog.length>=2){
+    const filas=prog.slice().sort((a,b)=>a.num-b.num);
+    const n=filas.length;
+    return {
+      fuente:'excel',
+      puntos:filas.map((f,i)=>({
+        x:n>1?i/(n-1):0,
+        num:f.num,
+        prog:Math.min(100,Math.max(0,f.pctAcumProg||0)),
+        real:f.pctAcumReal!==null&&f.pctAcumReal!==undefined?Math.min(100,Math.max(0,f.pctAcumReal)):null,
+        hasta:f.hasta||null
+      }))
+    };
+  }
+  if(!o.eps||o.eps.length<2) return null;
+  const monto=o.monto||1;
+  const n=o.eps.length;
+  return {
+    fuente:'eps',
+    puntos:[{x:0,num:0,prog:0,real:0,hasta:null},...o.eps.map((ep,i)=>({
+      x:(i+1)/n,
+      num:ep.num,
+      prog:Math.round((i+1)/n*100),
+      real:Math.min(100,Math.round(o.eps.slice(0,i+1).reduce((s,e)=>s+(e.monto||0),0)/monto*100)),
+      hasta:ep.fecha||null
+    }))]
+  };
+}
+
+// Refresca barras y stats del dashboard sin re-navegar. Usar tras cargar Excel.
+function refrescarBarrasDash(o){
+  const br=document.getElementById('bar-real');
+  if(!br)return;
+  document.getElementById('bar-real').style.width=(o.avance||0)+'%';
+  document.getElementById('bar-prog').style.width=(o.avanceProg||0)+'%';
+  document.getElementById('bar-real-pct').textContent=(o.avance||0)+'%';
+  document.getElementById('bar-prog-pct').textContent=(o.avanceProg||0)+'%';
+  const dr=document.getElementById('dash-avance-real'),dp=document.getElementById('dash-avance-prog');
+  if(dr)dr.value=(o.avance||0);
+  if(dp)dp.value=(o.avanceProg||0);
+  const da=document.getElementById('d-avance');
+  if(da)da.innerHTML=`${o.avance||0}<span class="stat-unit">%</span>`;
+  const at=(o.avanceProg||0)-(o.avance||0);
+  br.className='prog-fill '+(at>=10?'fill-danger':at>=5?'fill-warn':'fill-ok');
+}
+
 function renderDashCurvaS(o){
   const c=document.getElementById('dash-curva-s');
   if(!c)return;
-  if(!o.eps||o.eps.length<2){
-    c.innerHTML='<div style="text-align:center;padding:16px;font-size:12px;color:var(--text2);">Sin datos suficientes (requiere 2+ EPs)</div>';
+  const cs=getCurvaSData(o);
+  if(!cs){
+    c.innerHTML='<div style="text-align:center;padding:16px;font-size:12px;color:var(--text2);">Sin datos de Curva S.<br>Carga el Excel del último EP en Estados de pago → Avance por partidas.</div>';
     return;
   }
   const W=320,H=150,PL=38,PB=22,PR=10,PT=10,cW=W-PL-PR,cH=H-PT-PB;
-  const monto=o.monto||1;
-  const data=[{x:0,real:0,prog:0},...o.eps.map((ep,i)=>({
-    x:(i+1)/(o.eps.length+1),
-    real:Math.min(100,Math.round(o.eps.slice(0,i+1).reduce((s,e)=>s+(e.monto||0),0)/monto*100)),
-    prog:Math.round((i+1)/(o.eps.length+1)*100)
-  }))];
+  // Solo los puntos con avance real informado forman la curva real
+  const conReal=cs.puntos.filter(p=>p.real!==null);
+  const data=cs.puntos.map(p=>({x:p.x,prog:p.prog,real:p.real===null?0:p.real}));
   const tX=x=>PL+x*cW, tY=y=>PT+cH-y/100*cH;
-  const pReal=data.map((d,i)=>`${i===0?'M':'L'}${tX(d.x).toFixed(1)},${tY(d.real).toFixed(1)}`).join(' ');
+  const pReal=conReal.map((d,i)=>`${i===0?'M':'L'}${tX(d.x).toFixed(1)},${tY(d.real).toFixed(1)}`).join(' ');
   const pProg=data.map((d,i)=>`${i===0?'M':'L'}${tX(d.x).toFixed(1)},${tY(d.prog).toFixed(1)}`).join(' ');
-  // Área bajo curva real
-  const areaReal=`${pReal} L${tX(1).toFixed(1)},${tY(0).toFixed(1)} L${tX(0).toFixed(1)},${tY(0).toFixed(1)} Z`;
+  const areaReal=conReal.length>1
+    ? `${pReal} L${tX(conReal[conReal.length-1].x).toFixed(1)},${tY(0).toFixed(1)} L${tX(conReal[0].x).toFixed(1)},${tY(0).toFixed(1)} Z`
+    : '';
+  const ultimo=conReal.length?conReal[conReal.length-1]:null;
+  const progUlt=ultimo?(cs.puntos.find(p=>p.x===ultimo.x)||{}).prog||0:0;
+  const desv=ultimo?ultimo.real-progUlt:0;
   c.innerHTML=`
     <svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block;">
       ${[0,25,50,75,100].map(v=>`
         <line x1="${PL}" y1="${tY(v)}" x2="${W-PR}" y2="${tY(v)}" stroke="var(--border)" stroke-width="0.5"/>
         <text x="${PL-4}" y="${tY(v)+4}" text-anchor="end" font-size="9" fill="var(--text2)" font-family="sans-serif">${v}%</text>`).join('')}
-      <path d="${areaReal}" fill="#185FA5" fill-opacity="0.08"/>
+      ${areaReal?`<path d="${areaReal}" fill="#185FA5" fill-opacity="0.08"/>`:''}
       <path d="${pProg}" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="5,3"/>
-      <path d="${pReal}" fill="none" stroke="#185FA5" stroke-width="2"/>
-      ${data.slice(1).map(d=>`<circle cx="${tX(d.x)}" cy="${tY(d.real)}" r="3.5" fill="#185FA5" stroke="#fff" stroke-width="1.5"/>`).join('')}
-      <text x="${PL+cW*0.15}" y="${H-4}" font-size="9" fill="#185FA5" font-family="sans-serif">— Real</text>
-      <text x="${PL+cW*0.4}" y="${H-4}" font-size="9" fill="#EF9F27" font-family="sans-serif">-- Programado</text>
-    </svg>`;
+      ${pReal?`<path d="${pReal}" fill="none" stroke="#185FA5" stroke-width="2"/>`:''}
+      ${conReal.map(d=>`<circle cx="${tX(d.x)}" cy="${tY(d.real)}" r="3.5" fill="#185FA5" stroke="#fff" stroke-width="1.5"/>`).join('')}
+      ${cs.puntos.map(p=>`<circle cx="${tX(p.x)}" cy="${tY(p.prog)}" r="2" fill="#EF9F27"/>`).join('')}
+      <text x="${PL+cW*0.05}" y="${H-4}" font-size="9" fill="#185FA5" font-family="sans-serif">— Real</text>
+      <text x="${PL+cW*0.3}" y="${H-4}" font-size="9" fill="#EF9F27" font-family="sans-serif">-- Programado</text>
+      <text x="${W-PR}" y="${H-4}" text-anchor="end" font-size="8" fill="var(--text2)" font-family="sans-serif">${cs.fuente==='excel'?'Fuente: PROGRAMACION FINANC':'Fuente: EPs registrados'}</text>
+    </svg>
+    ${ultimo?`<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text2);padding:4px 2px 0;">
+      <span>Último punto: EP N°${ultimo.num}${ultimo.hasta?' · '+fmtDate(ultimo.hasta):''}</span>
+      <span style="font-weight:600;color:${desv<-5?'var(--red)':desv<0?'var(--amber)':'var(--green)'};">${desv>0?'+':''}${desv}% vs programa</span>
+    </div>`:''}`;
 }
 
 // Inicialización defensiva de estructura de obra. Garantiza que todas las
@@ -1840,9 +1923,12 @@ function getTop5Atrasadas(o){
 
 // ══ MULTAS DS 236/283 ════════════════════════════════════
 
-// UF referencial editable desde módulo multas. Se guarda en state global.
-// Valor inicial mayo 2026 (~$39.500). César debe actualizarla mensualmente desde el módulo.
+// UF referencial por defecto, editable desde el módulo multas (state global).
+// Cada multa guarda además su PROPIA UF según fecha de aplicación (m.ufValor),
+// porque la UF varía a diario y la multa se calcula con la del día en que se cursa.
 function getUF(){ return state.ufReferencial||39500; }
+// UF efectiva de una multa: la propia si existe, si no la referencial del módulo.
+function getUFMulta(m){ return (m&&m.ufValor)?m.ufValor:getUF(); }
 
 const MULTA_INFO = {
   atraso:          {label:'Multa por atraso (Art. 49 DS 236)',tipo:'pct_diario',ufFija:null,pctDiario:0.1},
@@ -1851,7 +1937,7 @@ const MULTA_INFO = {
   subcontrato_no_autorizado:{label:'Subcontrato no autorizado (Art. 52 DS 236)',tipo:'uf_fija',ufFija:10,pctDiario:null},
   personal_no_calificado:   {label:'Personal no calificado (Art. 53 DS 236)',tipo:'uf_fija',ufFija:3,pctDiario:null},
   seguridad:       {label:'Incumplimiento normas seguridad (Art. 54 DS 236)',tipo:'uf_fija',ufFija:5,pctDiario:null},
-  ds283_otra:      {label:'Incumplimiento DS 283',tipo:'uf_fija',ufFija:5,pctDiario:null},
+  ds283_otra:      {label:'Incumplimiento DS 283 (por día)',tipo:'uf_diaria',ufDia:1,ufFija:null,pctDiario:null},
   otra:            {label:'Otra causa',tipo:'manual',ufFija:null,pctDiario:null},
 };
 
@@ -1884,12 +1970,14 @@ function renderMultas(){
         <div style="flex:1;min-width:0;">
           <div style="font-size:13px;font-weight:500;color:var(--text);">${MULTA_INFO[m.tipo]?.label||m.tipo}</div>
           <div class="obra-meta">${fmtDate(m.fecha)}${m.ep?' · '+m.ep:''}</div>
+          ${m.diasMantenida?`<div class="obra-meta" style="margin-top:2px;">${m.ufDia} UF/día × ${m.diasMantenida} días</div>`:''}
           ${m.causa?`<div class="obra-meta" style="margin-top:2px;">${m.causa.slice(0,60)}${m.causa.length>60?'...':''}</div>`:''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <span class="badge ${estadoBadge[m.estado]||'badge-info'}">${estadoLabel[m.estado]||m.estado}</span>
           <div style="font-size:12px;font-weight:600;color:var(--red);margin-top:4px;">$${fmtM(m.montoFinal||0)}</div>
           ${m.ufFinal?`<div style="font-size:11px;color:var(--text2);">${(m.ufFinal).toFixed(2)} UF</div>`:''}
+          ${m.ufValor?`<div style="font-size:10px;color:var(--text2);">UF $${fmtM(m.ufValor)}</div>`:''}
         </div>
       </div>
     </div>`).join('');
@@ -1907,7 +1995,13 @@ function onMultaTipoChange(){
   const info=MULTA_INFO[tipo];
   document.getElementById('multa-atraso-wrap').style.display=info?.tipo==='pct_diario'?'block':'none';
   document.getElementById('multa-fija-wrap').style.display=info?.tipo==='uf_fija'?'block':'none';
-  if(info?.ufFija) document.getElementById('multa-uf-fija').value=info.ufFija;
+  document.getElementById('multa-diaria-wrap').style.display=info?.tipo==='uf_diaria'?'block':'none';
+  const lbl=document.getElementById('multa-uf-fija-label');
+  if(lbl&&info?.label) lbl.textContent='Monto en UF — '+info.label;
+  if(info?.tipo==='uf_fija'&&info.ufFija&&!document.getElementById('multa-uf-fija').value)
+    document.getElementById('multa-uf-fija').value=info.ufFija;
+  if(info?.tipo==='uf_diaria'&&info.ufDia&&!document.getElementById('multa-uf-dia').value)
+    document.getElementById('multa-uf-dia').value=info.ufDia;
   calcularMulta();
 }
 
@@ -1918,26 +2012,44 @@ function calcularMulta(){
   const texto=document.getElementById('multa-calculo-texto');
   const ufDiv=document.getElementById('multa-calculo-uf');
   const o=state.obras[state.activeObraIdx];
+  // UF propia de esta multa (según su fecha de aplicación)
+  const ufValor=parseFloat(document.getElementById('multa-uf-valor').value)||getUF();
+  const fecha=document.getElementById('multa-fecha').value;
   if(!info||info.tipo==='manual'){calculo.style.display='none';return;}
+
   if(info.tipo==='pct_diario'){
     const dias=parseInt(document.getElementById('multa-dias').value)||0;
     const pct=parseFloat(document.getElementById('multa-pct-diario').value)||0.1;
     if(!dias){calculo.style.display='none';return;}
     const monto=Math.round((o.monto||0)*pct/100*dias);
-    const uf=(monto/getUF()).toFixed(2);
+    const uf=(monto/ufValor).toFixed(2);
     calculo.style.display='block';
-    texto.textContent=`$${fmtM(monto)} (${dias}d × ${pct}% × $${fmtM(o.monto||0)})`;
-    ufDiv.textContent=`≈ ${uf} UF (UF referencial $${fmtM(getUF())})`;
+    texto.textContent=`$${fmtM(monto)}`;
+    ufDiv.innerHTML=`${dias} día${dias!==1?'s':''} × ${pct}% × $${fmtM(o.monto||0)}<br>Equivale a <b>${uf} UF</b> (UF de ${fecha?fmtDate(fecha):'hoy'}: $${fmtM(ufValor)})`;
     document.getElementById('multa-monto-final').value=monto;
     document.getElementById('multa-uf-final').value=uf;
+
   } else if(info.tipo==='uf_fija'){
     const uf=parseFloat(document.getElementById('multa-uf-fija').value)||info.ufFija||0;
-    const monto=Math.round(uf*getUF());
+    if(!uf){calculo.style.display='none';return;}
+    const monto=Math.round(uf*ufValor);
     calculo.style.display='block';
-    texto.textContent=`${uf} UF = $${fmtM(monto)}`;
-    ufDiv.textContent=`UF referencial: $${fmtM(getUF())}`;
+    texto.textContent=`$${fmtM(monto)}`;
+    ufDiv.innerHTML=`${uf} UF × $${fmtM(ufValor)}<br>UF de ${fecha?fmtDate(fecha):'hoy'}`;
     document.getElementById('multa-monto-final').value=monto;
     document.getElementById('multa-uf-final').value=uf;
+
+  } else if(info.tipo==='uf_diaria'){
+    const ufDia=parseFloat(document.getElementById('multa-uf-dia').value)||info.ufDia||0;
+    const dias=parseInt(document.getElementById('multa-dias-mantenida').value)||0;
+    if(!ufDia||!dias){calculo.style.display='none';return;}
+    const ufTotal=+(ufDia*dias).toFixed(2);
+    const monto=Math.round(ufTotal*ufValor);
+    calculo.style.display='block';
+    texto.textContent=`$${fmtM(monto)}`;
+    ufDiv.innerHTML=`${ufDia} UF/día × ${dias} día${dias!==1?'s':''} = <b>${ufTotal} UF</b><br>× $${fmtM(ufValor)} (UF de ${fecha?fmtDate(fecha):'hoy'})`;
+    document.getElementById('multa-monto-final').value=monto;
+    document.getElementById('multa-uf-final').value=ufTotal;
   }
 }
 
@@ -1949,14 +2061,18 @@ function showFormMulta(idx){
   document.getElementById('multa-form-title').textContent=esNueva?'Nueva multa':'Editar multa';
   document.getElementById('multa-btn-eliminar').style.display=esNueva?'none':'block';
   document.getElementById('multa-calculo').style.display='none';
+  document.getElementById('multa-uf-default').textContent=fmtM(getUF());
   if(!esNueva){
     const m=o.multas[idx];
     document.getElementById('multa-tipo').value=m.tipo||'atraso';
     document.getElementById('multa-fecha').value=m.fecha||'';
+    document.getElementById('multa-uf-valor').value=m.ufValor||getUF();
     document.getElementById('multa-causa').value=m.causa||'';
     document.getElementById('multa-dias').value=m.dias||'';
     document.getElementById('multa-pct-diario').value=m.pctDiario||0.1;
     document.getElementById('multa-uf-fija').value=m.ufFija||'';
+    document.getElementById('multa-uf-dia').value=m.ufDia||'';
+    document.getElementById('multa-dias-mantenida').value=m.diasMantenida||'';
     document.getElementById('multa-monto-final').value=m.montoFinal||'';
     document.getElementById('multa-uf-final').value=m.ufFinal||'';
     document.getElementById('multa-estado').value=m.estado||'aplicada';
@@ -1965,10 +2081,13 @@ function showFormMulta(idx){
   } else {
     document.getElementById('multa-tipo').value='atraso';
     document.getElementById('multa-fecha').value=today();
+    document.getElementById('multa-uf-valor').value=getUF();
     document.getElementById('multa-causa').value='';
     document.getElementById('multa-dias').value='';
     document.getElementById('multa-pct-diario').value=0.1;
     document.getElementById('multa-uf-fija').value='';
+    document.getElementById('multa-uf-dia').value='';
+    document.getElementById('multa-dias-mantenida').value='';
     document.getElementById('multa-monto-final').value='';
     document.getElementById('multa-uf-final').value='';
     document.getElementById('multa-estado').value='aplicada';
@@ -1986,10 +2105,13 @@ function guardarMulta(){
   const m={
     tipo:document.getElementById('multa-tipo').value,
     fecha:document.getElementById('multa-fecha').value,
+    ufValor:parseFloat(document.getElementById('multa-uf-valor').value)||getUF(),
     causa:document.getElementById('multa-causa').value.trim(),
     dias:parseInt(document.getElementById('multa-dias').value)||0,
     pctDiario:parseFloat(document.getElementById('multa-pct-diario').value)||0.1,
     ufFija:parseFloat(document.getElementById('multa-uf-fija').value)||0,
+    ufDia:parseFloat(document.getElementById('multa-uf-dia').value)||0,
+    diasMantenida:parseInt(document.getElementById('multa-dias-mantenida').value)||0,
     montoFinal:parseInt(document.getElementById('multa-monto-final').value)||0,
     ufFinal:parseFloat(document.getElementById('multa-uf-final').value)||0,
     estado:document.getElementById('multa-estado').value,
@@ -3782,7 +3904,7 @@ function cargarPartidasExcel(event){
       const {partidas,programaEPs}=parsearExcelEP(ev.target.result);
       const o=state.obras[state.activeObraIdx];
       aplicarProgramaEPs(o,partidas,programaEPs);
-      saveAndSync();renderAvance(o);
+      saveAndSync();renderAvance(o);renderCurvas(o);renderDashCurvaS(o);refrescarBarrasDash(o);
       showToast(`✓ ${partidas.length} partidas · Real ${o.avance}% · Prog. ${o.avanceProg}%`);
     }catch(e){showToast('Error leyendo Excel: '+e.message);}
   };
@@ -3804,18 +3926,32 @@ async function cargarDesdeUltimoEP(){
     const buffer=await res.arrayBuffer();
     const {partidas,programaEPs}=parsearExcelEP(buffer);
     aplicarProgramaEPs(o,partidas,programaEPs);
-    saveAndSync();renderAvance(o);
+    saveAndSync();renderAvance(o);renderCurvas(o);renderDashCurvaS(o);refrescarBarrasDash(o);
     showToast(`✓ ${partidas.length} partidas · Real ${o.avance}% · Prog. ${o.avanceProg}% · EP N°${lastEP.num}`);
   }catch(e){showToast('Error: '+e.message);}
 }
 
 function renderCurvas(o){
   const c=document.getElementById('m-curvas');
-  if(o.eps.length<2){c.innerHTML='<div class="empty-state">Se necesitan al menos 2 EPs para graficar la Curva S.</div>';return;}
-  const W=320,H=170,PL=34,PB=20,PR=8,PT=8,cW=W-PL-PR,cH=H-PT-PB;
-  const data=[{x:0,real:0,prog:0},...o.eps.map((ep,i)=>({x:(i+1)/(o.eps.length+1),real:Math.round(o.eps.slice(0,i+1).reduce((s,e)=>s+(e.monto||0),0)/o.monto*100),prog:Math.round((i+1)/(o.eps.length+1)*100)}))];
+  const cs=getCurvaSData(o);
+  if(!cs){c.innerHTML='<div class="empty-state">Sin datos de Curva S.<br>Carga el Excel del último EP en la pestaña Avance por partidas.</div>';return;}
+  const W=320,H=170,PL=34,PB=26,PR=8,PT=8,cW=W-PL-PR,cH=H-PT-PB;
+  const conReal=cs.puntos.filter(p=>p.real!==null);
   const tX=x=>PL+x*cW,tY=y=>PT+cH-y/100*cH;
-  c.innerHTML=`<div style="padding:12px 16px;"><svg viewBox="0 0 ${W} ${H}" width="100%">${[0,25,50,75,100].map(v=>`<line x1="${PL}" y1="${tY(v)}" x2="${W-PR}" y2="${tY(v)}" stroke="#ccc" stroke-width="0.5"/><text x="${PL-3}" y="${tY(v)+4}" text-anchor="end" font-size="9" fill="#999">${v}%</text>`).join('')}<path d="${data.map((d,i)=>`${i===0?'M':'L'}${tX(d.x).toFixed(1)},${tY(d.prog).toFixed(1)}`).join(' ')}" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="4,2"/><path d="${data.map((d,i)=>`${i===0?'M':'L'}${tX(d.x).toFixed(1)},${tY(d.real).toFixed(1)}`).join(' ')}" fill="none" stroke="#185FA5" stroke-width="2"/>${data.slice(1).map(d=>`<circle cx="${tX(d.x)}" cy="${tY(d.real)}" r="3" fill="#185FA5"/>`).join('')}</svg><div style="display:flex;gap:16px;justify-content:center;font-size:11px;color:#999;margin-top:4px;"><span>— Curva real</span><span>-- Curva programada</span></div></div>`;
+  const pProg=cs.puntos.map((d,i)=>`${i===0?'M':'L'}${tX(d.x).toFixed(1)},${tY(d.prog).toFixed(1)}`).join(' ');
+  const pReal=conReal.map((d,i)=>`${i===0?'M':'L'}${tX(d.x).toFixed(1)},${tY(d.real).toFixed(1)}`).join(' ');
+  c.innerHTML=`<div style="padding:12px 16px;">
+    <svg viewBox="0 0 ${W} ${H}" width="100%">
+      ${[0,25,50,75,100].map(v=>`<line x1="${PL}" y1="${tY(v)}" x2="${W-PR}" y2="${tY(v)}" stroke="#ccc" stroke-width="0.5"/><text x="${PL-3}" y="${tY(v)+4}" text-anchor="end" font-size="9" fill="#999">${v}%</text>`).join('')}
+      <path d="${pProg}" fill="none" stroke="#EF9F27" stroke-width="1.5" stroke-dasharray="4,2"/>
+      ${pReal?`<path d="${pReal}" fill="none" stroke="#185FA5" stroke-width="2"/>`:''}
+      ${conReal.map(d=>`<circle cx="${tX(d.x)}" cy="${tY(d.real)}" r="3" fill="#185FA5"/>`).join('')}
+      ${cs.puntos.map(p=>`<circle cx="${tX(p.x)}" cy="${tY(p.prog)}" r="2" fill="#EF9F27"/>`).join('')}
+      ${cs.puntos.map((p,i)=>i%Math.ceil(cs.puntos.length/6)===0?`<text x="${tX(p.x)}" y="${H-10}" text-anchor="middle" font-size="8" fill="#999">EP${p.num}</text>`:'').join('')}
+    </svg>
+    <div style="display:flex;gap:16px;justify-content:center;font-size:11px;color:#999;margin-top:4px;"><span>— Curva real</span><span>-- Curva programada</span></div>
+    <div style="text-align:center;font-size:10px;color:var(--text2);margin-top:2px;">${cs.fuente==='excel'?'Datos: hoja PROGRAMACION FINANC del último EP':'Datos: EPs registrados manualmente'}</div>
+  </div>`;
 }
 
 function switchMTab(t){['ep','avance','curvas'].forEach(x=>{document.getElementById('m-'+x).style.display=x===t?'block':'none';});document.querySelectorAll('#m-tabs .tab-btn').forEach((b,i)=>b.classList.toggle('active',['ep','avance','curvas'][i]===t));}
