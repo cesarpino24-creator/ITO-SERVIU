@@ -1134,9 +1134,14 @@ function refrescarBarrasDash(o){
   const fu=document.getElementById('dash-avance-fuente');
   if(fu){
     const f=o.avanceFuente;
-    fu.innerHTML=f
-      ? `Según EP N°${f.epNum} del programa financiero${f.hasta?' · periodo hasta '+fmtDate(f.hasta):''} <span style="opacity:.7;">(${f.criterio})</span>`
-      : '<span style="opacity:.7;">Valores ingresados manualmente. Carga el Excel del EP para tomarlos del programa financiero.</span>';
+    if(f){
+      fu.innerHTML=`Según EP N°${f.epNum} del programa financiero${f.hasta?' · periodo hasta '+fmtDate(f.hasta):''} <span style="opacity:.7;">(${f.criterio})</span>`;
+    } else {
+      const hit=getUltimoEPConExcel(o);
+      fu.innerHTML=hit
+        ? `<button onclick="cargarDesdeUltimoEP()" style="width:100%;padding:8px;font-size:12px;background:var(--blue-bg);color:var(--blue);border:0.5px solid var(--blue);border-radius:var(--r);cursor:pointer;">☁️ Tomar avances del EP N°${hit.ep.num} (${hit.adj.nombre})</button>`
+        : '<span style="opacity:.7;">Sin Excel vinculado. Adjunta el archivo del EP en Estados de pago y los avances se tomarán del programa financiero.</span>';
+    }
   }
 }
 
@@ -1224,6 +1229,7 @@ function openObra(idx){
   document.getElementById('obra-alertas-wrap').innerHTML=getAlerts(o).map(a=>`<div class="alert-item alert-${a.tipo}"><div class="alert-title alert-title-${a.tipo}">${a.texto}</div><div class="alert-desc">${a.desc}</div></div>`).join('');
   renderDashCurvaS(o);
   go('s-obra-dashboard');
+  autoVincularUltimoEP(idx);
 }
 
 let avanceManualTO=null;
@@ -1628,6 +1634,22 @@ async function adjuntarArchivoEP(event, epNum){
     ep.adjuntos.push({ nombre:result.name, driveId:result.id, driveLink:result.webViewLink });
     saveAndSync();
     renderEP(o);
+    // Si es Excel, aplicar de inmediato avances, partidas y programa financiero
+    if(/\.(xlsx|xlsm|xls)$/i.test(result.name||'')){
+      showToast('Leyendo programa financiero...');
+      try{
+        const buffer=await file.arrayBuffer();
+        const {partidas,programaEPs,epNumArchivo}=parsearExcelEP(buffer);
+        if(programaEPs.length||partidas.length){
+          aplicarProgramaEPs(o,partidas,programaEPs,epNumArchivo||epNum);
+          autoVinculado.add(state.activeObraIdx);
+          saveAndSync();
+          renderEP(o);renderAvance(o);renderCurvas(o);renderDashCurvaS(o);refrescarBarrasDash(o);
+          showToast(`✓ Adjuntado · Real ${o.avance}% · Prog. ${o.avanceProg}%`);
+          return;
+        }
+      }catch(e){/* si falla la lectura, el adjunto igual quedó guardado */}
+    }
     showToast(`"${result.name}" adjuntado en EP N°${epNum}`);
   } catch(e){
     showToast('Error: '+e.message);
@@ -3983,22 +4005,65 @@ function cargarPartidasExcel(event){
 
 // ── CARGAR EXCEL DESDE ÚLTIMO EP ADJUNTO ─────────────────
 
-async function cargarDesdeUltimoEP(){
+// Busca el EP más reciente que tenga un Excel adjunto en Drive.
+function getUltimoEPConExcel(o){
+  if(!o||!o.eps||!o.eps.length) return null;
+  for(let i=o.eps.length-1;i>=0;i--){
+    const ep=o.eps[i];
+    if(!ep.adjuntos||!ep.adjuntos.length) continue;
+    const xls=ep.adjuntos.slice().reverse().find(a=>a.driveId&&/\.(xlsx|xlsm|xls)$/i.test(a.nombre||''));
+    if(xls) return {ep,adj:xls};
+  }
+  return null;
+}
+
+// Lee el Excel del último EP adjunto y actualiza avances, partidas y curvas.
+// silencioso=true evita los toast (uso en la vinculación automática al abrir la obra).
+async function cargarDesdeUltimoEP(silencioso){
   const o=state.obras[state.activeObraIdx];
-  const lastEP=o.eps.slice().reverse().find(ep=>ep.adjuntos?.length>0);
-  if(!lastEP){showToast('El último EP no tiene archivo adjunto. Adjúntalo en Estados de pago.');return;}
-  const adj=lastEP.adjuntos[lastEP.adjuntos.length-1];
-  if(!adj.driveId){showToast('Sin ID de Drive para descargar');return;}
-  if(!accessToken){showToast('Conecta Drive para leer el archivo');return;}
-  showToast('Descargando Excel desde Drive...');
+  const hit=getUltimoEPConExcel(o);
+  if(!hit){
+    if(!silencioso) showToast('Ningún EP tiene Excel adjunto. Adjúntalo en Estados de pago.');
+    return false;
+  }
+  if(!accessToken){
+    if(!silencioso) showToast('Conecta Drive para leer el archivo');
+    return false;
+  }
+  if(!silencioso) showToast(`Leyendo Excel del EP N°${hit.ep.num}...`);
   try{
-    const res=await apiFetch(`https://www.googleapis.com/drive/v3/files/${adj.driveId}?alt=media`);
+    const res=await apiFetch(`https://www.googleapis.com/drive/v3/files/${hit.adj.driveId}?alt=media`);
     const buffer=await res.arrayBuffer();
     const {partidas,programaEPs,epNumArchivo}=parsearExcelEP(buffer);
+    if(!programaEPs.length&&!partidas.length){
+      if(!silencioso) showToast('El Excel no tiene las hojas esperadas');
+      return false;
+    }
     aplicarProgramaEPs(o,partidas,programaEPs,epNumArchivo);
+    if(o.avanceFuente) o.avanceFuente.epArchivo=hit.ep.num;
     saveAndSync();renderAvance(o);renderCurvas(o);renderDashCurvaS(o);refrescarBarrasDash(o);
-    showToast(`✓ ${partidas.length} partidas · Real ${o.avance}% · Prog. ${o.avanceProg}% · EP N°${lastEP.num}`);
-  }catch(e){showToast('Error: '+e.message);}
+    if(!silencioso) showToast(`✓ Real ${o.avance}% · Prog. ${o.avanceProg}% · desde EP N°${hit.ep.num}`);
+    return true;
+  }catch(e){
+    if(!silencioso) showToast('Error: '+e.message);
+    return false;
+  }
+}
+
+// Vinculación automática al abrir la obra: si los avances nunca se tomaron del
+// programa financiero y existe un EP con Excel en Drive, lo lee en segundo plano.
+const autoVinculado=new Set();
+async function autoVincularUltimoEP(idx){
+  const o=state.obras[idx];
+  if(!o||o.avanceFuente) return;              // ya viene del Excel o es edición manual
+  if(autoVinculado.has(idx)) return;          // no reintentar en esta sesión
+  if(!accessToken) return;
+  if(!getUltimoEPConExcel(o)) return;
+  autoVinculado.add(idx);
+  const fu=document.getElementById('dash-avance-fuente');
+  if(fu) fu.innerHTML='<span style="opacity:.7;">Leyendo el Excel del último EP...</span>';
+  const ok=await cargarDesdeUltimoEP(true);
+  if(!ok&&fu) refrescarBarrasDash(o);
 }
 
 function renderCurvas(o){
