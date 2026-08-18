@@ -133,14 +133,15 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="prog-track"><div class="prog-fill fill-ok" id="bar-real" style="width:0%"></div></div>
     <div class="prog-labels" style="margin-top:8px;"><span class="prog-label">Avance programado</span><span class="prog-pct" id="bar-prog-pct">—%</span></div>
     <div class="prog-track"><div class="prog-fill fill-warn" id="bar-prog" style="width:0%"></div></div>
-    <div style="display:flex;gap:8px;margin-top:10px;">
+    <div id="dash-avance-fuente" style="font-size:11px;color:var(--text2);margin-top:8px;"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
       <div style="flex:1;">
         <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px;">Editar avance real (%)</label>
-        <input type="number" id="dash-avance-real" min="0" max="100" style="width:100%;padding:6px 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);" onchange="actualizarAvanceManual()"/>
+        <input type="number" id="dash-avance-real" min="0" max="100" step="0.1" style="width:100%;padding:6px 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);" onchange="actualizarAvanceManual()"/>
       </div>
       <div style="flex:1;">
         <label style="font-size:11px;color:var(--text2);display:block;margin-bottom:3px;">Editar avance prog. (%)</label>
-        <input type="number" id="dash-avance-prog" min="0" max="100" style="width:100%;padding:6px 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);" onchange="actualizarAvanceManual()"/>
+        <input type="number" id="dash-avance-prog" min="0" max="100" step="0.1" style="width:100%;padding:6px 10px;font-size:13px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);" onchange="actualizarAvanceManual()"/>
       </div>
     </div>
   </div>
@@ -1118,16 +1119,25 @@ function refrescarStatAvance(o){
 function refrescarBarrasDash(o){
   const br=document.getElementById('bar-real');
   if(!br)return;
-  document.getElementById('bar-real').style.width=(o.avance||0)+'%';
-  document.getElementById('bar-prog').style.width=(o.avanceProg||0)+'%';
-  document.getElementById('bar-real-pct').textContent=(o.avance||0)+'%';
-  document.getElementById('bar-prog-pct').textContent=(o.avanceProg||0)+'%';
+  const real=o.avance||0, prog=o.avanceProg||0;
+  document.getElementById('bar-real').style.width=real+'%';
+  document.getElementById('bar-prog').style.width=prog+'%';
+  document.getElementById('bar-real-pct').textContent=real+'%';
+  document.getElementById('bar-prog-pct').textContent=prog+'%';
   const dr=document.getElementById('dash-avance-real'),dp=document.getElementById('dash-avance-prog');
-  if(dr)dr.value=(o.avance||0);
-  if(dp)dp.value=(o.avanceProg||0);
+  if(dr)dr.value=real;
+  if(dp)dp.value=prog;
   refrescarStatAvance(o);
-  const at=(o.avanceProg||0)-(o.avance||0);
+  const at=prog-real;
   br.className='prog-fill '+(at>=10?'fill-danger':at>=5?'fill-warn':'fill-ok');
+  // Trazabilidad de la fuente de los porcentajes
+  const fu=document.getElementById('dash-avance-fuente');
+  if(fu){
+    const f=o.avanceFuente;
+    fu.innerHTML=f
+      ? `Según EP N°${f.epNum} del programa financiero${f.hasta?' · periodo hasta '+fmtDate(f.hasta):''} <span style="opacity:.7;">(${f.criterio})</span>`
+      : '<span style="opacity:.7;">Valores ingresados manualmente. Carga el Excel del EP para tomarlos del programa financiero.</span>';
+  }
 }
 
 function renderDashCurvaS(o){
@@ -1208,13 +1218,7 @@ function openObra(idx){
   document.getElementById('d-ep').textContent=o.eps.length?`N°${o.eps[o.eps.length-1].num}`:'—';
   const totalEPAcum=o.eps.reduce((s,e)=>s+(e.monto||0),0);
   document.getElementById('d-ret').textContent='$'+fmtM(totalEPAcum);
-  document.getElementById('bar-real').style.width=(o.avance||0)+'%';
-  document.getElementById('bar-prog').style.width=(o.avanceProg||0)+'%';
-  document.getElementById('bar-real-pct').textContent=(o.avance||0)+'%';
-  document.getElementById('bar-prog-pct').textContent=(o.avanceProg||0)+'%';
-  // Poblar campos editables
-  document.getElementById('dash-avance-real').value=(o.avance||0);
-  document.getElementById('dash-avance-prog').value=(o.avanceProg||0);
+  refrescarBarrasDash(o);
   const at=(o.avanceProg||0)-(o.avance||0);
   document.getElementById('bar-real').className='prog-fill '+(at>=10?'fill-danger':at>=5?'fill-warn':'fill-ok');
   document.getElementById('obra-alertas-wrap').innerHTML=getAlerts(o).map(a=>`<div class="alert-item alert-${a.tipo}"><div class="alert-title alert-title-${a.tipo}">${a.texto}</div><div class="alert-desc">${a.desc}</div></div>`).join('');
@@ -1227,10 +1231,11 @@ function actualizarAvanceManual(){
   if(state.activeObraIdx===null) return;
   const o=state.obras[state.activeObraIdx];
   if(!o) return;
-  const real=parseInt(document.getElementById('dash-avance-real').value)||0;
-  const prog=parseInt(document.getElementById('dash-avance-prog').value)||0;
+  const real=parseFloat(document.getElementById('dash-avance-real').value)||0;
+  const prog=parseFloat(document.getElementById('dash-avance-prog').value)||0;
   o.avance=Math.min(100,Math.max(0,real));
   o.avanceProg=Math.min(100,Math.max(0,prog));
+  o.avanceFuente=null; // pasa a ser edición manual
   document.getElementById('bar-real').style.width=o.avance+'%';
   document.getElementById('bar-prog').style.width=o.avanceProg+'%';
   document.getElementById('bar-real-pct').textContent=o.avance+'%';
@@ -1238,6 +1243,8 @@ function actualizarAvanceManual(){
   refrescarStatAvance(o);
   const at=o.avanceProg-o.avance;
   document.getElementById('bar-real').className='prog-fill '+(at>=10?'fill-danger':at>=5?'fill-warn':'fill-ok');
+  const fu=document.getElementById('dash-avance-fuente');
+  if(fu) fu.innerHTML='<span style="opacity:.7;">Valores ingresados manualmente. Carga el Excel del EP para tomarlos del programa financiero.</span>';
   renderDashCurvaS(o);
   // Debounce: si el usuario cambia ambos campos rápido, una sola sincronización
   saveLocal();
@@ -3835,18 +3842,40 @@ function parsearExcelEP(arrayBuffer){
       const desde = parseFechaExcel(row[2], rawRow[2]);
       const hasta  = parseFechaExcel(row[3], rawRow[3]);
 
+      // Redondeo a 1 decimal: avances bajos (2,18%) se perdían con enteros
+      const pct1=v=>Math.round(v*1000)/10;
       programaEPs.push({
         num: nep,
         desde,
         hasta,
-        pctProg: typeof pctProg==='number'?Math.round(pctProg*100):0,
-        pctAcumProg: typeof pctAcum==='number'?Math.round(pctAcum*100):0,
-        pctAcumReal: typeof rawRow[9]==='number'?Math.round(rawRow[9]*100):null, // col J = % ACUM. real
+        pctProg: typeof pctProg==='number'?pct1(pctProg):0,
+        pctAcumProg: typeof pctAcum==='number'?pct1(pctAcum):0,          // col F
+        pctAcumReal: typeof rawRow[9]==='number'?pct1(rawRow[9]):null,   // col J
       });
     });
   }
 
-  return {partidas, programaEPs};
+  // 3. CARÁTULA EP — N° del estado de pago que representa este archivo.
+  // Determina qué fila de PROGRAMACION FINANC es la vigente.
+  let epNumArchivo = null;
+  const wsCar = wb.Sheets['CARÁTULA EP'] || wb.Sheets['CARATULA EP'] ||
+                wb.Sheets[wb.SheetNames.find(n=>n.toUpperCase().includes('CAR')&&n.toUpperCase().includes('EP'))];
+  if(wsCar){
+    const rowsCar = XLSX.utils.sheet_to_json(wsCar,{header:1,defval:'',raw:true});
+    for(const row of rowsCar){
+      const idx=row.findIndex(v=>typeof v==='string'&&v.toUpperCase().replace(/\s+/g,' ').includes('ESTADO DE PAGO'));
+      if(idx>=0){
+        for(let k=idx+1;k<Math.min(idx+4,row.length);k++){
+          const v=row[k];
+          const n=typeof v==='number'?v:parseInt(String(v).trim());
+          if(!isNaN(n)&&n>0&&n<100){ epNumArchivo=n; break; }
+        }
+      }
+      if(epNumArchivo) break;
+    }
+  }
+
+  return {partidas, programaEPs, epNumArchivo};
 }
 
 // parseFechaExcel: extrae ISO yyyy-mm-dd desde celda Excel.
@@ -3878,35 +3907,62 @@ function excelDateToISO(serial){
   return utc.toISOString().slice(0,10);
 }
 
-function aplicarProgramaEPs(o, partidas, programaEPs){
-  if(partidas.length>0) o.partidas=partidas;
-  if(programaEPs.length>0){
-    o.programaEPs=programaEPs;
-    const nEPs=o.eps.length;
-    // Buscar fila del último EP registrado
-    const filaProg=programaEPs.find(p=>p.num===nEPs)
-                 ||programaEPs.slice().reverse().find(p=>p.num<=nEPs)
-                 ||programaEPs[0];
+function aplicarProgramaEPs(o, partidas, programaEPs, epNumArchivo){
+  if(partidas&&partidas.length>0) o.partidas=partidas;
+  if(!programaEPs||!programaEPs.length) return;
+  o.programaEPs=programaEPs;
 
-    // Avance programado: col F (pctAcumProg) — aplicar aunque sea 0
-    if(filaProg && filaProg.pctAcumProg !== undefined){
-      o.avanceProg = filaProg.pctAcumProg;
-    }
-
-    // Avance real: col J (pctAcumReal) — aplicar si tiene valor > 0
-    if(filaProg && filaProg.pctAcumReal !== null && filaProg.pctAcumReal !== undefined && filaProg.pctAcumReal > 0){
-      o.avance = filaProg.pctAcumReal;
-    } else {
-      // Fallback: calcular desde % completado de partidas
-      const noC=(o.partidas||[]).filter(p=>!p.esCapitulo);
-      if(noC.length>0 && noC.some(p=>(p.pct||0)>0))
-        o.avance=Math.round(noC.reduce((s,p)=>s+(p.pct||0),0)/noC.length);
-    }
-
-    // Próximo EP: fecha "hasta" de la fila N+1
-    const sigEP=programaEPs.find(p=>p.num===nEPs+1);
-    if(sigEP?.hasta) o.proximoEP=sigEP.hasta;
+  // ── Elegir la fila vigente de PROGRAMACION FINANC ──────────────
+  // 1º el N° de EP declarado en la carátula del archivo (fuente autoritativa)
+  // 2º el periodo [desde,hasta] que contiene la fecha de hoy
+  // 3º el último periodo ya terminado
+  // 4º cantidad de EPs registrados en la app
+  let filaProg=null, criterio='';
+  if(epNumArchivo){
+    filaProg=programaEPs.find(p=>p.num===epNumArchivo);
+    if(filaProg) criterio='carátula EP';
   }
+  if(!filaProg){
+    const hoy=today();
+    filaProg=programaEPs.find(p=>p.desde&&p.hasta&&p.desde<=hoy&&hoy<=p.hasta);
+    if(filaProg) criterio='periodo vigente';
+  }
+  if(!filaProg){
+    const hoy=today();
+    const pasados=programaEPs.filter(p=>p.hasta&&p.hasta<=hoy).sort((a,b)=>a.num-b.num);
+    if(pasados.length){ filaProg=pasados[pasados.length-1]; criterio='último periodo cerrado'; }
+  }
+  if(!filaProg){
+    const nEPs=o.eps.length;
+    filaProg=programaEPs.find(p=>p.num===nEPs)
+           ||programaEPs.slice().reverse().find(p=>p.num<=nEPs)
+           ||programaEPs[0];
+    criterio='EPs registrados';
+  }
+
+  // ── Avance programado: col F · Avance real: col J ──────────────
+  // Ambos se aplican tal cual vienen del Excel, incluido el valor 0.
+  if(filaProg.pctAcumProg!==undefined&&filaProg.pctAcumProg!==null)
+    o.avanceProg=filaProg.pctAcumProg;
+
+  if(filaProg.pctAcumReal!==undefined&&filaProg.pctAcumReal!==null){
+    o.avance=filaProg.pctAcumReal;
+  } else {
+    // Sin dato en col J: promediar el % completado de las partidas
+    const noC=(o.partidas||[]).filter(p=>!p.esCapitulo);
+    if(noC.length>0&&noC.some(p=>(p.pct||0)>0))
+      o.avance=Math.round(noC.reduce((s,p)=>s+(p.pct||0),0)/noC.length);
+  }
+
+  // Trazabilidad: de qué fila salieron los porcentajes
+  o.avanceFuente={
+    epNum:filaProg.num, desde:filaProg.desde, hasta:filaProg.hasta,
+    criterio, cargado:today()
+  };
+
+  // Próximo EP: fecha "hasta" de la fila siguiente
+  const sigEP=programaEPs.find(p=>p.num===filaProg.num+1);
+  if(sigEP&&sigEP.hasta) o.proximoEP=sigEP.hasta;
 }
 
 function cargarPartidasExcel(event){
@@ -3915,9 +3971,9 @@ function cargarPartidasExcel(event){
   reader.onerror=()=>showToast('⚠ Error leyendo el archivo');
   reader.onload=ev=>{
     try{
-      const {partidas,programaEPs}=parsearExcelEP(ev.target.result);
+      const {partidas,programaEPs,epNumArchivo}=parsearExcelEP(ev.target.result);
       const o=state.obras[state.activeObraIdx];
-      aplicarProgramaEPs(o,partidas,programaEPs);
+      aplicarProgramaEPs(o,partidas,programaEPs,epNumArchivo);
       saveAndSync();renderAvance(o);renderCurvas(o);renderDashCurvaS(o);refrescarBarrasDash(o);
       showToast(`✓ ${partidas.length} partidas · Real ${o.avance}% · Prog. ${o.avanceProg}%`);
     }catch(e){showToast('Error leyendo Excel: '+e.message);}
@@ -3938,8 +3994,8 @@ async function cargarDesdeUltimoEP(){
   try{
     const res=await apiFetch(`https://www.googleapis.com/drive/v3/files/${adj.driveId}?alt=media`);
     const buffer=await res.arrayBuffer();
-    const {partidas,programaEPs}=parsearExcelEP(buffer);
-    aplicarProgramaEPs(o,partidas,programaEPs);
+    const {partidas,programaEPs,epNumArchivo}=parsearExcelEP(buffer);
+    aplicarProgramaEPs(o,partidas,programaEPs,epNumArchivo);
     saveAndSync();renderAvance(o);renderCurvas(o);renderDashCurvaS(o);refrescarBarrasDash(o);
     showToast(`✓ ${partidas.length} partidas · Real ${o.avance}% · Prog. ${o.avanceProg}% · EP N°${lastEP.num}`);
   }catch(e){showToast('Error: '+e.message);}
