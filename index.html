@@ -1052,7 +1052,7 @@ function renderObras(){
     }
     const alertasCrit=al.filter(a=>a.tipo==='danger'||a.tipo==='warn');
     const div=document.createElement('div');div.className='obra-card';
-    div.innerHTML=`<div class="obra-name">${o.nombre}</div><div class="obra-meta">${o.contratista} · ${o.contrato}</div><div class="obra-badges">${eb}<span class="badge badge-info">Avance ${o.avance||0}%</span>${epBadge}${dr!==null&&dr<=30?`<span class="badge badge-warn">${dr}d contrato</span>`:''} ${alertasCrit.length?`<span class="badge badge-danger">${alertasCrit.length} alerta${alertasCrit.length>1?'s':''}</span>`:''}</div>`;
+    div.innerHTML=`<div class="obra-name">${o.nombre}</div><div class="obra-meta">${o.contratista} · ${o.contrato}</div><div class="obra-badges">${eb}<span class="badge badge-info">Avance ${pctEjecutado(o)}%</span>${epBadge}${dr!==null&&dr<=30?`<span class="badge badge-warn">${dr}d contrato</span>`:''} ${alertasCrit.length?`<span class="badge badge-danger">${alertasCrit.length} alerta${alertasCrit.length>1?'s':''}</span>`:''}</div>`;
     div.onclick=()=>openObra(i);list.appendChild(div);
   });
   const badge=document.getElementById('alert-badge');badge.style.display=total?'inline':'none';badge.textContent=total;
@@ -1100,6 +1100,20 @@ function getCurvaSData(o){
   };
 }
 
+// Avance físico = % ejecutado financieramente (total facturado en EPs / monto contrato).
+// Fuente única para el stat del dashboard, el módulo Estados de pago y el informe PDF.
+function pctEjecutado(o){
+  if(!o||!o.monto||!o.eps||!o.eps.length) return 0;
+  const facturado=o.eps.reduce((s,e)=>s+(e.monto||0),0);
+  return Math.min(100,Math.round(facturado/o.monto*100));
+}
+
+// Refresca el stat "Avance físico" del dashboard si está en pantalla.
+function refrescarStatAvance(o){
+  const da=document.getElementById('d-avance');
+  if(da) da.innerHTML=`${pctEjecutado(o)}<span class="stat-unit">%</span>`;
+}
+
 // Refresca barras y stats del dashboard sin re-navegar. Usar tras cargar Excel.
 function refrescarBarrasDash(o){
   const br=document.getElementById('bar-real');
@@ -1111,8 +1125,7 @@ function refrescarBarrasDash(o){
   const dr=document.getElementById('dash-avance-real'),dp=document.getElementById('dash-avance-prog');
   if(dr)dr.value=(o.avance||0);
   if(dp)dp.value=(o.avanceProg||0);
-  const da=document.getElementById('d-avance');
-  if(da)da.innerHTML=`${o.avance||0}<span class="stat-unit">%</span>`;
+  refrescarStatAvance(o);
   const at=(o.avanceProg||0)-(o.avance||0);
   br.className='prog-fill '+(at>=10?'fill-danger':at>=5?'fill-warn':'fill-ok');
 }
@@ -1190,7 +1203,7 @@ function openObra(idx){
   inicObra(o);
   document.getElementById('dash-nombre').textContent=o.nombre;
   document.getElementById('dash-contrato').textContent=o.contrato;
-  document.getElementById('d-avance').innerHTML=`${o.avance||0}<span class="stat-unit">%</span>`;
+  refrescarStatAvance(o);
   document.getElementById('d-dias').textContent=calcDR(o);
   document.getElementById('d-ep').textContent=o.eps.length?`N°${o.eps[o.eps.length-1].num}`:'—';
   const totalEPAcum=o.eps.reduce((s,e)=>s+(e.monto||0),0);
@@ -1222,7 +1235,7 @@ function actualizarAvanceManual(){
   document.getElementById('bar-prog').style.width=o.avanceProg+'%';
   document.getElementById('bar-real-pct').textContent=o.avance+'%';
   document.getElementById('bar-prog-pct').textContent=o.avanceProg+'%';
-  document.getElementById('d-avance').innerHTML=`${o.avance}<span class="stat-unit">%</span>`;
+  refrescarStatAvance(o);
   const at=o.avanceProg-o.avance;
   document.getElementById('bar-real').className='prog-fill '+(at>=10?'fill-danger':at>=5?'fill-warn':'fill-ok');
   renderDashCurvaS(o);
@@ -3216,7 +3229,7 @@ function generarPDF(){
     const fillClass=atraso>=10?'prog-fill-danger':atraso>=5?'prog-fill-warn':'prog-fill-ok';
     html+=`<div class="section"><h3>Resumen de avance</h3>
       <div class="stats-grid">
-        <div class="stat-box"><label>Avance físico</label><p class="${atraso>=10?'stat-danger':atraso>=5?'stat-warn':'stat-ok'}">${o.avance||0}%</p></div>
+        <div class="stat-box"><label>Avance físico</label><p class="${atraso>=10?'stat-danger':atraso>=5?'stat-warn':'stat-ok'}">${pctEjecutado(o)}%</p></div>
         <div class="stat-box"><label>Avance programado</label><p class="stat-blue">${o.avanceProg||0}%</p></div>
         <div class="stat-box"><label>Días restantes</label><p class="${parseInt(calcDR(o))<30?'stat-warn':'stat-ok'}">${calcDR(o)}</p></div>
         <div class="stat-box"><label>% ejecutado ($)</label><p class="stat-blue">${pctEjec}%</p></div>
@@ -3568,6 +3581,7 @@ function guardarFP4(){state.obras[state.activeObraIdx].proximoEP=document.getEle
 function renderMedicion(o){renderEP(o);renderAvance(o);renderCurvas(o);}
 
 function renderEP(o){
+  refrescarStatAvance(o); // mantener sincronizado el stat del dashboard
   const c=document.getElementById('m-ep');
   if(!o.eps.length){
     c.innerHTML=`<div class="empty-state">Sin estados de pago.<br><br><button class="btn-secondary" style="width:auto;padding:10px 20px;margin:0 auto;" onclick="showFormEP(-1)">+ Registrar EP</button></div>`;
@@ -3581,7 +3595,7 @@ function renderEP(o){
       <div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="font-size:14px;">$${fmtM(tb)}</div></div>
       <div class="stat-card"><div class="stat-label">Total pagado</div><div class="stat-value" style="font-size:14px;color:var(--green);">$${fmtM(tp)}</div></div>
       <div class="stat-card"><div class="stat-label">EPs pendientes</div><div class="stat-value" style="font-size:14px;color:${pend>0?'var(--amber)':'var(--green)'};">${pend}</div></div>
-      <div class="stat-card"><div class="stat-label">% ejecutado</div><div class="stat-value" style="font-size:14px;">${o.monto?Math.round(tb/o.monto*100):0}%</div></div>
+      <div class="stat-card"><div class="stat-label">% ejecutado</div><div class="stat-value" style="font-size:14px;">${pctEjecutado(o)}%</div></div>
     </div>
   </div>
   ${o.eps.map((ep,i)=>`
