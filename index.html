@@ -987,11 +987,11 @@ function getAlerts(o){
   // Próximo EP — alertar con 15 días de anticipación
   if(o.proximoEP){
     const d=diffDays(hoy,o.proximoEP);
-    if(d<0) al.push({tipo:'danger',texto:`EP N°${o.eps.length+1} vencido hace ${Math.abs(d)} día${Math.abs(d)!==1?'s':''}`,desc:`Fecha límite: ${fmtDate(o.proximoEP)}`});
-    else if(d===0) al.push({tipo:'danger',texto:`EP N°${o.eps.length+1} vence HOY`,desc:fmtDate(o.proximoEP)});
-    else if(d<=5) al.push({tipo:'danger',texto:`EP N°${o.eps.length+1} vence en ${d} día${d!==1?'s':''}`,desc:`Fecha límite: ${fmtDate(o.proximoEP)}`});
-    else if(d<=15) al.push({tipo:'warn',texto:`EP N°${o.eps.length+1} vence en ${d} días`,desc:`Fecha límite: ${fmtDate(o.proximoEP)}`});
-    else al.push({tipo:'info',texto:`Próximo EP N°${o.eps.length+1} en ${d} días`,desc:`Fecha: ${fmtDate(o.proximoEP)}`});
+    if(d<0) al.push({tipo:'danger',texto:`EP N°${epsBase(o).length+1} vencido hace ${Math.abs(d)} día${Math.abs(d)!==1?'s':''}`,desc:`Fecha límite: ${fmtDate(o.proximoEP)}`});
+    else if(d===0) al.push({tipo:'danger',texto:`EP N°${epsBase(o).length+1} vence HOY`,desc:fmtDate(o.proximoEP)});
+    else if(d<=5) al.push({tipo:'danger',texto:`EP N°${epsBase(o).length+1} vence en ${d} día${d!==1?'s':''}`,desc:`Fecha límite: ${fmtDate(o.proximoEP)}`});
+    else if(d<=15) al.push({tipo:'warn',texto:`EP N°${epsBase(o).length+1} vence en ${d} días`,desc:`Fecha límite: ${fmtDate(o.proximoEP)}`});
+    else al.push({tipo:'info',texto:`Próximo EP N°${epsBase(o).length+1} en ${d} días`,desc:`Fecha: ${fmtDate(o.proximoEP)}`});
   }
   const at=(o.avanceProg||0)-(o.avance||0);
   if(at>=10)al.push({tipo:'danger',texto:`Atraso crítico: ${at}% bajo programa`,desc:'Posible multa DS 236'});
@@ -1008,7 +1008,7 @@ function renderObras(){
   const hoy=today();
   const proximosEPs=state.obras
     .filter(o=>o.proximoEP)
-    .map(o=>({nombre:o.nombre,dias:diffDays(hoy,o.proximoEP),fecha:o.proximoEP,epNum:o.eps.length+1}))
+    .map(o=>({nombre:o.nombre,dias:diffDays(hoy,o.proximoEP),fecha:o.proximoEP,epNum:epsBase(o).length+1}))
     .filter(x=>x.dias>=-7&&x.dias<=30)
     .sort((a,b)=>a.dias-b.dias);
 
@@ -1046,7 +1046,7 @@ function renderObras(){
     let epBadge='';
     if(o.proximoEP){
       const d=diffDays(hoy,o.proximoEP);
-      if(d<0) epBadge=`<span class="badge badge-danger">EP N°${o.eps.length+1} vencido</span>`;
+      if(d<0) epBadge=`<span class="badge badge-danger">EP N°${epsBase(o).length+1} vencido</span>`;
       else if(d<=5) epBadge=`<span class="badge badge-danger">EP en ${d}d</span>`;
       else if(d<=15) epBadge=`<span class="badge badge-warn">EP en ${d}d</span>`;
       else epBadge=`<span class="badge badge-info">EP en ${d}d</span>`;
@@ -1086,16 +1086,17 @@ function getCurvaSData(o){
       }))
     };
   }
-  if(!o.eps||o.eps.length<2) return null;
+  const base=epsBase(o); // aumentos, extraordinarias y proformas quedan fuera de la curva
+  if(base.length<2) return null;
   const monto=o.monto||1;
-  const n=o.eps.length;
+  const n=base.length;
   return {
     fuente:'eps',
-    puntos:[{x:0,num:0,prog:0,real:0,hasta:null},...o.eps.map((ep,i)=>({
+    puntos:[{x:0,num:0,prog:0,real:0,hasta:null},...base.map((ep,i)=>({
       x:(i+1)/n,
       num:ep.num,
       prog:Math.round((i+1)/n*100),
-      real:Math.min(100,Math.round(o.eps.slice(0,i+1).reduce((s,e)=>s+(e.monto||0),0)/monto*100)),
+      real:Math.min(100,Math.round(base.slice(0,i+1).reduce((s,e)=>s+(e.monto||0),0)/monto*100)),
       hasta:ep.fecha||null
     }))]
   };
@@ -1103,9 +1104,25 @@ function getCurvaSData(o){
 
 // Avance físico = % ejecutado financieramente (total facturado en EPs / monto contrato).
 // Fuente única para el stat del dashboard, el módulo Estados de pago y el informe PDF.
+// Tipos de estado de pago. Solo 'base' alimenta el avance físico y la Curva S:
+// aumentos, obras extraordinarias y proformas se pagan aparte del contrato original.
+const EP_TIPOS={
+  base:          {label:'Contrato base',        corto:'Base',          color:'var(--blue)',  bg:'var(--blue-bg)',  afectaAvance:true},
+  aumento:       {label:'Aumento de obras',     corto:'Aumento',       color:'#7B4FBF',      bg:'#F5F0FF',         afectaAvance:false},
+  extraordinaria:{label:'Obras extraordinarias',corto:'Extraordinaria',color:'var(--amber)', bg:'var(--amber-bg)', afectaAvance:false},
+  proforma:      {label:'Valor proforma',       corto:'Proforma',      color:'var(--text2)', bg:'var(--bg2)',      afectaAvance:false},
+};
+// Un EP sin tipo (registrado antes de esta versión) se asume del contrato base.
+function tipoEP(ep){ return (ep&&ep.tipo&&EP_TIPOS[ep.tipo])?ep.tipo:'base'; }
+function epsBase(o){ return (o&&o.eps?o.eps:[]).filter(e=>tipoEP(e)==='base'); }
+function epsAdicionales(o){ return (o&&o.eps?o.eps:[]).filter(e=>tipoEP(e)!=='base'); }
+
+// Avance físico: solo EPs del contrato base sobre el monto del contrato.
 function pctEjecutado(o){
-  if(!o||!o.monto||!o.eps||!o.eps.length) return 0;
-  const facturado=o.eps.reduce((s,e)=>s+(e.monto||0),0);
+  if(!o||!o.monto) return 0;
+  const base=epsBase(o);
+  if(!base.length) return 0;
+  const facturado=base.reduce((s,e)=>s+(e.monto||0),0);
   return Math.min(100,Math.round(facturado/o.monto*100));
 }
 
@@ -1220,9 +1237,9 @@ function openObra(idx){
   document.getElementById('dash-contrato').textContent=o.contrato;
   refrescarStatAvance(o);
   document.getElementById('d-dias').textContent=calcDR(o);
-  document.getElementById('d-ep').textContent=o.eps.length?`N°${o.eps[o.eps.length-1].num}`:'—';
-  const totalEPAcum=o.eps.reduce((s,e)=>s+(e.monto||0),0);
-  document.getElementById('d-ret').textContent='$'+fmtM(totalEPAcum);
+  const _base=epsBase(o);
+  document.getElementById('d-ep').textContent=_base.length?`N°${_base[_base.length-1].num}`:'—';
+  document.getElementById('d-ret').textContent='$'+fmtM(_base.reduce((s,e)=>s+(e.monto||0),0));
   refrescarBarrasDash(o);
   const at=(o.avanceProg||0)-(o.avance||0);
   document.getElementById('bar-real').className='prog-fill '+(at>=10?'fill-danger':at>=5?'fill-warn':'fill-ok');
@@ -1620,11 +1637,11 @@ async function adjuntarArchivo(event, fichaId){
 }
 
 // Igual para fichas M — adjuntos en estados de pago
-async function adjuntarArchivoEP(event, epNum){
+async function adjuntarArchivoEP(event, epNum, epTipo){
   const file = event.target.files[0];
   if(!file) return;
   const o = state.obras[state.activeObraIdx];
-  const ep = o.eps.find(e=>e.num===epNum);
+  const ep = o.eps.find(e=>e.num===epNum&&tipoEP(e)===(epTipo||'base'));
   if(!ep) return;
   if(!ep.adjuntos) ep.adjuntos=[];
   if(!accessToken){ showToast('Conecta Drive para adjuntar'); return; }
@@ -1635,7 +1652,7 @@ async function adjuntarArchivoEP(event, epNum){
     saveAndSync();
     renderEP(o);
     // Si es Excel, aplicar de inmediato avances, partidas y programa financiero
-    if(/\.(xlsx|xlsm|xls)$/i.test(result.name||'')){
+    if(/\.(xlsx|xlsm|xls)$/i.test(result.name||'')&&tipoEP(ep)==='base'){
       showToast('Leyendo programa financiero...');
       try{
         const buffer=await file.arrayBuffer();
@@ -3118,7 +3135,7 @@ function initInformesPDF(o){
   document.getElementById('obs-ito').value='';
   document.getElementById('fotos-preview').innerHTML='';
   const sel=document.getElementById('sel-ep-num');
-  sel.innerHTML=o.eps.map(ep=>`<option value="${ep.num}">EP N°${ep.num} — ${fmtDate(ep.fecha)} — $${fmtM(ep.monto)}</option>`).join('');
+  sel.innerHTML=o.eps.map(ep=>`<option value="${ep.num}">${EP_TIPOS[tipoEP(ep)].corto} N°${ep.num} — ${fmtDate(ep.fecha)} — $${fmtM(ep.monto)}</option>`).join('');
 }
 
 function selectTipoInforme(tipo){
@@ -3304,13 +3321,20 @@ function generarPDF(){
 
   // TABLA EPs
   if(incEps&&o.eps.length){
-    const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0),tp=o.eps.reduce((s,e)=>s+(e.pagado||0),0),tr=o.eps.reduce((s,e)=>s+(e.retencion||0),0);
+    const _b=epsBase(o), _a=epsAdicionales(o);
+    const tBase=_b.reduce((s,e)=>s+(e.monto||0),0);
+    const tAdic=_a.reduce((s,e)=>s+(e.monto||0),0);
+    const filaPdf=ep=>`<tr><td>${EP_TIPOS[tipoEP(ep)].corto} N°${ep.num}</td><td>${fmtDate(ep.fecha)}</td><td>$${fmtM(ep.monto)}</td><td>$${fmtM(ep.descAnt)}</td><td>${ep.resolucion||'—'}</td><td>${ep.estado==='pagado'||ep.pagado?'<span class="badge-ok">Pagado</span>':ep.estado==='en_revision'?'<span class="badge-warn">En revisión</span>':'<span class="badge-danger">Pendiente</span>'}</td></tr>`;
     html+=`<div class="section"><h3>Resumen estados de pago</h3><table>
-      <thead><tr><th>EP</th><th>Fecha</th><th>Monto bruto</th><th>Desc. anticipo</th><th>Retención</th><th>Líquido pagado</th><th>Estado</th></tr></thead>
+      <thead><tr><th>EP</th><th>Fecha</th><th>Monto bruto</th><th>Desc. anticipo</th><th>Res./Decreto</th><th>Estado</th></tr></thead>
       <tbody>
-      ${o.eps.map(ep=>`<tr><td>N°${ep.num}</td><td>${fmtDate(ep.fecha)}</td><td>$${fmtM(ep.monto)}</td><td>$${fmtM(ep.descAnt)}</td><td>$${fmtM(ep.retencion)}</td><td style="color:#3B6D11;font-weight:600;">$${fmtM(ep.pagado)}</td><td>${ep.estado==='pagado'?'<span class="badge-ok">Pagado</span>':ep.estado==='en_revision'?'<span class="badge-warn">En revisión</span>':'<span class="badge-danger">Pendiente</span>'}</td></tr>`).join('')}
-      <tr style="background:#E6F1FB;font-weight:700;"><td colspan="2">TOTAL</td><td>$${fmtM(tb)}</td><td></td><td>$${fmtM(tr)}</td><td>$${fmtM(tp)}</td><td></td></tr>
-      </tbody></table></div>`;
+      ${_b.map(filaPdf).join('')}
+      <tr style="background:#E6F1FB;font-weight:700;"><td colspan="2">TOTAL CONTRATO BASE</td><td>$${fmtM(tBase)}</td><td colspan="3"></td></tr>
+      ${_a.length?_a.map(filaPdf).join('')+`<tr style="background:#F5F0FF;font-weight:700;"><td colspan="2">TOTAL ADICIONALES</td><td>$${fmtM(tAdic)}</td><td colspan="3"></td></tr>`:''}
+      ${_a.length?`<tr style="background:#f0f0ef;font-weight:700;"><td colspan="2">TOTAL GENERAL</td><td>$${fmtM(tBase+tAdic)}</td><td colspan="3"></td></tr>`:''}
+      </tbody></table>
+      ${_a.length?`<p style="font-size:10px;color:#666;margin-top:4px;">Los aumentos de obra, obras extraordinarias y proformas no inciden en el avance físico ni en la Curva S del contrato original.</p>`:''}
+      </div>`;
   }
 
   // CURVA S
@@ -3393,7 +3417,8 @@ function generarCurvaSCanvas(o){
   const PL=50,PR=20,PT=20,PB=40,W=700,H=280;
   const cW=W-PL-PR,cH=H-PT-PB;
   ctx.fillStyle='#fff';ctx.fillRect(0,0,W,H);
-  const data=[{x:0,real:0,prog:0},...o.eps.map((ep,i)=>({x:(i+1)/(o.eps.length+1),real:Math.round(o.eps.slice(0,i+1).reduce((s,e)=>s+(e.monto||0),0)/o.monto*100),prog:Math.round((i+1)/(o.eps.length+1)*100)}))];
+  const _cb=epsBase(o);
+  const data=[{x:0,real:0,prog:0},..._cb.map((ep,i)=>({x:(i+1)/(_cb.length+1),real:Math.round(_cb.slice(0,i+1).reduce((s,e)=>s+(e.monto||0),0)/o.monto*100),prog:Math.round((i+1)/(_cb.length+1)*100)}))];
   const tX=x=>PL+x*cW,tY=y=>PT+cH-y/100*cH;
   [0,25,50,75,100].forEach(v=>{
     ctx.strokeStyle='#e0e0e0';ctx.lineWidth=0.5;ctx.beginPath();ctx.moveTo(PL,tY(v));ctx.lineTo(W-PR,tY(v));ctx.stroke();
@@ -3616,25 +3641,27 @@ function renderEP(o){
     c.innerHTML=`<div class="empty-state">Sin estados de pago.<br><br><button class="btn-secondary" style="width:auto;padding:10px 20px;margin:0 auto;" onclick="showFormEP(-1)">+ Registrar EP</button></div>`;
     return;
   }
-  const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0);
-  const tp=o.eps.filter(e=>e.pagado).reduce((s,e)=>s+(e.monto||0),0);
+  const base=epsBase(o), adic=epsAdicionales(o);
+  const tBase=base.reduce((s,e)=>s+(e.monto||0),0);
+  const tAdic=adic.reduce((s,e)=>s+(e.monto||0),0);
+  const tPagado=o.eps.filter(e=>e.pagado).reduce((s,e)=>s+(e.monto||0),0);
   const pend=o.eps.filter(e=>!e.pagado).length;
-  c.innerHTML=`<div style="padding:12px 16px 0;">
-    <div class="stats-row" style="margin-bottom:12px;">
-      <div class="stat-card"><div class="stat-label">Total facturado</div><div class="stat-value" style="font-size:14px;">$${fmtM(tb)}</div></div>
-      <div class="stat-card"><div class="stat-label">Total pagado</div><div class="stat-value" style="font-size:14px;color:var(--green);">$${fmtM(tp)}</div></div>
-      <div class="stat-card"><div class="stat-label">EPs pendientes</div><div class="stat-value" style="font-size:14px;color:${pend>0?'var(--amber)':'var(--green)'};">${pend}</div></div>
-      <div class="stat-card"><div class="stat-label">% ejecutado</div><div class="stat-value" style="font-size:14px;">${pctEjecutado(o)}%</div></div>
-    </div>
-  </div>
-  ${o.eps.map((ep,i)=>`
-    <div style="margin:0 16px 10px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);overflow:hidden;">
+
+  const filaEP=(ep)=>{
+    const i=o.eps.indexOf(ep);
+    const t=tipoEP(ep), info=EP_TIPOS[t];
+    return `<div style="margin:0 16px 10px;background:var(--bg);border:0.5px solid var(--border);border-left:3px solid ${info.color};border-radius:var(--rl);overflow:hidden;">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:0.5px solid var(--border);cursor:pointer;" onclick="showFormEP(${i})">
-        <div>
-          <div style="font-size:14px;font-weight:500;">EP N°${ep.num} — ${fmtDate(ep.fecha)}</div>
-          <div style="font-size:12px;color:var(--text2);margin-top:2px;">$${fmtM(ep.monto)}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:14px;font-weight:500;">${info.corto} N°${ep.num}</span>
+            <span style="font-size:11px;color:${info.color};background:${info.bg};padding:1px 7px;border-radius:20px;">${info.afectaAvance?'Contrato':'Adicional'}</span>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">${fmtDate(ep.fecha)} · $${fmtM(ep.monto)}</div>
+          ${ep.resolucion?`<div style="font-size:11px;color:var(--text2);margin-top:1px;">${ep.resolucion}</div>`:''}
+          ${ep.obs?`<div style="font-size:11px;color:var(--text2);margin-top:1px;">${ep.obs}</div>`:''}
         </div>
-        <div style="display:flex;align-items:center;gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;" onclick="event.stopPropagation()">
             <input type="checkbox" ${ep.pagado?'checked':''} onchange="togglePagoEP(${i},this.checked)" style="width:16px;height:16px;cursor:pointer;"/>
             Pagado
@@ -3645,21 +3672,58 @@ function renderEP(o){
       <div style="padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
         ${(ep.adjuntos||[]).map(a=>`<a href="${a.driveLink}" target="_blank" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 ${a.nombre}</a>`).join('')}
         <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:3px 8px;border:0.5px dashed var(--border2);border-radius:20px;">
-          <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="adjuntarArchivoEP(event,${ep.num})"/>+ Adjuntar
+          <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="adjuntarArchivoEP(event,${ep.num},'${t}')"/>+ Adjuntar
         </label>
       </div>
-    </div>`).join('')}
-  <div style="padding:4px 16px 16px;"><button class="btn-secondary" onclick="showFormEP(-1)">+ Registrar nuevo EP</button></div>`;
+    </div>`;
+  };
+
+  let html=`<div style="padding:12px 16px 0;">
+    <div class="stats-row" style="margin-bottom:12px;">
+      <div class="stat-card"><div class="stat-label">Contrato base</div><div class="stat-value" style="font-size:14px;">$${fmtM(tBase)}</div></div>
+      <div class="stat-card"><div class="stat-label">Adicionales</div><div class="stat-value" style="font-size:14px;color:#7B4FBF;">$${fmtM(tAdic)}</div></div>
+      <div class="stat-card"><div class="stat-label">Total pagado</div><div class="stat-value" style="font-size:14px;color:var(--green);">$${fmtM(tPagado)}</div></div>
+      <div class="stat-card"><div class="stat-label">% ejecutado</div><div class="stat-value" style="font-size:14px;">${pctEjecutado(o)}%</div></div>
+    </div>
+    ${pend>0?`<div style="font-size:11px;color:var(--amber);margin-bottom:8px;">${pend} EP${pend>1?'s':''} sin marcar como pagado</div>`:''}
+  </div>`;
+
+  if(base.length){
+    html+=`<div class="section-title" style="padding:4px 16px;">contrato base</div>`+base.map(filaEP).join('');
+  }
+  if(adic.length){
+    html+=`<div class="section-title" style="padding:8px 16px 4px;">adicionales — no afectan avance ni curva s</div>`;
+    ['aumento','extraordinaria','proforma'].forEach(t=>{
+      const grupo=adic.filter(e=>tipoEP(e)===t);
+      if(!grupo.length) return;
+      const tot=grupo.reduce((s,e)=>s+(e.monto||0),0);
+      html+=`<div style="padding:4px 16px;font-size:11px;color:${EP_TIPOS[t].color};display:flex;justify-content:space-between;">
+        <span>${EP_TIPOS[t].label}</span><span>$${fmtM(tot)}</span></div>`+grupo.map(filaEP).join('');
+    });
+  }
+  html+=`<div style="padding:4px 16px 16px;"><button class="btn-secondary" onclick="showFormEP(-1)">+ Registrar nuevo EP</button></div>`;
+  c.innerHTML=html;
 }
 
 function showFormEP(idx){
   const o=state.obras[state.activeObraIdx];
   const ep=idx>=0?o.eps[idx]:null;
-  const titulo=ep?`Editar EP N°${ep.num}`:'Nuevo estado de pago';
+  const t=ep?tipoEP(ep):'base';
+  const titulo=ep?`Editar ${EP_TIPOS[t].corto} N°${ep.num}`:'Nuevo estado de pago';
   const html=`<div style="padding:16px;">
+    <div class="form-group"><label class="form-label">Tipo de estado de pago</label>
+      <select class="form-input" id="ep-tipo" onchange="onEPTipoChange()">
+        ${Object.entries(EP_TIPOS).map(([k,v])=>`<option value="${k}" ${t===k?'selected':''}>${v.label}</option>`).join('')}
+      </select>
+    </div>
+    <div id="ep-tipo-nota" style="font-size:11px;margin:-8px 0 14px;padding:8px 10px;border-radius:var(--r);"></div>
     <div class="form-group"><label class="form-label">Fecha del EP</label><input class="form-input" type="date" id="ep-fecha" value="${ep?.fecha||today()}"/></div>
     <div class="form-group"><label class="form-label">Monto bruto ($)</label><input class="form-input" type="number" id="ep-monto" value="${ep?.monto||''}" placeholder="0"/></div>
     <div class="form-group"><label class="form-label">Descuento anticipo ($)</label><input class="form-input" type="number" id="ep-desc" value="${ep?.descAnt||''}" placeholder="0"/></div>
+    <div class="form-group" id="ep-resol-wrap">
+      <label class="form-label">Resolución / decreto que lo aprueba</label>
+      <input class="form-input" id="ep-resol" value="${ep?.resolucion||''}" placeholder="Ej: Res. Ex. N°1234/2026"/>
+    </div>
     <div class="form-group">
       <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;">
         <input type="checkbox" id="ep-pagado" ${ep?.pagado?'checked':''} style="width:18px;height:18px;"/> EP pagado por SERVIU
@@ -3672,36 +3736,71 @@ function showFormEP(idx){
         <option value="pagado" ${ep?.estado==='pagado'?'selected':''}>Pagado</option>
       </select>
     </div>
+    <div class="form-group"><label class="form-label">Observaciones</label>
+      <input class="form-input" id="ep-obs" value="${ep?.obs||''}" placeholder="Opcional"/>
+    </div>
     <button class="btn-primary" onclick="guardarEP(${idx})">Guardar EP</button>
     ${idx>=0?`<button class="btn-secondary" style="color:var(--red);border-color:#F09595;" onclick="eliminarEP(${idx})">Eliminar EP</button>`:''}
     <button class="btn-secondary" onclick="renderEP(state.obras[state.activeObraIdx]);document.getElementById('m-ep').scrollIntoView();">Cancelar</button>
   </div>`;
   document.getElementById('m-ep').innerHTML=`<div class="topbar" style="position:relative;"><div style="font-size:15px;font-weight:500;">${titulo}</div></div>${html}`;
+  onEPTipoChange();
+}
+
+function onEPTipoChange(){
+  const t=document.getElementById('ep-tipo').value;
+  const info=EP_TIPOS[t]||EP_TIPOS.base;
+  const nota=document.getElementById('ep-tipo-nota');
+  const resol=document.getElementById('ep-resol-wrap');
+  if(nota){
+    nota.style.background=info.bg;
+    nota.style.color=info.color;
+    nota.innerHTML=info.afectaAvance
+      ? 'Suma al avance físico y a la Curva S del contrato.'
+      : `No afecta el avance físico ni la Curva S. Se contabiliza aparte del contrato original.`;
+  }
+  if(resol) resol.style.display=info.afectaAvance?'none':'block';
 }
 
 function guardarEP(idx){
   const o=state.obras[state.activeObraIdx];
+  const tipo=document.getElementById('ep-tipo').value;
   const monto=parseInt(document.getElementById('ep-monto').value)||0;
   const descAnt=parseInt(document.getElementById('ep-desc').value)||0;
   const pagado=document.getElementById('ep-pagado').checked;
   const estado=document.getElementById('ep-estado').value;
   const fecha=document.getElementById('ep-fecha').value;
-  const ep={num:idx>=0?o.eps[idx].num:o.eps.length+1,fecha,monto,descAnt,pagado,estado,adjuntos:idx>=0?(o.eps[idx].adjuntos||[]):[]};
+  const resolucion=(document.getElementById('ep-resol')?.value||'').trim();
+  const obs=(document.getElementById('ep-obs')?.value||'').trim();
+  // Correlativo independiente por tipo: EP base N°1, Aumento N°1, etc.
+  const mismoTipo=o.eps.filter((e,i)=>tipoEP(e)===tipo&&i!==idx);
+  const num=idx>=0&&tipoEP(o.eps[idx])===tipo
+    ? o.eps[idx].num
+    : (mismoTipo.reduce((m,e)=>Math.max(m,e.num||0),0)+1);
+  const ep={num,tipo,fecha,monto,descAnt,pagado,estado,resolucion,obs,
+            adjuntos:idx>=0?(o.eps[idx].adjuntos||[]):[]};
   if(idx===-1){
     o.eps.push(ep);
-    const nx=new Date(fecha);nx.setDate(nx.getDate()+28);o.proximoEP=nx.toISOString().slice(0,10);
+    // El calendario de EPs solo lo marca el contrato base
+    if(tipo==='base'&&!o.programaEPs?.length){
+      const nx=new Date(fecha);nx.setDate(nx.getDate()+28);o.proximoEP=nx.toISOString().slice(0,10);
+    }
   } else {
     o.eps[idx]=ep;
   }
-  saveAndSync();renderEP(o);showToast(idx===-1?`EP N°${ep.num} registrado`:'EP actualizado');
+  saveAndSync();renderEP(o);renderDashCurvaS(o);
+  showToast(idx===-1?`${EP_TIPOS[tipo].corto} N°${num} registrado`:'EP actualizado');
 }
 
 function eliminarEP(idx){
   if(!confirm('¿Eliminar este EP?'))return;
   const o=state.obras[state.activeObraIdx];
+  const tipo=tipoEP(o.eps[idx]);
   o.eps.splice(idx,1);
-  o.eps.forEach((e,i)=>e.num=i+1);
-  saveAndSync();renderEP(o);showToast('EP eliminado');
+  // Renumerar solo dentro del tipo afectado
+  let n=0;
+  o.eps.forEach(e=>{ if(tipoEP(e)===tipo) e.num=++n; });
+  saveAndSync();renderEP(o);renderDashCurvaS(o);showToast('EP eliminado');
 }
 
 function togglePagoEP(idx,val){
@@ -3955,7 +4054,7 @@ function aplicarProgramaEPs(o, partidas, programaEPs, epNumArchivo){
     if(pasados.length){ filaProg=pasados[pasados.length-1]; criterio='último periodo cerrado'; }
   }
   if(!filaProg){
-    const nEPs=o.eps.length;
+    const nEPs=epsBase(o).length;
     filaProg=programaEPs.find(p=>p.num===nEPs)
            ||programaEPs.slice().reverse().find(p=>p.num<=nEPs)
            ||programaEPs[0];
@@ -4008,8 +4107,9 @@ function cargarPartidasExcel(event){
 // Busca el EP más reciente que tenga un Excel adjunto en Drive.
 function getUltimoEPConExcel(o){
   if(!o||!o.eps||!o.eps.length) return null;
-  for(let i=o.eps.length-1;i>=0;i--){
-    const ep=o.eps[i];
+  const base=epsBase(o); // el programa financiero solo vive en los EP del contrato
+  for(let i=base.length-1;i>=0;i--){
+    const ep=base[i];
     if(!ep.adjuntos||!ep.adjuntos.length) continue;
     const xls=ep.adjuntos.slice().reverse().find(a=>a.driveId&&/\.(xlsx|xlsm|xls)$/i.test(a.nombre||''));
     if(xls) return {ep,adj:xls};
