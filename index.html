@@ -927,6 +927,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- EP — CARGAR AVANCES -->
+<div class="screen" id="s-ep-avances">
+  <div class="topbar"><button class="back-btn" onclick="go('s-medicion')">Estados de pago</button><div style="font-size:15px;font-weight:500;">Cargar avances del EP</div><div style="width:60px;"></div></div>
+  <div id="ep-av-body"></div>
+</div>
+
 </div>
 <div class="toast" id="toast"></div>
 
@@ -3670,7 +3676,7 @@ function renderEP(o){
   refrescarStatAvance(o); // mantener sincronizado el stat del dashboard
   const c=document.getElementById('m-ep');
   if(!o.eps.length){
-    c.innerHTML=`<div class="empty-state">Sin estados de pago.<br><br><button class="btn-secondary" style="width:auto;padding:10px 20px;margin:0 auto;" onclick="showFormEP(-1)">+ Registrar EP</button></div>`;
+    c.innerHTML=epGenBtnHTML()+`<div class="empty-state">Sin estados de pago.<br><br><button class="btn-secondary" style="width:auto;padding:10px 20px;margin:0 auto;" onclick="showFormEP(-1)">+ Registrar EP</button></div>`;
     return;
   }
   const base=epsBase(o), adic=epsAdicionales(o);
@@ -3734,7 +3740,7 @@ function renderEP(o){
     });
   }
   html+=`<div style="padding:4px 16px 16px;"><button class="btn-secondary" onclick="showFormEP(-1)">+ Registrar nuevo EP</button></div>`;
-  c.innerHTML=html;
+  c.innerHTML=epGenBtnHTML()+html;
 }
 
 function showFormEP(idx){
@@ -4466,6 +4472,167 @@ async function generarActa(){
     showToast('Error: '+msg);
     console.error('generarActa', e);
   }
+}
+
+
+// ══ CARGAR AVANCES Y GENERAR EP (Excel) ═══════════════════════
+let epBaseBytes=null, epBaseName='', epSheetName='CONTROL AVANCE PARTIDAS', epPartidas=[];
+
+function epGenBtnHTML(){
+  return '<div style="padding:12px 16px 0;"><button onclick="goEPAvances()" style="width:100%;padding:13px;background:#1D9E75;color:#fff;border:none;border-radius:var(--rl);font-size:14px;font-weight:500;cursor:pointer;">\u26a1 Cargar avances y generar EP</button></div>';
+}
+function goEPAvances(){ epBaseBytes=null; epBaseName=''; epPartidas=[]; renderEPAvBody(); go('s-ep-avances'); }
+
+function handleEPBaseFile(ev){
+  const file=ev.target.files[0]; if(!file) return;
+  const st=document.getElementById('ep-av-status'); if(st){st.style.display='block';st.textContent='Leyendo Excel...';}
+  const reader=new FileReader();
+  reader.onerror=()=>{ if(st)st.textContent='No se pudo leer el archivo'; };
+  reader.onload=e=>{
+    try{
+      epBaseBytes=e.target.result; epBaseName=file.name;
+      epParseBase(epBaseBytes);
+      renderEPAvBody();
+    }catch(err){ epBaseBytes=null; if(st){st.style.display='block';st.textContent='Error: '+err.message;} showToast('Error: '+err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function epParseBase(buf){
+  if(!window.XLSX) throw new Error('Falta la libreria de Excel (conectate a internet una vez)');
+  const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+  const name=wb.SheetNames.find(n=>n==='CONTROL AVANCE PARTIDAS')||wb.SheetNames.find(n=>n.indexOf('AVANCE PARTIDAS')>=0||n.indexOf('CONTROL')>=0);
+  const ws=name?wb.Sheets[name]:null;
+  if(!ws) throw new Error('No encontre la hoja CONTROL AVANCE PARTIDAS');
+  epSheetName=name;
+  const org=XLSX.utils.decode_range(ws['!ref']).s.r;
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
+  epPartidas=[]; let epStarted=false;
+  rows.forEach((row,ri)=>{
+    const item=row[0], desig=row[1], unidad=row[2], D=row[3], E=row[4], H=row[7], K=row[10];
+    if(!epStarted){ if(item!=null && String(item).trim().toUpperCase()==='ITEM') epStarted=true; return; }
+    if(item==null||String(item).trim()==='') return;
+    const excelRow=org+ri+1;
+    if(typeof D!=='number'){ epPartidas.push({cap:true,item:String(item).trim(),desig:String(desig||'').trim()}); return; }
+    const pct=typeof K==='number'?Math.round(K*100):0;
+    epPartidas.push({cap:false,row:excelRow,item:String(item).trim(),desig:String(desig||'').trim(),
+      unidad:String(unidad||'').trim(),D:D,E:(typeof E==='number'?E:0),Hprev:(typeof H==='number'?H:0),pct:pct,newpct:pct});
+  });
+  if(!epPartidas.filter(p=>!p.cap).length) throw new Error('No detecte partidas en la hoja');
+}
+
+function renderEPAvBody(){
+  const b=document.getElementById('ep-av-body');
+  if(!epBaseBytes){
+    b.innerHTML='<div style="padding:16px;">'
+      +'<div style="font-size:13px;color:var(--text2);line-height:1.5;margin-bottom:14px;">Selecciona el <b>Excel base del EP</b> (el EP anterior o el del contrato). La app leera sus partidas, cargaras los avances y te generara el nuevo EP con las formulas intactas.</div>'
+      +'<label style="display:block;border:0.5px dashed var(--border2);border-radius:var(--rl);padding:24px;text-align:center;cursor:pointer;color:var(--text2);">'
+      +'<input type="file" accept=".xlsx" style="display:none;" onchange="handleEPBaseFile(event)">'
+      +'<div style="font-size:28px;margin-bottom:6px;">\ud83d\udcc4</div>'
+      +'<div style="font-size:14px;font-weight:500;color:var(--blue);">Seleccionar Excel del EP</div>'
+      +'<div style="font-size:11px;margin-top:3px;">Formato .xlsx</div></label>'
+      +'<div id="ep-av-status" style="text-align:center;font-size:12px;color:var(--text2);margin-top:10px;display:none;"></div></div>';
+    return;
+  }
+  const parts=epPartidas.filter(p=>!p.cap);
+  let rows='';
+  epPartidas.forEach(p=>{
+    if(p.cap){ rows+='<div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;padding:14px 16px 6px;background:var(--bg2);border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border);">'+p.item+'  '+p.desig+'</div>'; return; }
+    rows+='<div style="padding:10px 16px;border-bottom:0.5px solid var(--border);display:flex;gap:10px;align-items:center;">'
+      +'<div style="flex:1;min-width:0;">'
+      +'<div style="font-size:13px;line-height:1.25;">'+p.item+' \u00b7 '+p.desig+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+(p.unidad||'')+' \u00b7 actual: '+p.pct+'%</div>'
+      +'<div style="height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-top:6px;"><div id="epbar-'+p.row+'" style="height:100%;background:#639922;width:'+p.pct+'%;"></div></div>'
+      +'</div>'
+      +'<div style="flex-shrink:0;text-align:right;width:82px;"><div style="font-size:10px;color:var(--text2);margin-bottom:3px;">nuevo %</div>'
+      +'<input type="number" min="0" max="100" value="'+p.pct+'" data-row="'+p.row+'" oninput="epOnInput(this)" style="width:100%;padding:7px 8px;font-size:15px;border:0.5px solid var(--border2);border-radius:var(--r);text-align:right;background:var(--bg);color:var(--text);"></div>'
+      +'</div>';
+  });
+  b.innerHTML='<div style="margin:12px 16px;background:var(--blue-bg);border-radius:var(--rl);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">'
+    +'<div><div style="font-size:12px;color:var(--blue);font-weight:500;">Avance fisico del EP</div><div id="ep-av-sub" style="font-size:11px;color:var(--text2);margin-top:2px;"></div></div>'
+    +'<div id="ep-av-total" style="font-size:28px;font-weight:600;color:var(--blue);">0%</div></div>'
+    +'<div style="margin:0 16px 6px;font-size:11px;color:var(--text2);line-height:1.4;">Base: <b>'+epBaseName+'</b> \u00b7 '+parts.length+' partidas. Ajusta el % acumulado de cada una.</div>'
+    +rows
+    +'<div style="padding:16px 16px 32px;"><button class="btn-primary" onclick="generarEPExcel()">\u26a1 Generar EP (Excel)</button>'
+    +'<div id="ep-gen-status" style="text-align:center;font-size:12px;color:var(--text2);margin-top:8px;display:none;"></div>'
+    +'<button class="btn-secondary" onclick="goEPAvances()">Elegir otro archivo</button></div>';
+  epRecalcTotal();
+}
+
+function epOnInput(inp){
+  const row=inp.getAttribute('data-row');
+  let v=Math.max(0,Math.min(100,parseFloat(inp.value)||0));
+  const p=epPartidas.find(x=>String(x.row)===String(row)); if(p) p.newpct=v;
+  const bar=document.getElementById('epbar-'+row); if(bar) bar.style.width=v+'%';
+  epRecalcTotal();
+}
+function epRecalcTotal(){
+  const parts=epPartidas.filter(p=>!p.cap);
+  let sum=0,carg=0; parts.forEach(p=>{sum+=(p.newpct||0); if((p.newpct||0)>0)carg++;});
+  const el=document.getElementById('ep-av-total'); if(el) el.textContent=Math.round(sum/(parts.length||1))+'%';
+  const sub=document.getElementById('ep-av-sub'); if(sub) sub.textContent=carg+' de '+parts.length+' partidas con avance';
+}
+
+// ── Motor quirurgico (mismo metodo validado en Python) ──
+function epGetStyle(a){var m=a.match(/s="(\d+)"/);return m?m[1]:null;}
+function epFmt(v){var r=Math.round(v);return Math.abs(v-r)<1e-9?String(r):String(Math.round(v*1e6)/1e6);}
+function epSetCell(xml,addr,val){
+  var self=new RegExp('<c r="'+addr+'"((?:(?!/>)[^>])*)/>');
+  var full=new RegExp('<c r="'+addr+'"((?:(?!/>)[^>])*)>[\\s\\S]*?</c>');
+  function rep(m,a){var s=epGetStyle(a);return '<c r="'+addr+'"'+(s?' s="'+s+'"':'')+'><v>'+val+'</v></c>';}
+  if(self.test(xml))return xml.replace(self,rep);
+  if(full.test(xml))return xml.replace(full,rep);
+  return null;
+}
+function epNeutralizeSharedCol(xml,col){
+  var re=new RegExp('<c r="('+col+'\\d+)"((?:(?!/>)[^>])*)>([\\s\\S]*?)</c>','g');
+  return xml.replace(re,function(m,addr,a,body){
+    if(body.indexOf('t="shared"')<0)return m;
+    var vm=body.match(/<v>[\s\S]*?<\/v>/);var v=vm?vm[0]:'<v>0</v>';
+    var s=epGetStyle(a);return '<c r="'+addr+'"'+(s?' s="'+s+'"':'')+'>'+v+'</c>';
+  });
+}
+
+async function generarEPExcel(){
+  if(!epBaseBytes){ showToast('Selecciona primero el Excel base'); return; }
+  var st=document.getElementById('ep-gen-status'); if(st){st.style.display='block';st.textContent='Cargando generador...';}
+  try{
+    await ensureDocxLibs();  // asegura PizZip
+    if(st) st.textContent='Generando EP...';
+    var zip=new PizZip(epBaseBytes);
+    var wbxml=zip.file('xl/workbook.xml').asText();
+    var rels=zip.file('xl/_rels/workbook.xml.rels').asText();
+    var rid=null, re=/<sheet[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"/g, m;
+    while((m=re.exec(wbxml))){ if(m[1]===epSheetName){rid=m[2];break;} }
+    if(!rid){ re.lastIndex=0; while((m=re.exec(wbxml))){ if(m[1].indexOf('AVANCE PARTIDAS')>=0||m[1].indexOf('CONTROL')>=0){rid=m[2];epSheetName=m[1];break;} } }
+    if(!rid) throw new Error('No encontre la hoja de partidas');
+    var rm=rels.match(new RegExp('Id="'+rid+'"[^>]*Target="([^"]+)"'))||rels.match(new RegExp('Target="([^"]+)"[^>]*Id="'+rid+'"'));
+    if(!rm) throw new Error('No pude ubicar el XML de la hoja');
+    var target=rm[1]; if(target.indexOf('xl/')!==0) target='xl/'+target.replace(/^\//,'');
+    var sx=zip.file(target).asText();
+    sx=epNeutralizeSharedCol(sx,'G');
+    var missing=[];
+    epPartidas.filter(function(p){return !p.cap;}).forEach(function(p){
+      var g=p.D*(p.newpct||0)/100;
+      var nx=epSetCell(sx,'G'+p.row,epFmt(g)); if(nx===null)missing.push('G'+p.row);else sx=nx;
+      nx=epSetCell(sx,'I'+p.row,epFmt(p.Hprev||0)); if(nx===null)missing.push('I'+p.row);else sx=nx;
+    });
+    var ct=zip.file('[Content_Types].xml').asText().replace(/<Override PartName="\/xl\/calcChain.xml"[^>]*\/>/,'');
+    var wrels=rels.replace(/<Relationship[^>]*calcChain\.xml"[^>]*\/>/,'');
+    if(wbxml.indexOf('fullCalcOnLoad')<0){
+      if(wbxml.indexOf('<calcPr')>=0) wbxml=wbxml.replace('<calcPr','<calcPr fullCalcOnLoad="1"');
+      else wbxml=wbxml.replace('</workbook>','<calcPr fullCalcOnLoad="1"/></workbook>');
+    }
+    zip.file(target,sx); zip.file('xl/workbook.xml',wbxml);
+    zip.file('[Content_Types].xml',ct); zip.file('xl/_rels/workbook.xml.rels',wrels);
+    try{ zip.remove('xl/calcChain.xml'); }catch(e){}
+    var blob=zip.generate({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    var o=state.obras[state.activeObraIdx];
+    var fname='EP - '+((o&&o.nombre)||'obra').replace(/[\\/:*?"<>|]/g,'')+' - '+today()+'.xlsx';
+    var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},5000);
+    if(st) st.style.display='none';
+    showToast('EP generado \u2713'+(missing.length?(' ('+missing.length+' celdas no ubicadas)'):''));
+  }catch(e){ if(st)st.style.display='none'; showToast('Error: '+(e.message||e)); console.error('generarEPExcel',e); }
 }
 
 loadLocal();seedDemo();renderObras();
