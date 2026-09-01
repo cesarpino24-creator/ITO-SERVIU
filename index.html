@@ -4587,14 +4587,15 @@ function epParseBase(buf){
   const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:'',raw:true});
   epPartidas=[]; let epStarted=false;
   rows.forEach((row,ri)=>{
-    const item=row[0], desig=row[1], unidad=row[2], D=row[3], E=row[4], H=row[7], K=row[10];
+    const item=row[0], desig=row[1], unidad=row[2], D=row[3], E=row[4], G=row[6], H=row[7], K=row[10];
     if(!epStarted){ if(item!=null && String(item).trim().toUpperCase()==='ITEM') epStarted=true; return; }
     if(item==null||String(item).trim()==='') return;
     const excelRow=org+ri+1;
     if(typeof D!=='number'){ epPartidas.push({cap:true,item:String(item).trim(),desig:String(desig||'').trim()}); return; }
     const pct=typeof K==='number'?Math.round(K*100):0;
+    const gcur=(typeof G==='number'?G:0);
     epPartidas.push({cap:false,row:excelRow,item:String(item).trim(),desig:String(desig||'').trim(),
-      unidad:String(unidad||'').trim(),D:D,E:(typeof E==='number'?E:0),Hprev:(typeof H==='number'?H:0),pct:pct,newpct:pct});
+      unidad:String(unidad||'').trim(),D:D,E:(typeof E==='number'?E:0),Gcur:gcur,Hprev:(typeof H==='number'?H:0),pct:pct,newcant:gcur});
   });
   if(!epPartidas.filter(p=>!p.cap).length) throw new Error('No detecte partidas en la hoja');
 }
@@ -4616,20 +4617,28 @@ function renderEPAvBody(){
   let rows='';
   epPartidas.forEach(p=>{
     if(p.cap){ rows+='<div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;padding:14px 16px 6px;background:var(--bg2);border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border);">'+p.item+'  '+p.desig+'</div>'; return; }
-    rows+='<div style="padding:10px 16px;border-bottom:0.5px solid var(--border);display:flex;gap:10px;align-items:center;">'
-      +'<div style="flex:1;min-width:0;">'
+    const pctRef=p.D>0?Math.round((p.newcant||0)/p.D*100):0;
+    rows+='<div style="padding:10px 16px;border-bottom:0.5px solid var(--border);">'
       +'<div style="font-size:13px;line-height:1.25;">'+p.item+' \u00b7 '+p.desig+'</div>'
-      +'<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+(p.unidad||'')+' \u00b7 actual: '+p.pct+'%</div>'
-      +'<div style="height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-top:6px;"><div id="epbar-'+p.row+'" style="height:100%;background:#639922;width:'+p.pct+'%;"></div></div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+(p.unidad||'')+' \u00b7 contrato: '+epFmtNum(p.D)+' \u00b7 <span id="eppct-'+p.row+'">'+pctRef+'</span>% completado</div>'
+      +'<div style="display:flex;gap:8px;margin-top:8px;">'
+        +'<div style="flex:1;"><div style="font-size:10px;color:var(--text2);margin-bottom:3px;">cantidad actual</div>'
+          +'<input type="text" value="'+epFmtNum(p.Gcur)+'" disabled style="width:100%;padding:7px 8px;font-size:14px;border:0.5px solid var(--border);border-radius:var(--r);text-align:right;background:var(--bg2);color:var(--text2);"></div>'
+        +'<div style="flex:1;"><div style="font-size:10px;color:var(--blue);margin-bottom:3px;font-weight:500;">cantidad nueva</div>'
+          +'<input type="number" step="any" min="0" value="'+p.newcant+'" data-row="'+p.row+'" oninput="epOnCant(this)" style="width:100%;padding:7px 8px;font-size:15px;border:0.5px solid var(--border2);border-radius:var(--r);text-align:right;background:var(--bg);color:var(--text);"></div>'
       +'</div>'
-      +'<div style="flex-shrink:0;text-align:right;width:82px;"><div style="font-size:10px;color:var(--text2);margin-bottom:3px;">nuevo %</div>'
-      +'<input type="number" min="0" max="100" value="'+p.pct+'" data-row="'+p.row+'" oninput="epOnInput(this)" style="width:100%;padding:7px 8px;font-size:15px;border:0.5px solid var(--border2);border-radius:var(--r);text-align:right;background:var(--bg);color:var(--text);"></div>'
+      +'<div style="height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;margin-top:8px;"><div id="epbar-'+p.row+'" style="height:100%;background:#639922;width:'+Math.min(100,pctRef)+'%;"></div></div>'
       +'</div>';
   });
   b.innerHTML='<div style="margin:12px 16px;background:var(--blue-bg);border-radius:var(--rl);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;">'
-    +'<div><div style="font-size:12px;color:var(--blue);font-weight:500;">Avance fisico del EP</div><div id="ep-av-sub" style="font-size:11px;color:var(--text2);margin-top:2px;"></div></div>'
+    +'<div><div style="font-size:12px;color:var(--blue);font-weight:500;">Avance acumulado del EP</div><div id="ep-av-sub" style="font-size:11px;color:var(--text2);margin-top:2px;"></div></div>'
     +'<div id="ep-av-total" style="font-size:28px;font-weight:600;color:var(--blue);">0%</div></div>'
-    +'<div style="margin:0 16px 6px;font-size:11px;color:var(--text2);line-height:1.4;">Base: <b>'+epBaseName+'</b> \u00b7 '+parts.length+' partidas. Ajusta el % acumulado de cada una.</div>'
+    +'<div style="margin:0 16px 10px;padding:12px 14px;background:var(--bg2);border-radius:var(--rl);border:0.5px solid var(--border);">'
+      +'<div style="font-size:12px;font-weight:500;margin-bottom:6px;">N\u00b0 de Estado de Pago</div>'
+      +'<input type="number" min="1" step="1" id="ep-num-input" placeholder="Ej: 8" style="width:100%;padding:9px 10px;font-size:15px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);">'
+      +'<div style="font-size:10px;color:var(--text2);margin-top:5px;">Se escribe en la car\u00e1tula (D13) y define la fila de la programaci\u00f3n financiera (columna K).</div>'
+    +'</div>'
+    +'<div style="margin:0 16px 6px;font-size:11px;color:var(--text2);line-height:1.4;">Base: <b>'+epBaseName+'</b> \u00b7 '+parts.length+' partidas. Ingresa la <b>cantidad nueva acumulada</b> de cada una.</div>'
     +rows
     +'<div style="padding:16px 16px 32px;"><button class="btn-primary" onclick="generarEPExcel()">\u26a1 Generar EP (Excel)</button>'
     +'<div id="ep-gen-status" style="text-align:center;font-size:12px;color:var(--text2);margin-top:8px;display:none;"></div>'
@@ -4637,18 +4646,24 @@ function renderEPAvBody(){
   epRecalcTotal();
 }
 
-function epOnInput(inp){
+function epFmtNum(v){ v=Number(v)||0; return (Math.round(v*100)/100).toLocaleString('es-CL'); }
+function epOnCant(inp){
   const row=inp.getAttribute('data-row');
-  let v=Math.max(0,Math.min(100,parseFloat(inp.value)||0));
-  const p=epPartidas.find(x=>String(x.row)===String(row)); if(p) p.newpct=v;
-  const bar=document.getElementById('epbar-'+row); if(bar) bar.style.width=v+'%';
+  let v=Math.max(0,parseFloat(inp.value)||0);
+  const p=epPartidas.find(x=>String(x.row)===String(row)); if(p) p.newcant=v;
+  const pct=(p&&p.D>0)?Math.round((p.newcant||0)/p.D*100):0;
+  const bar=document.getElementById('epbar-'+row); if(bar) bar.style.width=Math.min(100,pct)+'%';
+  const lbl=document.getElementById('eppct-'+row); if(lbl) lbl.textContent=pct;
   epRecalcTotal();
 }
 function epRecalcTotal(){
   const parts=epPartidas.filter(p=>!p.cap);
-  let sum=0,carg=0; parts.forEach(p=>{sum+=(p.newpct||0); if((p.newpct||0)>0)carg++;});
-  const el=document.getElementById('ep-av-total'); if(el) el.textContent=Math.round(sum/(parts.length||1))+'%';
-  const sub=document.getElementById('ep-av-sub'); if(sub) sub.textContent=carg+' de '+parts.length+' partidas con avance';
+  let Ftot=0,Hnew=0,Hprev=0,carg=0;
+  parts.forEach(p=>{ Ftot+=(p.D||0)*(p.E||0); Hnew+=(p.newcant||0)*(p.E||0); Hprev+=(p.Hprev||0); if((p.newcant||0)>(p.Gcur||0))carg++; });
+  const pctAcum=Ftot>0?Math.round(Hnew/Ftot*100):0;
+  const parcial=Hnew-Hprev;
+  const el=document.getElementById('ep-av-total'); if(el) el.textContent=pctAcum+'%';
+  const sub=document.getElementById('ep-av-sub'); if(sub) sub.textContent='Parcial EP: $'+Math.round(parcial).toLocaleString('es-CL')+' · '+carg+' con avance';
 }
 
 // ── Motor quirurgico (mismo metodo validado en Python) ──
@@ -4670,9 +4685,43 @@ function epNeutralizeSharedCol(xml,col){
     var s=epGetStyle(a);return '<c r="'+addr+'"'+(s?' s="'+s+'"':'')+'>'+v+'</c>';
   });
 }
+// Escribe una celda de TEXTO (inline string), conservando el estilo
+function epXmlEsc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function epSetCellStr(xml,addr,val){
+  var v=epXmlEsc(val);
+  var self=new RegExp('<c r="'+addr+'"((?:(?!/>)[^>])*)/>');
+  var full=new RegExp('<c r="'+addr+'"((?:(?!/>)[^>])*)>[\\s\\S]*?</c>');
+  function rep(m,a){var s=epGetStyle(a);return '<c r="'+addr+'"'+(s?' s="'+s+'"':'')+' t="inlineStr"><is><t xml:space="preserve">'+v+'</t></is></c>';}
+  if(self.test(xml))return xml.replace(self,rep);
+  if(full.test(xml))return xml.replace(full,rep);
+  return null;
+}
+// Número a letras (pesos), en mayúsculas — ej: 58779571 -> "...SETENTA Y UN PESOS"
+function numeroALetras(num){
+  num=Math.round(Number(num)||0);
+  var neg=num<0; num=Math.abs(num);
+  if(num===0) return 'CERO PESOS';
+  var UNI=['','UNO','DOS','TRES','CUATRO','CINCO','SEIS','SIETE','OCHO','NUEVE'];
+  var DIEZ=['DIEZ','ONCE','DOCE','TRECE','CATORCE','QUINCE','DIECISEIS','DIECISIETE','DIECIOCHO','DIECINUEVE'];
+  var VEINTI=['VEINTE','VEINTIUNO','VEINTIDOS','VEINTITRES','VEINTICUATRO','VEINTICINCO','VEINTISEIS','VEINTISIETE','VEINTIOCHO','VEINTINUEVE'];
+  var DECENAS=['','','','TREINTA','CUARENTA','CINCUENTA','SESENTA','SETENTA','OCHENTA','NOVENTA'];
+  var CENT=['','CIENTO','DOSCIENTOS','TRESCIENTOS','CUATROCIENTOS','QUINIENTOS','SEISCIENTOS','SETECIENTOS','OCHOCIENTOS','NOVECIENTOS'];
+  function dd(n){ if(n<10)return UNI[n]; if(n<20)return DIEZ[n-10]; if(n<30)return VEINTI[n-20]; var d=Math.floor(n/10),u=n%10; return DECENAS[d]+(u?' Y '+UNI[u]:''); }
+  function ccc(n){ if(n===0)return ''; if(n===100)return 'CIEN'; var c=Math.floor(n/100),r=n%100; return (c?CENT[c]+(r?' ':''):'')+dd(r); }
+  function apoc(s){ return s.replace(/UNO$/,'UN'); }
+  var millones=Math.floor(num/1000000), miles=Math.floor((num%1000000)/1000), resto=num%1000, partes=[];
+  if(millones){ partes.push(millones===1?'UN MILLÓN':apoc(ccc(millones))+' MILLONES'); }
+  if(miles){ partes.push(miles===1?'MIL':apoc(ccc(miles))+' MIL'); }
+  if(resto){ partes.push(ccc(resto)); }
+  var txt=apoc(partes.join(' ').replace(/\s+/g,' ').trim());
+  return (neg?'MENOS ':'')+txt+' PESOS';
+}
 
 async function generarEPExcel(){
   if(!epBaseBytes){ showToast('Selecciona primero el Excel base'); return; }
+  var epNumEl=document.getElementById('ep-num-input');
+  var epNum=parseInt(epNumEl?epNumEl.value:'',10);
+  if(!epNum||epNum<1){ showToast('Ingresa el N° de Estado de Pago'); if(epNumEl)epNumEl.focus(); return; }
   var st=document.getElementById('ep-gen-status'); if(st){st.style.display='block';st.textContent='Cargando generador...';}
   try{
     await ensureDocxLibs();  // asegura PizZip
@@ -4690,11 +4739,30 @@ async function generarEPExcel(){
     var sx=zip.file(target).asText();
     sx=epNeutralizeSharedCol(sx,'G');
     var missing=[];
+    var Hnew=0,Hprevt=0;
     epPartidas.filter(function(p){return !p.cap;}).forEach(function(p){
-      var g=p.D*(p.newpct||0)/100;
+      var g=(p.newcant||0);
+      Hnew+=g*(p.E||0); Hprevt+=(p.Hprev||0);
       var nx=epSetCell(sx,'G'+p.row,epFmt(g)); if(nx===null)missing.push('G'+p.row);else sx=nx;
       nx=epSetCell(sx,'I'+p.row,epFmt(p.Hprev||0)); if(nx===null)missing.push('I'+p.row);else sx=nx;
     });
+    var parcial=Hnew-Hprevt;
+    // ── Volcar a otras hojas: carátula (N° EP y monto en letras) y prog. financiera (parcial) ──
+    function epRelTarget(rid){ var rm=rels.match(new RegExp('Id="'+rid+'"[^>]*Target="([^"]+)"'))||rels.match(new RegExp('Target="([^"]+)"[^>]*Id="'+rid+'"')); if(!rm)return null; var t=rm[1]; if(t.indexOf('xl/')!==0)t='xl/'+t.replace(/^\//,'').replace(/^\.\.\//,''); return t; }
+    function epFindSheet(pred){ var r=/<sheet[^>]*name="([^"]+)"[^>]*r:id="([^"]+)"/g,mm; while((mm=r.exec(wbxml))){ if(pred(mm[1]))return epRelTarget(mm[2]); } return null; }
+    var tCar=epFindSheet(function(n){return n.toUpperCase().indexOf('TULA')>=0;});
+    if(tCar && zip.file(tCar)){
+      var cx=zip.file(tCar).asText();
+      var d13=epSetCell(cx,'D13',epFmt(epNum)); if(d13!==null)cx=d13; else missing.push('D13');
+      var c38=epSetCellStr(cx,'C38',numeroALetras(parcial)); if(c38!==null)cx=c38; else missing.push('C38');
+      zip.file(tCar,cx);
+    } else missing.push('Carátula');
+    var tPF=epFindSheet(function(n){var u=n.toUpperCase();return u.indexOf('PROGRAMACION')>=0||u.indexOf('FINANC')>=0;});
+    if(tPF && zip.file(tPF)){
+      var px=zip.file(tPF).asText(); var kRow=18+epNum;
+      var kc=epSetCell(px,'K'+kRow,epFmt(parcial)); if(kc!==null)px=kc; else missing.push('K'+kRow);
+      zip.file(tPF,px);
+    } else missing.push('ProgFinanc');
     var ct=zip.file('[Content_Types].xml').asText().replace(/<Override PartName="\/xl\/calcChain.xml"[^>]*\/>/,'');
     var wrels=rels.replace(/<Relationship[^>]*calcChain\.xml"[^>]*\/>/,'');
     if(wbxml.indexOf('fullCalcOnLoad')<0){
@@ -4706,7 +4774,7 @@ async function generarEPExcel(){
     try{ zip.remove('xl/calcChain.xml'); }catch(e){}
     var blob=zip.generate({type:'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
     var o=state.obras[state.activeObraIdx];
-    var fname='EP - '+((o&&o.nombre)||'obra').replace(/[\\/:*?"<>|]/g,'')+' - '+today()+'.xlsx';
+    var fname='EP N'+epNum+' - '+((o&&o.nombre)||'obra').replace(/[\\/:*?"<>|]/g,'')+' - '+today()+'.xlsx';
     var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},5000);
     if(st) st.style.display='none';
     showToast('EP generado \u2713'+(missing.length?(' ('+missing.length+' celdas no ubicadas)'):''));
