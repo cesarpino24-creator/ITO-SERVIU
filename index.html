@@ -1085,6 +1085,13 @@ const calcDR=o=>{const f=calcFin(o);if(!f)return'—';const d=diffDays(today(),f
 
 function getAlerts(o){
   const al=[],hoy=today();
+  // Contratos terminados: NO reportan en el dashboard, salvo la garantía de buena
+  // ejecución (2 años del acta de calificación, avisa desde 3 meses antes).
+  if(o.archivado){
+    const gAl=garantiaAlerta(o);
+    if(gAl&&gAl.tipo!=='ok') al.push({tipo:gAl.tipo,texto:gAl.texto,desc:gAl.desc});
+    return al;
+  }
   // Próximo EP — alertar con 15 días de anticipación
   if(o.proximoEP){
     const d=diffDays(hoy,o.proximoEP);
@@ -1097,7 +1104,7 @@ function getAlerts(o){
   const at=(o.avanceProg||0)-(o.avance||0);
   if(at>=10)al.push({tipo:'danger',texto:`Atraso crítico: ${at}% bajo programa`,desc:'Posible multa DS 236'});
   else if(at>=5)al.push({tipo:'warn',texto:`Atraso: ${at}% bajo programa`,desc:'Monitorear ritmo de obra'});
-  o.eps.filter(e=>e.estado==='en_revision').forEach(e=>al.push({tipo:'warn',texto:`EP N°${e.num} en revisión`,desc:'Pendiente aprobación'}));
+  o.eps.filter(e=>e.estado==='en_revision'&&!(e.autogen&&!e.aprobado)).forEach(e=>al.push({tipo:'warn',texto:`EP N°${e.num} en revisión`,desc:'Pendiente aprobación'}));
   const fin=calcFin(o);if(fin){const dr=diffDays(hoy,fin);if(dr<=30&&dr>0)al.push({tipo:'warn',texto:`${dr} días para término`,desc:fmtDate(fin)});else if(dr<=0)al.push({tipo:'danger',texto:`Contrato vencido hace ${Math.abs(dr)} días`,desc:fmtDate(fin)});}
   const gAl=garantiaAlerta(o);
   if(gAl&&gAl.tipo!=='ok') al.push({tipo:gAl.tipo,texto:gAl.texto,desc:gAl.desc});
@@ -1282,7 +1289,9 @@ const EP_TIPOS={
 };
 // Un EP sin tipo (registrado antes de esta versión) se asume del contrato base.
 function tipoEP(ep){ return (ep&&ep.tipo&&EP_TIPOS[ep.tipo])?ep.tipo:'base'; }
-function epsBase(o){ return (o&&o.eps?o.eps:[]).filter(e=>tipoEP(e)==='base'); }
+function epCondicional(e){ return !!(e&&e.autogen&&!e.aprobado); } // generado, aún sin aprobar
+function epsBase(o){ return (o&&o.eps?o.eps:[]).filter(e=>tipoEP(e)==='base' && !epCondicional(e)); }
+function epsCondicionales(o){ return (o&&o.eps?o.eps:[]).filter(e=>epCondicional(e)); }
 function epsAdicionales(o){ return (o&&o.eps?o.eps:[]).filter(e=>tipoEP(e)!=='base'); }
 
 // Avance físico: solo EPs del contrato base sobre el monto del contrato.
@@ -3794,6 +3803,31 @@ function renderEP(o){
     </div>`;
   };
 
+  const filaCondicional=(ep)=>{
+    const i=o.eps.indexOf(ep);
+    return `<div style="margin:0 16px 10px;background:var(--bg);border:0.5px solid #E5C07B;border-left:3px solid var(--amber);border-radius:var(--rl);overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;">
+        <div style="flex:1;min-width:0;cursor:pointer;" onclick="showFormEP(${i})">
+          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+            <span style="font-size:14px;font-weight:500;">EP N°${ep.num}</span>
+            <span class="badge badge-warn">Condicional</span>
+          </div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">${fmtDate(ep.fecha)} · $${fmtM(ep.monto)}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:1px;">Generado automáticamente · pendiente de aprobar</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;flex-shrink:0;">
+          <input type="checkbox" onchange="toggleAprobadoEP(${i},this.checked)" style="width:16px;height:16px;cursor:pointer;"/> Aprobado
+        </label>
+      </div>
+      <div style="padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
+        ${(ep.adjuntos||[]).map(a=>`<a href="${a.driveLink}" target="_blank" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 ${a.nombre}</a>`).join('')}
+        <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:3px 8px;border:0.5px dashed var(--border2);border-radius:20px;">
+          <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="adjuntarArchivoEP(event,${ep.num},'base')"/>+ Adjuntar
+        </label>
+      </div>
+    </div>`;
+  };
+
   let html=`<div style="padding:12px 16px 0;">
     <div class="stats-row" style="margin-bottom:12px;">
       <div class="stat-card"><div class="stat-label">Contrato base</div><div class="stat-value" style="font-size:14px;">$${fmtM(tBase)}</div></div>
@@ -3804,6 +3838,10 @@ function renderEP(o){
     ${pend>0?`<div style="font-size:11px;color:var(--amber);margin-bottom:8px;">${pend} EP${pend>1?'s':''} sin marcar como pagado</div>`:''}
   </div>`;
 
+  const cond=epsCondicionales(o);
+  if(cond.length){
+    html+=`<div class="section-title" style="padding:8px 16px 4px;color:var(--amber);">condicionales — marca aprobado para registrar</div>`+cond.map(filaCondicional).join('');
+  }
   if(base.length){
     html+=`<div class="section-title" style="padding:4px 16px;">contrato base</div>`+base.map(filaEP).join('');
   }
@@ -3924,6 +3962,14 @@ function togglePagoEP(idx,val){
   o.eps[idx].pagado=val;
   if(val)o.eps[idx].estado='pagado';
   saveAndSync();renderEP(o);showToast(val?'EP marcado como pagado':'EP marcado como pendiente');
+}
+// Aprobar un EP condicional (generado): al aprobar queda registrado definitivamente
+function toggleAprobadoEP(idx,val){
+  const o=state.obras[state.activeObraIdx];
+  const ep=o.eps[idx]; if(!ep) return;
+  ep.aprobado=!!val;
+  saveAndSync();renderEP(o);renderDashCurvaS(o);
+  showToast(val?`EP N°${ep.num} aprobado y registrado`:'Aprobación quitada');
 }
 
 
@@ -4776,8 +4822,17 @@ async function generarEPExcel(){
     var o=state.obras[state.activeObraIdx];
     var fname='EP N'+epNum+' - '+((o&&o.nombre)||'obra').replace(/[\\/:*?"<>|]/g,'')+' - '+today()+'.xlsx';
     var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=fname;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},5000);
+    // Guardar autom\u00e1ticamente el EP en el m\u00f3dulo Estados de pago, en estado CONDICIONAL
+    // (a\u00fan no cuenta como EP registrado hasta que se marque "Aprobado").
+    if(o){
+      if(!o.eps) o.eps=[];
+      var existe=o.eps.find(function(e){return tipoEP(e)==='base' && e.num===epNum;});
+      if(existe){ existe.fecha=today(); existe.monto=Math.round(parcial); existe.autogen=true; if(existe.aprobado===undefined) existe.aprobado=false; }
+      else { o.eps.push({num:epNum,tipo:'base',fecha:today(),monto:Math.round(parcial),descAnt:0,pagado:false,estado:'en_revision',aprobado:false,autogen:true,adjuntos:[]}); }
+      saveAndSync();
+    }
     if(st) st.style.display='none';
-    showToast('EP generado \u2713'+(missing.length?(' ('+missing.length+' celdas no ubicadas)'):''));
+    showToast('EP N\u00b0'+epNum+' generado \u2713 \u00b7 guardado como condicional'+(missing.length?(' ('+missing.length+' celdas no ubicadas)'):''));
   }catch(e){ if(st)st.style.display='none'; showToast('Error: '+(e.message||e)); console.error('generarEPExcel',e); }
 }
 
