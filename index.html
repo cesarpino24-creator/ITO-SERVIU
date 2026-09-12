@@ -1232,7 +1232,7 @@ function renderObras(){
   // Banner semáforo de próximos EPs
   const hoy=today();
   const proximosEPs=state.obras
-    .filter(o=>o.proximoEP)
+    .filter(o=>o.proximoEP&&!o.archivado)   // las obras terminadas no reportan EPs
     .map(o=>({nombre:o.nombre,dias:diffDays(hoy,o.proximoEP),fecha:o.proximoEP,epNum:epsBase(o).length+1}))
     .filter(x=>x.dias>=-7&&x.dias<=30)
     .sort((a,b)=>a.dias-b.dias);
@@ -1915,6 +1915,7 @@ async function adjuntarArchivoEP(event, epNum, epTipo){
         const {partidas,programaEPs,epNumArchivo}=parsearExcelEP(buffer);
         if(programaEPs.length||partidas.length){
           aplicarProgramaEPs(o,partidas,programaEPs,epNumArchivo||epNum);
+          if(o.partidasFuente){ o.partidasFuente.epArchivo=epNum; o.partidasFuente.archivo=result.name; }
           autoVinculado.add(state.activeObraIdx);
           saveAndSync();
           renderEP(o);renderAvance(o);renderCurvas(o);renderDashCurvaS(o);refrescarBarrasDash(o);
@@ -2094,8 +2095,29 @@ function marcarTodoOk(tab){
 
 function renderGanttModulo(){
   const o=state.obras[state.activeObraIdx];
-  renderGantt(o);   // muestra de inmediato lo que haya guardado, calculado a la fecha de hoy
-  autoCargarGantt(o).then(actualizado=>{ if(actualizado){ renderGantt(o); showToast('✓ Carta Gantt actualizada desde Drive'); } });
+  renderGantt(o);   // muestra de inmediato lo guardado, calculado a la fecha de hoy
+  (async()=>{
+    const g=await autoCargarGantt(o);            // Carta Gantt desde Drive (Ficha P.3)
+    const e=await refrescarPartidasDesdeEP(o);   // avance real por partida desde el último EP con Excel
+    if(g||e){ renderGantt(o); showToast(g&&e?'✓ Carta Gantt y avance del EP actualizados':g?'✓ Carta Gantt actualizada desde Drive':'✓ Avance por partida tomado del último EP'); }
+  })();
+}
+
+// Toma el avance real de cada partida desde el ÚLTIMO Estado de Pago con Excel adjunto.
+// Solo actualiza las partidas (no toca el % de avance de obra, que puede ser edición manual — F-03).
+async function refrescarPartidasDesdeEP(o){
+  if(!accessToken||!o) return false;
+  const hit=getUltimoEPConExcel(o); if(!hit) return false;
+  const pf=o.partidasFuente;
+  if(pf&&pf.epArchivo===hit.ep.num&&pf.cargado===today()&&o.partidas&&o.partidas.length) return false;
+  try{
+    const res=await apiFetch(`https://www.googleapis.com/drive/v3/files/${hit.adj.driveId}?alt=media`);
+    const {partidas,epNumArchivo}=parsearExcelEP(await res.arrayBuffer());
+    if(!partidas||!partidas.length) return false;
+    o.partidas=partidas;
+    o.partidasFuente={epNum:epNumArchivo||hit.ep.num,epArchivo:hit.ep.num,archivo:hit.adj.nombre,cargado:today()};
+    saveAndSync(); return true;
+  }catch(e){ console.error('refrescarPartidasDesdeEP',e); return false; }
 }
 
 // Excel de la Carta Gantt adjunto en Drive (Ficha P.3): primero el marcado como Gantt, luego por nombre, luego el último Excel
@@ -2155,8 +2177,10 @@ function calcularAvanceGantt(o,diasTranscurridos){
     if(diasTranscurridos>=dT)pctEsperado=100;
     else if(diasTranscurridos>dI)pctEsperado=Math.round((diasTranscurridos-dI)/dur*100);
     const pr=matchPartidaGantt(p,partidasReales);
-    const pctReal=pr?(pr.pct||0):0;
-    return {...p,pctEsperado,pctReal,atraso:deberiaHaberEmpezado?Math.max(0,pctEsperado-pctReal):0,deberiaHaberEmpezado};
+    const vinculada=!!pr;                              // ¿existe la misma partida en el último EP?
+    const pctReal=vinculada?(pr.pct||0):null;          // avance real = % de esa partida en el EP
+    return {...p,pctEsperado,pctReal,vinculada,epItem:vinculada?pr.item:null,
+      atraso:(deberiaHaberEmpezado&&vinculada)?Math.max(0,pctEsperado-pctReal):0,deberiaHaberEmpezado};
   });
 }
 
@@ -2175,21 +2199,26 @@ function renderGantt(o){
   const diasTranscurridos=Math.round((hoy-inicio)/(864e5));
   const semanaActual=Math.max(1,Math.ceil(diasTranscurridos/7));
   const partidas=calcularAvanceGantt(o,diasTranscurridos);
-  const atrasadas=partidas.filter(p=>p.atraso>0).sort((a,b)=>b.atraso-a.atraso);
-  const enTiempo=partidas.filter(p=>p.deberiaHaberEmpezado&&p.atraso===0).length;
+  const vinculadas=partidas.filter(p=>p.vinculada).length, sinVinculo=partidas.length-vinculadas;
+  const atrasadas=partidas.filter(p=>p.vinculada&&p.atraso>0).sort((a,b)=>b.atraso-a.atraso);
+  const enTiempo=partidas.filter(p=>p.vinculada&&p.deberiaHaberEmpezado&&p.atraso===0).length;
   const sinIniciar=partidas.filter(p=>!p.deberiaHaberEmpezado).length;
-  const activas=partidas.filter(p=>p.deberiaHaberEmpezado).length;
+  const activas=partidas.filter(p=>p.vinculada&&p.deberiaHaberEmpezado).length;
   const pctCumpl=activas>0?Math.round(enTiempo/activas*100):100;
   const colC=pctCumpl>=80?'var(--green)':pctCumpl>=50?'var(--amber)':'var(--red)';
   const top=atrasadas.slice(0,5);
   const fuente=o.ganttFuenteNombre
     ?`Fuente: <b>${esc(o.ganttFuenteNombre)}</b> (Drive · Ficha P.3) · leído el ${fmtDate(o.ganttFechaCarga||today())}`
     :`Cargado manualmente el ${fmtDate(o.ganttFechaCarga||today())}`;
+  const pf=o.partidasFuente;
+  const fuenteEP=(pf&&(pf.epArchivo||pf.epNum))
+    ?`Avance real por partida según <b>EP N°${esc(pf.epArchivo||pf.epNum)}</b>${pf.archivo?' · '+esc(pf.archivo):''} · leído el ${fmtDate(pf.cargado||today())}`
+    :`<span style="color:var(--amber);">⚠ Sin Excel de EP vinculado: el avance real viene de "Avance partidas" (manual). Adjunta el Excel del último EP en Estados de pago para medir contra el EP.</span>`;
   dash.innerHTML=`
     <div style="background:#1a1a18;color:#fff;border-radius:var(--rl);padding:12px 14px;margin-bottom:8px;">
       <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.75;">📅 Estado al ${fmtDate(today())}</div>
       <div style="font-size:15px;font-weight:600;margin-top:3px;">Día ${diasTranscurridos} de ${o.plazo||'—'} · Semana ${semanaActual}</div>
-      <div style="font-size:11px;opacity:.8;margin-top:2px;">${activas} partidas activas · ${sinIniciar} por iniciar</div>
+      <div style="font-size:11px;opacity:.8;margin-top:2px;">${activas} activas · ${sinIniciar} por iniciar · <b>${vinculadas} de ${partidas.length}</b> vinculadas al EP${sinVinculo?` · <span style="color:#FAC775;">${sinVinculo} sin vínculo</span>`:''}</div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">
       <div class="stat-card"><div class="stat-label">En tiempo</div><div class="stat-value" style="font-size:18px;color:var(--green);">${enTiempo}</div></div>
@@ -2201,17 +2230,18 @@ function renderGantt(o){
       top.length===0?'<div style="padding:12px 0;font-size:12px;color:var(--green);">✓ Sin partidas atrasadas al día de hoy</div>':
       top.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;${i<top.length-1?'border-bottom:0.5px solid var(--border);':''}">
         <div style="width:24px;height:24px;border-radius:50%;background:${p.atraso>=30?'var(--red-bg)':'var(--amber-bg)'};color:${p.atraso>=30?'var(--red)':'var(--amber)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
-        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.item)} ${esc(p.desc)}</div><div style="font-size:11px;color:var(--text2);">Esperado ${p.pctEsperado}% · Real ${p.pctReal}% · Día ${p.diasInicio}→${p.diasTermino}</div></div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.item)} ${esc(p.desc)}</div><div style="font-size:11px;color:var(--text2);">Esperado ${p.pctEsperado}% · Real ${p.pctReal}% (EP) · Día ${p.diasInicio}→${p.diasTermino}</div></div>
         <div style="font-size:14px;font-weight:700;color:${p.atraso>=30?'var(--red)':'var(--amber)'};flex-shrink:0;">-${p.atraso}%</div>
       </div>`).join('')}</div>
-    <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">${fuente}</div>`;
+    <div style="font-size:11px;color:var(--text2);margin-bottom:2px;">${fuente}</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">${fuenteEP}</div>`;
   if(ic){ ic.style.display='block'; ic.textContent=`${o.gantt.filter(p=>!p.esCapitulo).length} partidas en el programa de trabajo`; }
   list.innerHTML=`<div class="section-title" style="padding:12px 16px 4px;">Todas las partidas (${o.gantt.filter(p=>!p.esCapitulo).length})</div>`+
     o.gantt.map(p=>{
       if(p.esCapitulo)return`<div style="padding:8px 16px;background:var(--blue-bg);border-bottom:0.5px solid var(--border);font-size:12px;font-weight:600;color:var(--blue);">${esc(p.item)} ${esc(p.desc)}</div>`;
-      const dp=partidas.find(x=>x.item===p.item&&x.desc===p.desc)||{pctEsperado:0,pctReal:0,atraso:0,deberiaHaberEmpezado:false};
-      const col=dp.atraso>=30?'var(--red)':dp.atraso>0?'var(--amber)':dp.deberiaHaberEmpezado?'var(--green)':'var(--text2)';
-      return`<div style="padding:8px 16px;border-bottom:0.5px solid var(--border);"><div style="display:flex;justify-content:space-between;gap:8px;"><span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.item)} ${esc(p.desc)}</span><span style="font-size:12px;font-weight:600;color:${col};flex-shrink:0;">${dp.atraso>0?'-'+dp.atraso+'%':dp.deberiaHaberEmpezado?'OK':'Por iniciar'}</span></div><div style="font-size:10px;color:var(--text2);">Día ${p.diasInicio}→${p.diasTermino} · Esp. ${dp.pctEsperado}% · Real ${dp.pctReal}%</div></div>`;
+      const dp=partidas.find(x=>x.item===p.item&&x.desc===p.desc)||{pctEsperado:0,pctReal:null,atraso:0,deberiaHaberEmpezado:false,vinculada:false};
+      const col=!dp.vinculada?'var(--amber)':dp.atraso>=30?'var(--red)':dp.atraso>0?'var(--amber)':dp.deberiaHaberEmpezado?'var(--green)':'var(--text2)';
+      return`<div style="padding:8px 16px;border-bottom:0.5px solid var(--border);"><div style="display:flex;justify-content:space-between;gap:8px;"><span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.item)} ${esc(p.desc)}</span><span style="font-size:12px;font-weight:600;color:${col};flex-shrink:0;">${!dp.vinculada?'Sin vínculo EP':dp.atraso>0?'-'+dp.atraso+'%':dp.deberiaHaberEmpezado?'OK':'Por iniciar'}</span></div><div style="font-size:10px;color:var(--text2);">Día ${p.diasInicio}→${p.diasTermino} · Esp. ${dp.pctEsperado}% · Real ${dp.vinculada?dp.pctReal+'%':'—'}</div></div>`;
     }).join('');
 }
 
@@ -4323,7 +4353,7 @@ function excelDateToISO(serial){
 }
 
 function aplicarProgramaEPs(o, partidas, programaEPs, epNumArchivo){
-  if(partidas&&partidas.length>0) o.partidas=partidas;
+  if(partidas&&partidas.length>0){ o.partidas=partidas; o.partidasFuente={epNum:epNumArchivo||null,cargado:today()}; }
   if(!programaEPs||!programaEPs.length) return;
   o.programaEPs=programaEPs;
 
@@ -4389,6 +4419,7 @@ function cargarPartidasExcel(event){
       const {partidas,programaEPs,epNumArchivo}=parsearExcelEP(ev.target.result);
       const o=state.obras[state.activeObraIdx];
       aplicarProgramaEPs(o,partidas,programaEPs,epNumArchivo);
+      if(o.partidasFuente) o.partidasFuente.archivo=file.name;
       saveAndSync();renderAvance(o);renderCurvas(o);renderDashCurvaS(o);refrescarBarrasDash(o);
       showToast(`✓ ${partidas.length} partidas · Real ${o.avance}% · Prog. ${o.avanceProg}%`);
     }catch(e){showToast('Error leyendo Excel: '+e.message);}
@@ -4435,6 +4466,7 @@ async function cargarDesdeUltimoEP(silencioso){
     }
     aplicarProgramaEPs(o,partidas,programaEPs,epNumArchivo);
     if(o.avanceFuente) o.avanceFuente.epArchivo=hit.ep.num;
+    if(o.partidasFuente){ o.partidasFuente.epArchivo=hit.ep.num; o.partidasFuente.archivo=hit.adj.nombre; }
     saveAndSync();renderAvance(o);renderCurvas(o);renderDashCurvaS(o);refrescarBarrasDash(o);
     if(!silencioso) showToast(`✓ Real ${o.avance}% · Prog. ${o.avanceProg}% · desde EP N°${hit.ep.num}`);
     return true;
