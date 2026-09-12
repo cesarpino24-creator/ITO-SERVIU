@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ITO — SERVIU Metropolitano</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.sheetjs.com https://cdn.jsdelivr.net https://accounts.google.com; style-src 'self' 'unsafe-inline' https://accounts.google.com; img-src 'self' data: blob:; connect-src 'self' https://www.googleapis.com https://accounts.google.com https://oauth2.googleapis.com; frame-src https://accounts.google.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+<title>ITO — Administración de contratos</title>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F5F5F0;color:#1a1a18}
@@ -89,12 +90,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div class="screen active" id="s-obras">
   <div class="topbar">
-    <div><div class="topbar-title">ITO — SERVIU Metropolitano</div><div class="topbar-sub">Administración de contratos</div></div>
+    <div><div class="topbar-title">ITO — Inspección Técnica de Obras</div><div class="topbar-sub">Administración de contratos</div></div>
     <button style="font-size:12px;color:var(--text2);background:none;border:none;cursor:pointer;" onclick="showAlertasGlobal()">Alertas <span id="alert-badge" style="background:#E24B4A;color:#fff;border-radius:20px;padding:1px 6px;font-size:11px;margin-left:2px;display:none;"></span></button>
   </div>
   <div class="sync-bar" id="sync-bar">
     <div class="sdot sdot-off" id="sync-dot"></div>
     <span id="sync-label">Iniciando...</span>
+    <button onclick="abrirAjustes()" title="Ajustes" aria-label="Ajustes" style="font-size:15px;background:none;border:none;cursor:pointer;color:var(--text2);padding:0 4px;line-height:1;">⚙</button>
     <button id="btn-connect" onclick="iniciarAuth()" style="display:none;margin-left:auto;font-size:12px;padding:5px 12px;background:var(--blue);color:#fff;border:none;border-radius:20px;cursor:pointer;">Conectar Drive</button>
     <button id="btn-disconnect" onclick="desconectar()" style="display:none;margin-left:auto;font-size:12px;padding:5px 12px;background:none;color:var(--text2);border:0.5px solid var(--border2);border-radius:20px;cursor:pointer;">Desconectar</button>
   </div>
@@ -228,7 +230,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="tipo-avance" onclick="selectTipoInforme('avance')" style="border:2px solid var(--blue);border-radius:var(--rl);padding:14px 12px;cursor:pointer;text-align:center;">
         <div style="font-size:20px;margin-bottom:4px;">📈</div>
         <div style="font-size:13px;font-weight:500;color:var(--blue);">Informe de avance</div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Bimensual SERVIU</div>
+        <div style="font-size:11px;color:var(--text2);margin-top:2px;">Informe periódico</div>
       </div>
       <div id="tipo-ep" onclick="selectTipoInforme('ep')" style="border:0.5px solid var(--border);border-radius:var(--rl);padding:14px 12px;cursor:pointer;text-align:center;">
         <div style="font-size:20px;margin-bottom:4px;">💰</div>
@@ -457,7 +459,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     </div>
     <div class="form-group">
       <label class="form-label">Emisor / origen</label>
-      <input class="form-input" id="doc-emisor" placeholder="Ej: SERVIU Metropolitano"/>
+      <input class="form-input" id="doc-emisor" placeholder="Ej: Mandante / Municipalidad"/>
     </div>
     <div class="form-group">
       <label class="form-label">Observaciones</label>
@@ -469,7 +471,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <span style="font-size:16px;">📎</span>
         <div style="flex:1;min-width:0;">
           <div id="doc-archivo-nombre" style="font-size:13px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-          <a id="doc-archivo-link" href="#" target="_blank" style="font-size:11px;color:var(--blue);">Abrir en Drive</a>
+          <a id="doc-archivo-link" href="#" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--blue);">Abrir en Drive</a>
         </div>
       </div>
       <label id="doc-upload-label" style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px 14px;cursor:pointer;">
@@ -642,30 +644,24 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <div class="screen" id="s-gantt">
   <div class="topbar"><button class="back-btn" onclick="go('s-obra-dashboard')">Dashboard</button><div style="font-size:15px;font-weight:500;">Carta Gantt — Análisis</div><div style="width:60px;"></div></div>
 
-  <!-- Carga y estado -->
-  <div style="padding:10px 16px 0;">
-    <div id="gantt-estado-banner" style="display:none;margin-bottom:8px;"></div>
-    <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;background:var(--bg2);margin-bottom:6px;">
-      <input type="file" id="gantt-file-input" accept=".xlsx,.xls" style="display:none;" onchange="cargarGantt(event)"/>
-      <span style="font-size:20px;">📊</span>
-      <div>
-        <div style="font-size:13px;font-weight:500;">Cargar / actualizar Carta Gantt</div>
-        <div style="font-size:11px;color:var(--text2);">Excel con columnas: Ítem, Partida, Días inicio, Duración, Días término</div>
-      </div>
-    </label>
-    <div id="gantt-info-carga" style="display:none;font-size:11px;color:var(--text2);margin-bottom:4px;"></div>
-  </div>
-
-  <!-- Análisis semanal -->
-  <div id="gantt-semana-wrap" style="display:none;padding:0 16px 8px;">
-    <div class="section-title" style="padding:10px 0 4px;">📅 Análisis semanal</div>
-    <div id="gantt-semana-resumen" style="background:var(--bg2);border-radius:var(--r);padding:10px 12px;margin-bottom:8px;font-size:12px;color:var(--text2);"></div>
-    <div class="section-title" style="padding:4px 0;">🔴 Top 5 partidas más atrasadas</div>
-    <div id="gantt-top5"></div>
-  </div>
+  <!-- Dashboard: se calcula con la fecha de hoy cada vez que se abre -->
+  <div id="gantt-dash" style="padding:10px 16px 0;"></div>
 
   <!-- Listado completo -->
   <div id="gantt-list"></div>
+
+  <!-- Carga manual (secundaria): la app lee sola el Excel adjunto en Drive -->
+  <div style="padding:10px 16px 28px;">
+    <div id="gantt-info-carga" style="display:none;font-size:11px;color:var(--text2);margin-bottom:6px;"></div>
+    <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;background:var(--bg2);">
+      <input type="file" id="gantt-file-input" accept=".xlsx,.xls" style="display:none;" onchange="cargarGantt(event)"/>
+      <span style="font-size:20px;">📊</span>
+      <div>
+        <div style="font-size:13px;font-weight:500;">Cargar / reemplazar Carta Gantt (Excel)</div>
+        <div style="font-size:11px;color:var(--text2);">Se guarda en Drive (Ficha P.3) y se lee sola en todos tus dispositivos</div>
+      </div>
+    </label>
+  </div>
 </div>
 
 <!-- MULTAS -->
@@ -816,7 +812,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="form-group">
       <label class="form-label">Documento adjunto (PDF)</label>
       <div id="rec-archivo-actual" style="display:none;margin-bottom:8px;">
-        <a id="rec-archivo-link" href="#" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);font-size:13px;color:var(--blue);">
+        <a id="rec-archivo-link" href="#" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);font-size:13px;color:var(--blue);">
           📎 <span id="rec-archivo-nombre">Documento adjunto</span>
         </a>
       </div>
@@ -849,7 +845,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="topbar"><button class="back-btn" onclick="go('s-obras')">Obras</button><div style="font-size:15px;font-weight:500;">Nueva obra</div><div style="width:60px;"></div></div>
   <div class="form-wrap" style="padding-top:16px;">
     <div class="form-group"><label class="form-label">Nombre de la obra</label><input class="form-input" id="nw-nombre" placeholder="Ej: Parque Pudahuel Norte"/></div>
-    <div class="form-group"><label class="form-label">N° contrato</label><input class="form-input" id="nw-contrato" placeholder="Ej: 2024-001-SERVIU"/></div>
+    <div class="form-group"><label class="form-label">N° contrato</label><input class="form-input" id="nw-contrato" placeholder="Ej: 2024-001"/></div>
     <div class="form-group"><label class="form-label">Contratista</label><input class="form-input" id="nw-contratista" placeholder="Razón social"/></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Fecha inicio</label><input class="form-input" type="date" id="nw-inicio"/></div>
@@ -945,6 +941,37 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 </div>
 
+<!-- AJUSTES — nombre del ITO (S-10) y PIN local (S-06) -->
+<div class="screen" id="s-ajustes">
+  <div class="topbar"><button class="back-btn" onclick="go('s-obras')">Obras</button><div style="font-size:15px;font-weight:500;">Ajustes</div><div style="width:60px;"></div></div>
+  <div class="form-wrap" style="padding-top:16px;">
+    <div class="section-title" style="padding:0 0 8px;">identidad</div>
+    <div class="form-group"><label class="form-label">Nombre del ITO (firma en visitas, libro e informes)</label><input class="form-input" id="aj-ito-nombre" placeholder="Ej: María Pérez, ITO"/></div>
+    <button class="btn-primary" onclick="guardarAjustes()">Guardar</button>
+    <div class="section-title" style="padding:18px 0 8px;">bloqueo con PIN (este dispositivo)</div>
+    <div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:10px;">Pide un PIN al abrir la app en este navegador. Protege frente a miradas casuales en un equipo compartido o perdido; no cifra los datos.</div>
+    <div id="aj-pin-estado" style="font-size:13px;margin-bottom:8px;"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Nuevo PIN (4–8 dígitos)</label><input class="form-input" type="password" inputmode="numeric" id="aj-pin1" maxlength="8" autocomplete="new-password"/></div>
+      <div class="form-group"><label class="form-label">Repetir PIN</label><input class="form-input" type="password" inputmode="numeric" id="aj-pin2" maxlength="8" autocomplete="new-password"/></div>
+    </div>
+    <button class="btn-secondary" onclick="establecerPIN()">Activar / cambiar PIN</button>
+    <button class="btn-secondary" id="aj-pin-quitar" onclick="quitarPIN()" style="color:var(--red);border-color:#F09595;display:none;">Quitar PIN</button>
+  </div>
+</div>
+
+<!-- PANTALLA DE BLOQUEO (solo si hay PIN en este dispositivo) -->
+<div id="lock-screen" style="display:none;position:fixed;inset:0;background:var(--bg2);z-index:1000;align-items:center;justify-content:center;padding:24px;">
+  <div style="width:100%;max-width:320px;background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:24px 20px;text-align:center;">
+    <div style="font-size:32px;margin-bottom:6px;">🔒</div>
+    <div style="font-size:15px;font-weight:500;margin-bottom:4px;">ITO — Administración de contratos</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;">Ingresa tu PIN para continuar</div>
+    <input class="form-input" type="password" inputmode="numeric" id="lock-pin" maxlength="8" autocomplete="off" style="text-align:center;font-size:20px;letter-spacing:.3em;" onkeydown="if(event.key==='Enter')desbloquear()"/>
+    <div id="lock-msg" style="font-size:12px;color:var(--red);min-height:16px;margin-top:6px;"></div>
+    <button class="btn-primary" onclick="desbloquear()">Desbloquear</button>
+  </div>
+</div>
+
 </div>
 <div class="toast" id="toast"></div>
 
@@ -953,7 +980,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <script>
 /* ══════════════════════════════════════════════════════════════════
-   ÍNDICE DEL CÓDIGO — app ITO · SERVIU Metropolitano
+   ÍNDICE DEL CÓDIGO — app ITO · Administración de contratos
    ────────────────────────────────────────────────────────────────
     1. Constantes y utilidades
     2. Google Drive — autenticación y sincronización
@@ -980,10 +1007,20 @@ const LS_KEY='ito_v3';const LS_TOK='ito_tok';
 let state={obras:[],activeObraIdx:null};
 let tokenClient=null,accessToken=null,driveFileId=null,syncTO=null;
 
-const today=()=>new Date().toISOString().slice(0,10);
-const diffDays=(a,b)=>Math.round((new Date(b)-new Date(a))/(864e5));
+// ── Fechas en hora LOCAL (Chile), no UTC (F-07) ──
+const pad2=n=>String(n).padStart(2,'0');
+const isoLocal=d=>`${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+const parseISO=s=>{const m=String(s||'').match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);return m?new Date(+m[1],+m[2]-1,+m[3]):null;};
+const today=()=>isoLocal(new Date());
+const diffDays=(a,b)=>{const da=parseISO(a),db=parseISO(b);return (da&&db)?Math.round((db-da)/864e5):NaN;};
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);  // identificadores estables (F-05/F-11)
 const fmtDate=d=>{if(!d)return'—';const[y,m,dd]=d.split('-');return`${dd}/${m}/${y}`};
-const fmtM=n=>Math.round(n).toLocaleString('es-CL');
+const fmtM=n=>Math.round(Number(n)||0).toLocaleString('es-CL');  // nunca "$NaN" (F-06)
+// ── Seguridad: escape HTML y validación de URLs (S-01 / S-07) ──
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeUrl=u=>{const s=String(u||'').trim();return /^https:\/\//i.test(s)?s:'#';};
+const safeFolder=s=>String(s||'').replace(/[\/\\]/g,'-').replace(/[\x00-\x1f]/g,'').trim()||'sin-nombre';
+function getITONombre(){return (state.config&&state.config.itoNombre)||'ITO';}
 
 // ══ 2. GOOGLE DRIVE — AUTENTICACIÓN Y SINCRONIZACIÓN ══════
 function setSyncUI(status,label){
@@ -996,7 +1033,8 @@ function setSyncUI(status,label){
 function loadLocal(){
   try{const s=localStorage.getItem(LS_KEY);if(s)state=JSON.parse(s);}catch(e){}
   if(!state.obras)state.obras=[];
-  accessToken=localStorage.getItem(LS_TOK)||null;
+  try{localStorage.removeItem('ito_tok');}catch(e){} // S-04: nunca persistir el token en disco (limpia versiones anteriores)
+  accessToken=sessionStorage.getItem(LS_TOK)||null;  // solo vive mientras dure la sesión del navegador
 }
 function saveLocal(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));}catch(e){}}
 
@@ -1006,11 +1044,11 @@ function initGoogleAuth(){
     client_id:CLIENT_ID,scope:SCOPES,
     callback:async r=>{
       if(r.error){setSyncUI('disconnected','Error OAuth: '+r.error);return;}
-      accessToken=r.access_token;localStorage.setItem(LS_TOK,accessToken);
+      accessToken=r.access_token;sessionStorage.setItem(LS_TOK,accessToken);
       setSyncUI('syncing','Sincronizando...');await syncFromDrive();
     }
   });
-  if(accessToken){setSyncUI('syncing','Verificando sesión...');syncFromDrive().catch(()=>{accessToken=null;localStorage.removeItem(LS_TOK);setSyncUI('disconnected','Sesión expirada.');});}
+  if(accessToken){setSyncUI('syncing','Verificando sesión...');syncFromDrive().catch(()=>{accessToken=null;sessionStorage.removeItem(LS_TOK);setSyncUI('disconnected','Sesión expirada.');});}
   else{setSyncUI('disconnected','Conecta Drive para sincronizar entre terreno y oficina.');}
 }
 
@@ -1021,13 +1059,13 @@ async function iniciarAuth(){
 
 function desconectar(){
   if(accessToken&&window.google)google.accounts.oauth2.revoke(accessToken);
-  accessToken=null;driveFileId=null;localStorage.removeItem(LS_TOK);
+  accessToken=null;driveFileId=null;sessionStorage.removeItem(LS_TOK);
   setSyncUI('disconnected','Desconectado. Datos guardados localmente.');
 }
 
 async function apiFetch(url,opts={}){
   const r=await fetch(url,{...opts,headers:{'Authorization':'Bearer '+accessToken,...(opts.headers||{})}});
-  if(r.status===401){accessToken=null;localStorage.removeItem(LS_TOK);setSyncUI('disconnected','Sesión expirada.');throw new Error('401');}
+  if(r.status===401){accessToken=null;sessionStorage.removeItem(LS_TOK);setSyncUI('disconnected','Sesión expirada.');throw new Error('401');}
   return r;
 }
 
@@ -1036,9 +1074,11 @@ async function findFile(){
   const d=await r.json();return d.files?.length?d.files[0].id:null;
 }
 async function readFile(id){return(await apiFetch(`https://www.googleapis.com/drive/v3/files/${id}?alt=media`)).json();}
-async function writeFile(data){
+async function writeFile(data,opts){
   const body=JSON.stringify(data);
-  if(driveFileId){await apiFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body});}
+  // keepalive: permite que la petición termine aunque la pestaña se cierre (límite ~64 KB) — F-02
+  const extra=(opts&&opts.keepalive&&body.length<60000)?{keepalive:true}:{};
+  if(driveFileId){await apiFetch(`https://www.googleapis.com/upload/drive/v3/files/${driveFileId}?uploadType=media`,{method:'PATCH',headers:{'Content-Type':'application/json'},body,...extra});}
   else{
     const m=await(await apiFetch('https://www.googleapis.com/drive/v3/files',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:FILE_NAME,parents:['appDataFolder']})})).json();
     driveFileId=m.id;
@@ -1046,41 +1086,70 @@ async function writeFile(data){
   }
 }
 
+// ── Sincronización con detección de conflictos (F-01) ──
+// 'ito_dirty' = hay cambios locales aún no confirmados en Drive. state.updatedAt = marca del último cambio.
+const LS_DIRTY='ito_dirty', LS_RESPALDO='ito_respaldo_conflicto';
+function marcarPendiente(){try{localStorage.setItem(LS_DIRTY,'1');}catch(e){}}
+function limpiarPendiente(){try{localStorage.removeItem(LS_DIRTY);}catch(e){}}
+function hayPendiente(){try{return localStorage.getItem(LS_DIRTY)==='1';}catch(e){return false;}}
 async function syncFromDrive(){
   try{
     driveFileId=await findFile();
-    if(driveFileId){const r=await readFile(driveFileId);state=r;saveLocal();}
-    else await writeFile(state);
+    if(!driveFileId){ await writeFile(state); limpiarPendiente(); }
+    else{
+      const nube=await readFile(driveFileId);
+      const tsLocal=state.updatedAt||0, tsNube=(nube&&nube.updatedAt)||0;
+      const soloDemo=!!(state.obras&&state.obras.length&&state.obras.every(o=>o.demo));
+      const pendiente=hayPendiente()&&state.obras&&state.obras.length&&!soloDemo;
+      if(!nube||!nube.obras){ await writeFile(state); limpiarPendiente(); }
+      else if(!pendiente){ state=nube; saveLocal(); limpiarPendiente(); }          // nada pendiente aquí: la nube manda
+      else if(tsLocal>=tsNube){ await writeFile(state); limpiarPendiente(); }      // lo local es lo más nuevo: se sube
+      else{
+        // Conflicto real: cambios locales sin subir Y cambios más nuevos en Drive (otro dispositivo)
+        const usarLocal=confirm('⚠ Conflicto de datos\n\nEste dispositivo tiene cambios sin subir, y Drive tiene cambios más nuevos hechos en otro dispositivo.\n\nAceptar = conservar lo de ESTE dispositivo y subirlo a Drive.\nCancelar = tomar lo de DRIVE.\n\nLa versión descartada queda respaldada en este dispositivo.');
+        try{localStorage.setItem(LS_RESPALDO,JSON.stringify({fecha:new Date().toISOString(),descartado:usarLocal?'drive':'local',state:usarLocal?nube:state}));}catch(e){}
+        if(usarLocal){ await writeFile(state); } else { state=nube; saveLocal(); }
+        limpiarPendiente();
+      }
+    }
     setSyncUI('ok','Drive · '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}));
     renderObras();
+    procesarFotosPendientes();   // F-04: subir fotos que quedaron en cola sin conexión
   }catch(e){if(e.message!=='401'){setSyncUI('ok','Datos locales (sin Drive)');renderObras();}}
 }
 
 async function saveAndSync(){
+  state.updatedAt=Date.now(); marcarPendiente();
   saveLocal();renderObras();
   if(!accessToken)return;
   setSyncUI('syncing','Guardando...');
   clearTimeout(syncTO);
-  syncTO=setTimeout(async()=>{
-    try{await writeFile(state);setSyncUI('ok','Drive · '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}));}
-    catch(e){if(e.message!=='401')setSyncUI('ok','Guardado localmente');}
-  },800);
+  syncTO=setTimeout(subirAhora,800);
 }
+// Sube a Drive de inmediato: lo usa el debounce y también la salida de la app (F-02)
+async function subirAhora(opts){
+  clearTimeout(syncTO); syncTO=null;
+  if(!accessToken||!hayPendiente()) return;
+  try{await writeFile(state,opts);limpiarPendiente();setSyncUI('ok','Drive · '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}));}
+  catch(e){if(e.message!=='401')setSyncUI('ok','Guardado localmente · pendiente de subir');}
+}
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden'&&syncTO) subirAhora({keepalive:true}); });
+window.addEventListener('pagehide',()=>{ if(syncTO) subirAhora({keepalive:true}); });
 
 function seedDemo(){
   if(state.obras?.length>0)return;
-  function dF(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x.toISOString().slice(0,10);}
+  function dF(d,n){const x=(d instanceof Date)?new Date(d):parseISO(d);x.setDate(x.getDate()+n);return isoLocal(x);}
   const hoy=new Date(),i1=dF(hoy,-120),i2=dF(hoy,-60),i3=dF(hoy,-30);
   state.obras=[
-    {nombre:'Parque Pudahuel Norte',contrato:'2024-001-SERVIU',contratista:'Constructora Andes SpA',inicio:i1,plazo:365,monto:850000000,anticipo:20,avance:38,avanceProg:45,eps:[{num:1,fecha:dF(i1,28),monto:42500000,descAnt:8500000,retencion:2125000,pagado:31875000,estado:'pagado'},{num:2,fecha:dF(i1,56),monto:38200000,descAnt:7640000,retencion:1910000,pagado:28650000,estado:'pagado'},{num:3,fecha:dF(i1,84),monto:41000000,descAnt:8200000,retencion:2050000,pagado:30750000,estado:'en_revision'}],partidas:[{nombre:'Movimiento de tierras',pct:100},{nombre:'Pavimentación accesos',pct:80},{nombre:'Áreas verdes',pct:45},{nombre:'Juegos infantiles',pct:30},{nombre:'Iluminación LED',pct:20},{nombre:'Cierre perimetral',pct:60},{nombre:'Mobiliario urbano',pct:10}],libro:[{fecha:dF(hoy,-7),texto:'Se instruye al contratista acelerar partida de áreas verdes. Plazo perentorio 15 días.',autor:'César Pino, ITO'},{fecha:dF(hoy,-14),texto:'Fiscalización detecta hormigón sin ensayo previo. Se paraliza partida hasta resultados de laboratorio.',autor:'César Pino, ITO'}],personal:{residente:'Arq. Juan Muñoz',autocontrol:'Ing. Claudia Rojas',jefTerreno:'Carlos Soto'},proximoEP:dF(i1,112)},
-    {nombre:'Parque La Pintana Sur',contrato:'2024-002-SERVIU',contratista:'RyC Construcciones Ltda.',inicio:i2,plazo:300,monto:620000000,anticipo:20,avance:22,avanceProg:18,eps:[{num:1,fecha:dF(i2,28),monto:31000000,descAnt:6200000,retencion:1550000,pagado:23250000,estado:'pagado'},{num:2,fecha:dF(i2,56),monto:28500000,descAnt:5700000,retencion:1425000,pagado:21375000,estado:'pendiente'}],partidas:[{nombre:'Demolición existentes',pct:100},{nombre:'Movimiento de tierras',pct:75},{nombre:'Redes agua potable',pct:40},{nombre:'Pavimentación',pct:15},{nombre:'Áreas verdes',pct:5}],libro:[{fecha:dF(hoy,-3),texto:'Reunión en terreno. Sector norte cumple programa. Sector sur presenta atraso de 8 días.',autor:'César Pino, ITO'}],personal:{residente:'Ing. Marcelo Vera',autocontrol:'Arq. Sandra Pérez',jefTerreno:'Luis Fuentes'},proximoEP:dF(i2,84)},
-    {nombre:'Pasaje Hermanos Matte',contrato:'2023-015-SERVIU',contratista:'Pavimentos del Centro SA',inicio:i3,plazo:120,monto:95000000,anticipo:0,avance:12,avanceProg:20,eps:[],partidas:[{nombre:'Preparación subbase',pct:40},{nombre:'Pavimento adoquines',pct:5},{nombre:'Soleras y cunetas',pct:10}],libro:[],personal:{residente:'Ing. Roberto Mora',autocontrol:'N/A',jefTerreno:'Pedro Rojas'},proximoEP:dF(hoy,12)},
+    {demo:true,nombre:'Parque Pudahuel Norte',contrato:'2024-001',contratista:'Constructora Andes SpA',inicio:i1,plazo:365,monto:850000000,anticipo:20,avance:38,avanceProg:45,eps:[{num:1,fecha:dF(i1,28),monto:42500000,descAnt:8500000,retencion:2125000,pagado:true,estado:'pagado'},{num:2,fecha:dF(i1,56),monto:38200000,descAnt:7640000,retencion:1910000,pagado:true,estado:'pagado'},{num:3,fecha:dF(i1,84),monto:41000000,descAnt:8200000,retencion:2050000,pagado:false,estado:'en_revision'}],partidas:[{nombre:'Movimiento de tierras',pct:100},{nombre:'Pavimentación accesos',pct:80},{nombre:'Áreas verdes',pct:45},{nombre:'Juegos infantiles',pct:30},{nombre:'Iluminación LED',pct:20},{nombre:'Cierre perimetral',pct:60},{nombre:'Mobiliario urbano',pct:10}],libro:[{fecha:dF(hoy,-7),texto:'Se instruye al contratista acelerar partida de áreas verdes. Plazo perentorio 15 días.',autor:'ITO (demo)'},{fecha:dF(hoy,-14),texto:'Fiscalización detecta hormigón sin ensayo previo. Se paraliza partida hasta resultados de laboratorio.',autor:'ITO (demo)'}],personal:{residente:'Arq. Juan Muñoz',autocontrol:'Ing. Claudia Rojas',jefTerreno:'Carlos Soto'},proximoEP:dF(i1,112)},
+    {demo:true,nombre:'Parque La Pintana Sur',contrato:'2024-002',contratista:'RyC Construcciones Ltda.',inicio:i2,plazo:300,monto:620000000,anticipo:20,avance:22,avanceProg:18,eps:[{num:1,fecha:dF(i2,28),monto:31000000,descAnt:6200000,retencion:1550000,pagado:true,estado:'pagado'},{num:2,fecha:dF(i2,56),monto:28500000,descAnt:5700000,retencion:1425000,pagado:false,estado:'pendiente'}],partidas:[{nombre:'Demolición existentes',pct:100},{nombre:'Movimiento de tierras',pct:75},{nombre:'Redes agua potable',pct:40},{nombre:'Pavimentación',pct:15},{nombre:'Áreas verdes',pct:5}],libro:[{fecha:dF(hoy,-3),texto:'Reunión en terreno. Sector norte cumple programa. Sector sur presenta atraso de 8 días.',autor:'ITO (demo)'}],personal:{residente:'Ing. Marcelo Vera',autocontrol:'Arq. Sandra Pérez',jefTerreno:'Luis Fuentes'},proximoEP:dF(i2,84)},
+    {demo:true,nombre:'Pasaje Hermanos Matte',contrato:'2023-015',contratista:'Pavimentos del Centro SA',inicio:i3,plazo:120,monto:95000000,anticipo:0,avance:12,avanceProg:20,eps:[],partidas:[{nombre:'Preparación subbase',pct:40},{nombre:'Pavimento adoquines',pct:5},{nombre:'Soleras y cunetas',pct:10}],libro:[],personal:{residente:'Ing. Roberto Mora',autocontrol:'N/A',jefTerreno:'Pedro Rojas'},proximoEP:dF(hoy,12)},
   ];
 }
 
 const go=id=>{document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');window.scrollTo(0,0);};
 function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
-const calcFin=o=>{if(!o.inicio||!o.plazo)return null;const d=new Date(o.inicio);d.setDate(d.getDate()+parseInt(o.plazo));return d.toISOString().slice(0,10);};
+const calcFin=o=>{if(!o.inicio||!o.plazo)return null;const d=parseISO(o.inicio);if(!d)return null;d.setDate(d.getDate()+parseInt(o.plazo));return isoLocal(d);};
 const calcDR=o=>{const f=calcFin(o);if(!f)return'—';const d=diffDays(today(),f);return d<0?'0':String(d);};
 
 function getAlerts(o){
@@ -1112,8 +1181,8 @@ function getAlerts(o){
 }
 
 // ══ CONTRATOS TERMINADOS (archivo) + alerta garantía 2 años ══
-function addAnios(iso,n){const d=new Date(iso);d.setFullYear(d.getFullYear()+n);return d.toISOString().slice(0,10);}
-function addMeses(iso,n){const d=new Date(iso);d.setMonth(d.getMonth()+n);return d.toISOString().slice(0,10);}
+function addAnios(iso,n){const d=parseISO(iso);if(!d)return null;d.setFullYear(d.getFullYear()+n);return isoLocal(d);}
+function addMeses(iso,n){const d=parseISO(iso);if(!d)return null;d.setMonth(d.getMonth()+n);return isoLocal(d);}
 function garantiaFecha(o){return o.fechaActaCalificacion||(o.recepcion&&o.recepcion.acta_calificacion&&o.recepcion.acta_calificacion.fecha)||null;}
 function garantiaAlerta(o){
   const f=garantiaFecha(o); if(!f) return null;
@@ -1127,7 +1196,7 @@ function renderDashArchivar(o){
   const el=document.getElementById('dash-archivar'); const sub=document.getElementById('dash-contrato');
   if(!el) return;
   if(o.archivado){
-    if(sub) sub.innerHTML=(o.contrato||'')+' · <span style="color:var(--green);font-weight:600;">● Terminado</span>';
+    if(sub) sub.innerHTML=esc(o.contrato||'')+' · <span style="color:var(--green);font-weight:600;">● Terminado</span>';
     el.innerHTML='<button onclick="reactivarContrato()" style="width:100%;padding:11px;font-size:13px;background:var(--blue-bg);color:var(--blue);border:0.5px solid var(--blue);border-radius:var(--r);cursor:pointer;">↩ Reactivar contrato</button>';
   } else {
     if(sub) sub.textContent=o.contrato||'';
@@ -1182,7 +1251,7 @@ function renderObras(){
         return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;background:${bg};border-bottom:0.5px solid var(--border);">
           <div style="width:10px;height:10px;border-radius:50%;background:${dot};flex-shrink:0;"></div>
           <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${x.nombre}</div>
+            <div style="font-size:12px;font-weight:500;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(x.nombre)}</div>
             <div style="font-size:11px;color:var(--text2);">EP N°${x.epNum} · ${fmtDate(x.fecha)}</div>
           </div>
           <div style="font-size:12px;font-weight:600;color:${color};flex-shrink:0;">${label}</div>
@@ -1210,7 +1279,7 @@ function renderObras(){
     }
     const alertasCrit=al.filter(a=>a.tipo==='danger'||a.tipo==='warn');
     const div=document.createElement('div');div.className='obra-card';
-    div.innerHTML=`<div class="obra-name">${o.nombre}</div><div class="obra-meta">${o.contratista} · ${o.contrato}</div><div class="obra-badges">${eb}<span class="badge badge-info">Avance ${pctEjecutado(o)}%</span>${epBadge}${dr!==null&&dr<=30?`<span class="badge badge-warn">${dr}d contrato</span>`:''} ${alertasCrit.length?`<span class="badge badge-danger">${alertasCrit.length} alerta${alertasCrit.length>1?'s':''}</span>`:''}</div>`;
+    div.innerHTML=`<div class="obra-name">${esc(o.nombre)}</div><div class="obra-meta">${esc(o.contratista)} · ${esc(o.contrato)}</div><div class="obra-badges">${eb}<span class="badge badge-info">Avance ${pctEjecutado(o)}%</span>${epBadge}${dr!==null&&dr<=30?`<span class="badge badge-warn">${dr}d contrato</span>`:''} ${alertasCrit.length?`<span class="badge badge-danger">${alertasCrit.length} alerta${alertasCrit.length>1?'s':''}</span>`:''}</div>`;
     div.onclick=()=>openObra(i);list.appendChild(div);
   });
 
@@ -1223,7 +1292,7 @@ function renderObras(){
       if(g){ if(g.tipo==='danger') gb='<span class="badge badge-danger">Garantía vencida</span>';
         else if(g.tipo==='warn') gb='<span class="badge badge-warn">Garantía en '+g.dias+'d</span>';
         else gb='<span class="badge badge-ok">Garantía vigente</span>'; }
-      cards+='<div class="obra-card" onclick="openObra('+i+')"><div class="obra-name">'+o.nombre+'</div><div class="obra-meta">'+o.contratista+' · '+o.contrato+'</div><div class="obra-badges"><span class="badge" style="background:#e8e8e4;color:#555;">Terminado</span>'+gb+'</div></div>';
+      cards+='<div class="obra-card" onclick="openObra('+i+')"><div class="obra-name">'+esc(o.nombre)+'</div><div class="obra-meta">'+esc(o.contratista)+' · '+esc(o.contrato)+'</div><div class="obra-badges"><span class="badge" style="background:#e8e8e4;color:#555;">Terminado</span>'+gb+'</div></div>';
     });
     const wrap=document.createElement('div'); wrap.style.cssText='margin-top:16px;';
     wrap.innerHTML='<button onclick="toggleArchivo()" style="width:calc(100% - 32px);margin:0 16px;padding:12px 14px;background:var(--bg2);border:0.5px solid var(--border);border-radius:var(--rl);font-size:13px;font-weight:500;color:var(--text);cursor:pointer;display:flex;align-items:center;justify-content:space-between;"><span>📁 Contratos terminados ('+archivadas.length+')</span><span id="arch-arrow" style="transition:transform .2s;font-size:16px;">›</span></button><div id="arch-list" style="display:none;margin-top:8px;">'+cards+'</div>';
@@ -1328,12 +1397,15 @@ function refrescarBarrasDash(o){
   const fu=document.getElementById('dash-avance-fuente');
   if(fu){
     const f=o.avanceFuente;
-    if(f){
+    if(f&&f.manual){
+      const hitM=getUltimoEPConExcel(o);
+      fu.innerHTML='<span style="opacity:.7;">Valores ingresados manualmente.</span>'+(hitM?` <button onclick="cargarDesdeUltimoEP()" style="margin-top:6px;width:100%;padding:8px;font-size:12px;background:var(--blue-bg);color:var(--blue);border:0.5px solid var(--blue);border-radius:var(--r);cursor:pointer;">☁️ Volver a tomar avances del EP N°${hitM.ep.num}</button>`:'');
+    } else if(f){
       fu.innerHTML=`Según EP N°${f.epNum} del programa financiero${f.hasta?' · periodo hasta '+fmtDate(f.hasta):''} <span style="opacity:.7;">(${f.criterio})</span>`;
     } else {
       const hit=getUltimoEPConExcel(o);
       fu.innerHTML=hit
-        ? `<button onclick="cargarDesdeUltimoEP()" style="width:100%;padding:8px;font-size:12px;background:var(--blue-bg);color:var(--blue);border:0.5px solid var(--blue);border-radius:var(--r);cursor:pointer;">☁️ Tomar avances del EP N°${hit.ep.num} (${hit.adj.nombre})</button>`
+        ? `<button onclick="cargarDesdeUltimoEP()" style="width:100%;padding:8px;font-size:12px;background:var(--blue-bg);color:var(--blue);border:0.5px solid var(--blue);border-radius:var(--r);cursor:pointer;">☁️ Tomar avances del EP N°${hit.ep.num} (${esc(hit.adj.nombre)})</button>`
         : '<span style="opacity:.7;">Sin Excel vinculado. Adjunta el archivo del EP en Estados de pago y los avances se tomarán del programa financiero.</span>';
     }
   }
@@ -1399,6 +1471,10 @@ function inicObra(o){
   if(!o.profesionales) o.profesionales=[];
   if(!o.recepcion) o.recepcion={};
   if(!o.checklist) o.checklist={};
+  // Migraciones suaves (F-05/F-06/F-11): ids estables y modelo único de 'pagado' (booleano)
+  o.eps.forEach(e=>{ if(!e.id) e.id=uid(); if(typeof e.pagado==='number'){ e.montoPagado=e.pagado; e.pagado=(e.estado==='pagado'); } });
+  o.garantias.forEach(g=>{ if(!g.id) g.id=uid(); });
+  o.visitas.forEach(v=>{ if(!v.id) v.id=uid(); });
 }
 
 function openObra(idx){
@@ -1435,7 +1511,7 @@ function actualizarAvanceManual(){
   const prog=parseFloat(document.getElementById('dash-avance-prog').value)||0;
   o.avance=Math.min(100,Math.max(0,real));
   o.avanceProg=Math.min(100,Math.max(0,prog));
-  o.avanceFuente=null; // pasa a ser edición manual
+  o.avanceFuente={manual:true,cargado:today()}; // edición manual: no se vuelve a vincular sola al Excel (F-03)
   document.getElementById('bar-real').style.width=o.avance+'%';
   document.getElementById('bar-prog').style.width=o.avanceProg+'%';
   document.getElementById('bar-real-pct').textContent=o.avance+'%';
@@ -1522,14 +1598,14 @@ function comprimirImagen(file){
   });
 }
 
-async function subirArchivoADrive(file, carpeta){
+async function subirArchivoADrive(file, carpeta, obra){
   // Comprimir si es imagen — ahorra ancho de banda y cuota Drive
   if(file.type&&file.type.startsWith('image/')){
     try{ file=await comprimirImagen(file); }catch(e){/* fallback al original */}
   }
   if(!accessToken) throw new Error('Sin conexión Drive');
   // 1. Obtener o crear carpeta ITO SERVIU / obra / categoria
-  const obraNombre = state.obras[state.activeObraIdx].nombre;
+  const obraNombre = safeFolder((obra||state.obras[state.activeObraIdx]).nombre);  // S-08: sin '/' ni caracteres de control
   const folderId = await obtenerCarpetaDrive(`ITO SERVIU/${obraNombre}/${carpeta}`);
   // 2. Subir archivo multipart
   const meta = JSON.stringify({name: file.name, parents:[folderId]});
@@ -1549,7 +1625,8 @@ async function obtenerCarpetaDrive(ruta){
   const partes = ruta.split('/');
   let parentId = 'root';
   for(const parte of partes){
-    const q = `name='${parte}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
+    const parteQ = parte.replace(/\\/g,'\\\\').replace(/'/g,"\\'");  // S-08: escapar comillas en la consulta a Drive
+    const q = `name='${parteQ}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
     const r = await apiFetch(`https://www.googleapis.com/drive/v3/files?q=${encodeURIComponent(q)}&fields=files(id)`);
     const d = await r.json();
     if(d.files && d.files.length > 0){
@@ -1610,15 +1687,15 @@ function renderDocCat(cat){
       return `<div class="obra-card">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
           <div style="flex:1;min-width:0;">
-            <div class="obra-name" style="font-size:14px;">${g.tipo}</div>
-            <div class="obra-meta">${g.instrumento} · ${g.entidad||'—'} · N°${g.numero||'—'}</div>
+            <div class="obra-name" style="font-size:14px;">${esc(g.tipo)}</div>
+            <div class="obra-meta">${esc(g.instrumento)} · ${esc(g.entidad||'—')} · N°${esc(g.numero||'—')}</div>
             <div class="obra-meta">$${fmtM(g.monto||0)} · Vence: ${fmtDate(g.vencimiento)}</div>
           </div>
           ${badge}
         </div>
         <div style="margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px;display:flex;align-items:center;justify-content:space-between;">
           ${g.driveLink
-            ? `<a href="${g.driveLink}" target="_blank" style="font-size:12px;color:var(--blue);display:flex;align-items:center;gap:5px;">📎 ${g.archivoNombre||'Ver documento'}</a>`
+            ? `<a href="${safeUrl(g.driveLink)}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:var(--blue);display:flex;align-items:center;gap:5px;">📎 ${esc(g.archivoNombre||'Ver documento')}</a>`
             : `<span style="font-size:12px;color:var(--text2);">Sin documento adjunto</span>`}
           <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:4px 10px;border:0.5px solid var(--border);border-radius:20px;">
             <input type="file" accept=".pdf,.jpg,.png" style="display:none;" onchange="adjuntarArchivoGarantia(event,${i})"/>
@@ -1644,11 +1721,11 @@ function renderDocCat(cat){
       <div style="display:flex;align-items:center;gap:10px;">
         <div style="font-size:24px;flex-shrink:0;">${d.driveLink?'📎':'📄'}</div>
         <div style="flex:1;min-width:0;">
-          <div class="obra-name" style="font-size:14px;">${d.nombre}</div>
-          <div class="obra-meta">N°${d.numero||'—'} · ${fmtDate(d.fecha)} · ${d.emisor||'—'}</div>
-          ${d.obs?`<div class="obra-meta" style="margin-top:2px;">${d.obs}</div>`:''}
+          <div class="obra-name" style="font-size:14px;">${esc(d.nombre)}</div>
+          <div class="obra-meta">N°${esc(d.numero||'—')} · ${fmtDate(d.fecha)} · ${esc(d.emisor||'—')}</div>
+          ${d.obs?`<div class="obra-meta" style="margin-top:2px;">${esc(d.obs)}</div>`:''}
         </div>
-        ${d.driveLink?`<a href="${d.driveLink}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--blue);flex-shrink:0;padding:4px 8px;border:0.5px solid var(--border);border-radius:20px;">Abrir</a>`:''}
+        ${d.driveLink?`<a href="${safeUrl(d.driveLink)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-size:11px;color:var(--blue);flex-shrink:0;padding:4px 8px;border:0.5px solid var(--border);border-radius:20px;">Abrir</a>`:''}
       </div>
     </div>`).join('');
 }
@@ -1688,7 +1765,7 @@ function editarDocumento(cat, idx){
   if(d.driveLink){
     actualWrap.style.display = 'flex';
     document.getElementById('doc-archivo-nombre').textContent = d.archivoNombre||'Archivo adjunto';
-    document.getElementById('doc-archivo-link').href = d.driveLink;
+    document.getElementById('doc-archivo-link').href = safeUrl(d.driveLink);
   } else {
     actualWrap.style.display = 'none';
   }
@@ -1710,7 +1787,7 @@ async function handleDocUpload(event){
     const actualWrap = document.getElementById('doc-archivo-actual');
     actualWrap.style.display = 'flex';
     document.getElementById('doc-archivo-nombre').textContent = result.name;
-    document.getElementById('doc-archivo-link').href = result.webViewLink;
+    document.getElementById('doc-archivo-link').href = safeUrl(result.webViewLink);
     showToast('Archivo subido a Drive ✓');
   } catch(e){
     prog.style.display = 'none';
@@ -1775,7 +1852,7 @@ function renderFichasP(o){
   document.getElementById('fichas-p-list').innerHTML=fichas.map(f=>{
     const adj = o.adjuntos[f.id]||[];
     const adjHTML = adj.length>0
-      ? adj.map(a=>`<a href="${a.driveLink}" target="_blank" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--blue);padding:3px 0;">📎 ${a.nombre}</a>`).join('')
+      ? adj.map(a=>`<a href="${safeUrl(a.driveLink)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--blue);padding:3px 0;">📎 ${esc(a.nombre)}</a>`).join('')
       : '';
     return `<div class="ficha-card">
       <div class="ficha-header" onclick="openFichaDetalle('${f.id}','${f.nombre}')" style="cursor:pointer;">
@@ -1874,8 +1951,10 @@ async function adjuntarArchivoGarantia(event, idx){
     if(!o.documentos) o.documentos={};
     if(!o.documentos['garantias_docs']) o.documentos['garantias_docs']=[];
     // Actualizar o crear entrada en garantias_docs
-    const existente = o.documentos['garantias_docs'].findIndex(d=>d.garantiaIdx===idx);
+    if(!g.id) g.id=uid();
+    const existente = o.documentos['garantias_docs'].findIndex(d=>(d.garantiaId&&d.garantiaId===g.id)||(!d.garantiaId&&d.garantiaIdx===idx));
     const docEntry = {
+      garantiaId: g.id,
       garantiaIdx: idx,
       nombre: `${g.tipo} — ${g.instrumento} N°${g.numero||'s/n'}`,
       fecha: today(),
@@ -1910,7 +1989,7 @@ const CHECKLIST_ITEMS = {
   ds236:[
     {id:'c1',texto:'Entrega de terreno formalizada mediante acta firmada',ref:'Art. 28 DS 236'},
     {id:'c2',texto:'Libro de Inspección de Obras habilitado y en terreno',ref:'Art. 30 DS 236'},
-    {id:'c3',texto:'Cartel de obra instalado según especificaciones SERVIU',ref:'Art. 29 DS 236'},
+    {id:'c3',texto:'Cartel de obra instalado según especificaciones del mandante',ref:'Art. 29 DS 236'},
     {id:'c4',texto:'Programa de trabajo recibido y aprobado por ITO',ref:'Art. 31 DS 236'},
     {id:'c5',texto:'Nómina de personal presentada al ITO',ref:'Art. 32 DS 236'},
     {id:'c6',texto:'Instalación de faenas operativa',ref:'Art. 33 DS 236'},
@@ -2015,16 +2094,29 @@ function marcarTodoOk(tab){
 
 function renderGanttModulo(){
   const o=state.obras[state.activeObraIdx];
-  if(!o.gantt||!o.gantt.length){
-    document.getElementById('gantt-estado-banner').style.display='none';
-    document.getElementById('gantt-semana-wrap').style.display='none';
-    const ic=document.getElementById('gantt-info-carga');if(ic)ic.style.display='none';
-    document.getElementById('gantt-list').innerHTML='<div class="empty-state" style="padding-top:32px;"><div style="font-size:32px;margin-bottom:10px;">📅</div>Sin Carta Gantt cargada.<br>Usa el botón para cargar el Excel del programa de trabajo.</div>';
-    return;
-  }
-  renderGantt(o);
+  renderGantt(o);   // muestra de inmediato lo que haya guardado, calculado a la fecha de hoy
+  autoCargarGantt(o).then(actualizado=>{ if(actualizado){ renderGantt(o); showToast('✓ Carta Gantt actualizada desde Drive'); } });
 }
 
+// Excel de la Carta Gantt adjunto en Drive (Ficha P.3): primero el marcado como Gantt, luego por nombre, luego el último Excel
+function getGanttAdjunto(o){
+  const adj=((o&&o.adjuntos&&o.adjuntos['P.3'])||[]).filter(a=>a.driveId&&/\.(xlsx|xlsm|xls)$/i.test(a.nombre||''));
+  if(!adj.length) return null;
+  return adj.find(a=>a.esGantt)||adj.find(a=>/gantt|programa|cronograma/i.test(a.nombre||''))||adj[adj.length-1];
+}
+// Lee la Carta Gantt desde Drive automáticamente: si hay un archivo nuevo, o en la primera consulta del día
+async function autoCargarGantt(o){
+  if(!accessToken||!o) return false;
+  const adj=getGanttAdjunto(o); if(!adj) return false;
+  if(o.gantt&&o.gantt.length&&o.ganttFuenteId===adj.driveId&&o.ganttFechaCarga===today()) return false;
+  try{
+    const res=await apiFetch(`https://www.googleapis.com/drive/v3/files/${adj.driveId}?alt=media`);
+    const items=parsearGanttBuffer(await res.arrayBuffer());
+    if(!items.length) return false;
+    o.gantt=items; o.ganttFechaCarga=today(); o.ganttFuenteId=adj.driveId; o.ganttFuenteNombre=adj.nombre; o.p3Estado='ok';
+    saveAndSync(); return true;
+  }catch(e){ console.error('autoCargarGantt',e); return false; }
+}
 
 function matchPartidaGantt(p, partidasReales){
   if(!partidasReales||!partidasReales.length) return null;
@@ -2069,83 +2161,101 @@ function calcularAvanceGantt(o,diasTranscurridos){
 }
 
 function renderGantt(o){
-  if(!o.gantt||!o.gantt.length)return;
-  const hoy=new Date();hoy.setHours(0,0,0,0);
-  const inicio=o.inicio?new Date(o.inicio):new Date();inicio.setHours(0,0,0,0);
-  const diasTranscurridos=Math.round((hoy-inicio)/(864e5));
-  const semanaActual=Math.ceil(diasTranscurridos/7);
-  const ic=document.getElementById('gantt-info-carga');
-  if(ic){
-    ic.style.display='block';
-    ic.textContent=`${o.gantt.filter(p=>!p.esCapitulo).length} partidas · Cargado: ${fmtDate(o.ganttFechaCarga||today())} · Día ${diasTranscurridos} de ${o.plazo||'—'}`;
+  const dash=document.getElementById('gantt-dash'), list=document.getElementById('gantt-list'), ic=document.getElementById('gantt-info-carga');
+  if(!o||!o.gantt||!o.gantt.length){
+    const adj=o?getGanttAdjunto(o):null;
+    dash.innerHTML=`<div class="empty-state" style="padding:28px 8px;"><div style="font-size:32px;margin-bottom:10px;">📅</div>${
+      adj?(accessToken?`Leyendo la Carta Gantt adjunta (<b>${esc(adj.nombre)}</b>)…`:`Hay una Carta Gantt adjunta en la Ficha P.3 (<b>${esc(adj.nombre)}</b>).<br>Conecta Drive para leerla automáticamente.`)
+         :'Sin Carta Gantt.<br>Adjunta el Excel del programa de trabajo aquí abajo o en la Ficha P.3: la app lo leerá sola.'}</div>`;
+    list.innerHTML=''; if(ic) ic.style.display='none';
+    return;
   }
+  const hoy=new Date();hoy.setHours(0,0,0,0);
+  const inicio=o.inicio?(parseISO(o.inicio)||new Date()):new Date();inicio.setHours(0,0,0,0);
+  const diasTranscurridos=Math.round((hoy-inicio)/(864e5));
+  const semanaActual=Math.max(1,Math.ceil(diasTranscurridos/7));
   const partidas=calcularAvanceGantt(o,diasTranscurridos);
   const atrasadas=partidas.filter(p=>p.atraso>0).sort((a,b)=>b.atraso-a.atraso);
   const enTiempo=partidas.filter(p=>p.deberiaHaberEmpezado&&p.atraso===0).length;
   const sinIniciar=partidas.filter(p=>!p.deberiaHaberEmpezado).length;
   const activas=partidas.filter(p=>p.deberiaHaberEmpezado).length;
   const pctCumpl=activas>0?Math.round(enTiempo/activas*100):100;
-  const banner=document.getElementById('gantt-estado-banner');
-  banner.style.display='block';
-  banner.innerHTML=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px;">
-    <div class="stat-card"><div class="stat-label">Semana</div><div class="stat-value" style="font-size:18px;">S${semanaActual}</div></div>
-    <div class="stat-card"><div class="stat-label">En tiempo</div><div class="stat-value" style="font-size:18px;color:var(--green);">${enTiempo}</div></div>
-    <div class="stat-card"><div class="stat-label">Atrasadas</div><div class="stat-value" style="font-size:18px;color:${atrasadas.length>0?'var(--red)':'var(--green)'};">${atrasadas.length}</div></div>
-  </div>`;
-  const sw=document.getElementById('gantt-semana-wrap');sw.style.display='block';
-  document.getElementById('gantt-semana-resumen').innerHTML=`Día <b>${diasTranscurridos}</b> de <b>${o.plazo||'—'}</b> · Semana <b>${semanaActual}</b> · ${activas} partidas activas · ${sinIniciar} por iniciar · Cumplimiento: <b style="color:${pctCumpl>=80?'var(--green)':pctCumpl>=50?'var(--amber)':'var(--red)'};">${pctCumpl}%</b>`;
-  const top5=atrasadas.slice(0,5);
-  const top5El=document.getElementById('gantt-top5');
-  top5El.innerHTML=top5.length===0?'<div style="padding:10px;font-size:12px;color:var(--green);">✓ Sin partidas atrasadas esta semana</div>':
-    top5.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:0.5px solid var(--border);">
-      <div style="width:24px;height:24px;border-radius:50%;background:${p.atraso>=30?'var(--red-bg)':'var(--amber-bg)'};color:${p.atraso>=30?'var(--red)':'var(--amber)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
-      <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.item} ${p.desc}</div><div style="font-size:11px;color:var(--text2);">Esp. ${p.pctEsperado}% · Real ${p.pctReal}% · Día ${p.diasInicio}→${p.diasTermino}</div></div>
-      <div style="font-size:14px;font-weight:700;color:${p.atraso>=30?'var(--red)':'var(--amber)'};flex-shrink:0;">-${p.atraso}%</div>
-    </div>`).join('');
-  document.getElementById('gantt-list').innerHTML=`<div class="section-title" style="padding:12px 16px 4px;">Todas las partidas (${o.gantt.filter(p=>!p.esCapitulo).length})</div>`+
+  const colC=pctCumpl>=80?'var(--green)':pctCumpl>=50?'var(--amber)':'var(--red)';
+  const top=atrasadas.slice(0,5);
+  const fuente=o.ganttFuenteNombre
+    ?`Fuente: <b>${esc(o.ganttFuenteNombre)}</b> (Drive · Ficha P.3) · leído el ${fmtDate(o.ganttFechaCarga||today())}`
+    :`Cargado manualmente el ${fmtDate(o.ganttFechaCarga||today())}`;
+  dash.innerHTML=`
+    <div style="background:#1a1a18;color:#fff;border-radius:var(--rl);padding:12px 14px;margin-bottom:8px;">
+      <div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;opacity:.75;">📅 Estado al ${fmtDate(today())}</div>
+      <div style="font-size:15px;font-weight:600;margin-top:3px;">Día ${diasTranscurridos} de ${o.plazo||'—'} · Semana ${semanaActual}</div>
+      <div style="font-size:11px;opacity:.8;margin-top:2px;">${activas} partidas activas · ${sinIniciar} por iniciar</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">
+      <div class="stat-card"><div class="stat-label">En tiempo</div><div class="stat-value" style="font-size:18px;color:var(--green);">${enTiempo}</div></div>
+      <div class="stat-card"><div class="stat-label">Atrasadas</div><div class="stat-value" style="font-size:18px;color:${atrasadas.length?'var(--red)':'var(--green)'};">${atrasadas.length}</div></div>
+      <div class="stat-card"><div class="stat-label">Cumplimiento</div><div class="stat-value" style="font-size:18px;color:${colC};">${pctCumpl}%</div></div>
+    </div>
+    <div class="section-title" style="padding:4px 0;">🔴 Partidas más atrasadas</div>
+    <div style="background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:0 12px;margin-bottom:6px;">${
+      top.length===0?'<div style="padding:12px 0;font-size:12px;color:var(--green);">✓ Sin partidas atrasadas al día de hoy</div>':
+      top.map((p,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;${i<top.length-1?'border-bottom:0.5px solid var(--border);':''}">
+        <div style="width:24px;height:24px;border-radius:50%;background:${p.atraso>=30?'var(--red-bg)':'var(--amber-bg)'};color:${p.atraso>=30?'var(--red)':'var(--amber)'};display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">${i+1}</div>
+        <div style="flex:1;min-width:0;"><div style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.item)} ${esc(p.desc)}</div><div style="font-size:11px;color:var(--text2);">Esperado ${p.pctEsperado}% · Real ${p.pctReal}% · Día ${p.diasInicio}→${p.diasTermino}</div></div>
+        <div style="font-size:14px;font-weight:700;color:${p.atraso>=30?'var(--red)':'var(--amber)'};flex-shrink:0;">-${p.atraso}%</div>
+      </div>`).join('')}</div>
+    <div style="font-size:11px;color:var(--text2);margin-bottom:4px;">${fuente}</div>`;
+  if(ic){ ic.style.display='block'; ic.textContent=`${o.gantt.filter(p=>!p.esCapitulo).length} partidas en el programa de trabajo`; }
+  list.innerHTML=`<div class="section-title" style="padding:12px 16px 4px;">Todas las partidas (${o.gantt.filter(p=>!p.esCapitulo).length})</div>`+
     o.gantt.map(p=>{
-      if(p.esCapitulo)return`<div style="padding:8px 16px;background:var(--blue-bg);border-bottom:0.5px solid var(--border);font-size:12px;font-weight:600;color:var(--blue);">${p.item} ${p.desc}</div>`;
+      if(p.esCapitulo)return`<div style="padding:8px 16px;background:var(--blue-bg);border-bottom:0.5px solid var(--border);font-size:12px;font-weight:600;color:var(--blue);">${esc(p.item)} ${esc(p.desc)}</div>`;
       const dp=partidas.find(x=>x.item===p.item&&x.desc===p.desc)||{pctEsperado:0,pctReal:0,atraso:0,deberiaHaberEmpezado:false};
       const col=dp.atraso>=30?'var(--red)':dp.atraso>0?'var(--amber)':dp.deberiaHaberEmpezado?'var(--green)':'var(--text2)';
-      return`<div style="padding:8px 16px;border-bottom:0.5px solid var(--border);"><div style="display:flex;justify-content:space-between;gap:8px;"><span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${p.item} ${p.desc}</span><span style="font-size:12px;font-weight:600;color:${col};flex-shrink:0;">${dp.atraso>0?'-'+dp.atraso+'%':dp.deberiaHaberEmpezado?'OK':'Por iniciar'}</span></div><div style="font-size:10px;color:var(--text2);">Día ${p.diasInicio}→${p.diasTermino} · Esp. ${dp.pctEsperado}% · Real ${dp.pctReal}%</div></div>`;
+      return`<div style="padding:8px 16px;border-bottom:0.5px solid var(--border);"><div style="display:flex;justify-content:space-between;gap:8px;"><span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(p.item)} ${esc(p.desc)}</span><span style="font-size:12px;font-weight:600;color:${col};flex-shrink:0;">${dp.atraso>0?'-'+dp.atraso+'%':dp.deberiaHaberEmpezado?'OK':'Por iniciar'}</span></div><div style="font-size:10px;color:var(--text2);">Día ${p.diasInicio}→${p.diasTermino} · Esp. ${dp.pctEsperado}% · Real ${dp.pctReal}%</div></div>`;
     }).join('');
+}
+
+// Parser del Excel de Carta Gantt (columnas: Ítem, Partida, Días inicio, Duración, Días término). Lo usan la carga manual y la automática.
+function parsearGanttBuffer(buf){
+  if(!window.XLSX) throw new Error('La librería de Excel aún está cargando; intenta de nuevo');
+  const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  const items=[];
+  rows.forEach((row,ri)=>{
+    if(ri<6)return;
+    const item=row[0],desc=row[1];
+    if(!item&&!desc)return;
+    if(String(item).trim()===''&&String(desc).trim()==='')return;
+    const diasInicio=typeof row[2]==='number'?row[2]:parseInt(row[2])||0;
+    const duracion=typeof row[3]==='number'?row[3]:parseInt(row[3])||0;
+    const diasTermino=typeof row[4]==='number'?row[4]:parseInt(row[4])||diasInicio+duracion;
+    const esCapitulo=(!row[2]&&!row[3])||duracion===0;
+    items.push({item:String(item||'').trim(),desc:String(desc||'').trim(),diasInicio,duracion,diasTermino,esCapitulo});
+  });
+  return items;
 }
 
 function cargarGantt(event){
   const file=event.target.files[0];if(!file)return;
   const reader=new FileReader();
   reader.onerror=()=>showToast('⚠ Error leyendo el archivo');
-  reader.onload=ev=>{
+  reader.onload=async ev=>{
     try{
-      if(!window.XLSX){showToast('Cargando librería...');return;}
-      const wb=XLSX.read(new Uint8Array(ev.target.result),{type:'array'});
-      const ws=wb.Sheets[wb.SheetNames[0]];
-      const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
-      const items=[];
-      rows.forEach((row,ri)=>{
-        if(ri<6)return;
-        const item=row[0],desc=row[1];
-        if(!item&&!desc)return;
-        if(String(item).trim()===''&&String(desc).trim()==='')return;
-        const diasInicio=typeof row[2]==='number'?row[2]:parseInt(row[2])||0;
-        const duracion=typeof row[3]==='number'?row[3]:parseInt(row[3])||0;
-        const diasTermino=typeof row[4]==='number'?row[4]:parseInt(row[4])||diasInicio+duracion;
-        const esCapitulo=(!row[2]&&!row[3])||duracion===0;
-        items.push({item:String(item||'').trim(),desc:String(desc||'').trim(),diasInicio,duracion,diasTermino,esCapitulo});
-      });
-      if(items.length>0){
-        const o=state.obras[state.activeObraIdx];
-        o.gantt=items; o.ganttFechaCarga=today();
-        // Vincular automáticamente con P.3
-        o.p3Estado='ok';
-        if(!o.adjuntos)o.adjuntos={};
-        if(!o.adjuntos['P.3'])o.adjuntos['P.3']=[];
-        const idx=o.adjuntos['P.3'].findIndex(a=>a.esGantt);
-        const entrada={nombre:`Carta Gantt — ${file.name} (${fmtDate(today())})`,esGantt:true,driveLink:null,driveId:null};
-        if(idx>=0)o.adjuntos['P.3'][idx]=entrada;else o.adjuntos['P.3'].unshift(entrada);
-        saveAndSync();renderGantt(o);
-        showToast(`✓ ${items.filter(i=>!i.esCapitulo).length} partidas · Vinculada a P.3`);
-      }else showToast('No se encontraron partidas en el Excel');
+      const items=parsearGanttBuffer(ev.target.result);
+      if(!items.length){showToast('No se encontraron partidas en el Excel');return;}
+      const o=state.obras[state.activeObraIdx];
+      o.gantt=items; o.ganttFechaCarga=today(); o.p3Estado='ok';
+      if(!o.adjuntos)o.adjuntos={}; if(!o.adjuntos['P.3'])o.adjuntos['P.3']=[];
+      let entrada={nombre:file.name,esGantt:true,driveLink:null,driveId:null};
+      if(accessToken){
+        try{ const r=await subirArchivoADrive(file,'Fichas/P.3'); entrada={nombre:r.name,esGantt:true,driveId:r.id,driveLink:r.webViewLink}; o.ganttFuenteId=r.id; o.ganttFuenteNombre=r.name; }
+        catch(e){ o.ganttFuenteId=null; o.ganttFuenteNombre=null; showToast('Leída localmente; no se pudo subir a Drive: '+e.message); }
+      } else { o.ganttFuenteId=null; o.ganttFuenteNombre=null; }
+      const idx=o.adjuntos['P.3'].findIndex(a=>a.esGantt);
+      if(idx>=0)o.adjuntos['P.3'][idx]=entrada;else o.adjuntos['P.3'].unshift(entrada);
+      saveAndSync();renderGantt(o);
+      showToast(`✓ ${items.filter(i=>!i.esCapitulo).length} partidas · ${entrada.driveId?'guardada en Drive (Ficha P.3)':'vinculada a P.3 (sin Drive)'}`);
     }catch(e){showToast('Error: '+e.message);}
   };
   reader.readAsArrayBuffer(file);
@@ -2154,7 +2264,7 @@ function cargarGantt(event){
 function getTop5Atrasadas(o){
   if(!o.gantt||!o.gantt.length)return[];
   const hoy=new Date();hoy.setHours(0,0,0,0);
-  const inicio=o.inicio?new Date(o.inicio):new Date();inicio.setHours(0,0,0,0);
+  const inicio=o.inicio?(parseISO(o.inicio)||new Date()):new Date();inicio.setHours(0,0,0,0);
   return calcularAvanceGantt(o,Math.round((hoy-inicio)/(864e5))).filter(p=>p.atraso>0).sort((a,b)=>b.atraso-a.atraso).slice(0,5);
 }
 
@@ -2205,10 +2315,10 @@ function renderMultas(){
     <div class="obra-card" onclick="showFormMulta(${i})">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:500;color:var(--text);">${MULTA_INFO[m.tipo]?.label||m.tipo}</div>
-          <div class="obra-meta">${fmtDate(m.fecha)}${m.ep?' · '+m.ep:''}</div>
+          <div style="font-size:13px;font-weight:500;color:var(--text);">${MULTA_INFO[m.tipo]?.label||esc(m.tipo)}</div>
+          <div class="obra-meta">${fmtDate(m.fecha)}${m.ep?' · '+esc(m.ep):''}</div>
           ${m.diasMantenida?`<div class="obra-meta" style="margin-top:2px;">${m.ufDia} UF/día × ${m.diasMantenida} días</div>`:''}
-          ${m.causa?`<div class="obra-meta" style="margin-top:2px;">${m.causa.slice(0,60)}${m.causa.length>60?'...':''}</div>`:''}
+          ${m.causa?`<div class="obra-meta" style="margin-top:2px;">${esc(m.causa.slice(0,60))}${m.causa.length>60?'...':''}</div>`:''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           <span class="badge ${estadoBadge[m.estado]||'badge-info'}">${estadoLabel[m.estado]||m.estado}</span>
@@ -2372,12 +2482,12 @@ function eliminarMulta(){
 // ══ RECEPCIÓN DE OBRAS ═════════════════════════════════════
 
 const RECEPCION_STEPS = [
-  { key:'orden_servicio',    label:'Orden de servicio de la comisión',  icon:'📋', desc:'Orden emitida por SERVIU para conformar comisión receptora' },
+  { key:'orden_servicio',    label:'Orden de servicio de la comisión',  icon:'📋', desc:'Orden emitida por el mandante para conformar comisión receptora' },
   { key:'carta_solicitud',   label:'Carta solicitud de pase de la ITO', icon:'✉️', desc:'Carta del ITO solicitando el pase para recepción' },
   { key:'pase_ito',          label:'Pase de la ITO',                    icon:'🔖', desc:'Documento que habilita la recepción provisional' },
   { key:'observaciones_com', label:'Observaciones de la comisión',      icon:'📝', desc:'Registro de observaciones levantadas por la comisión' },
   { key:'acta_calificacion', label:'Acta de calificación',              icon:'📄', desc:'Acta que califica el estado de la obra' },
-  { key:'res_aprueba_acta',  label:'Resolución que aprueba el acta',    icon:'✅', desc:'Resolución SERVIU que aprueba el acta de calificación' },
+  { key:'res_aprueba_acta',  label:'Resolución que aprueba el acta',    icon:'✅', desc:'Resolución del mandante que aprueba el acta de calificación' },
 ];
 
 let recUploadPendiente = null;
@@ -2421,11 +2531,11 @@ function renderRecepcion(){
             <div style="font-size:13px;font-weight:500;color:var(--text);">${i+1}. ${step.label}</div>
           </div>
           <div style="font-size:11px;color:var(--text2);margin-top:2px;padding-left:18px;">${step.desc}</div>
-          ${data.fecha||data.numero?`<div style="font-size:11px;color:var(--text2);padding-left:18px;margin-top:2px;">${data.fecha?fmtDate(data.fecha):''}${data.numero?' · N°'+data.numero:''}</div>`:''}
+          ${data.fecha||data.numero?`<div style="font-size:11px;color:var(--text2);padding-left:18px;margin-top:2px;">${data.fecha?fmtDate(data.fecha):''}${data.numero?' · N°'+esc(data.numero):''}</div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0;">
           <span style="font-size:11px;font-weight:500;color:${estadoColor};">${bloqueado?'🔒':estadoLabel}</span>
-          ${data.driveLink?`<a href="${data.driveLink}" target="_blank" onclick="event.stopPropagation()" style="font-size:11px;color:var(--blue);padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 Ver</a>`:''}
+          ${data.driveLink?`<a href="${safeUrl(data.driveLink)}" target="_blank" rel="noopener noreferrer" onclick="event.stopPropagation()" style="font-size:11px;color:var(--blue);padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 Ver</a>`:''}
         </div>
       </div>
     </div>`;
@@ -2457,7 +2567,7 @@ function abrirRecepcionStep(idx){
   const archivoWrap = document.getElementById('rec-archivo-actual');
   if(data.driveLink){
     archivoWrap.style.display='block';
-    document.getElementById('rec-archivo-link').href=data.driveLink;
+    document.getElementById('rec-archivo-link').href=safeUrl(data.driveLink);
     document.getElementById('rec-archivo-nombre').textContent=data.archivoNombre||'Ver documento';
   } else {
     archivoWrap.style.display='none';
@@ -2478,7 +2588,7 @@ async function handleRecUpload(event){
     recUploadPendiente={driveLink:result.webViewLink,archivoNombre:result.name,driveId:result.id};
     prog.style.display='none';
     document.getElementById('rec-archivo-actual').style.display='block';
-    document.getElementById('rec-archivo-link').href=result.webViewLink;
+    document.getElementById('rec-archivo-link').href=safeUrl(result.webViewLink);
     document.getElementById('rec-archivo-nombre').textContent=result.name;
     showToast('Archivo subido a Drive ✓');
   }catch(e){prog.style.display='none';showToast('Error: '+e.message);}
@@ -2565,10 +2675,10 @@ function renderVisitas(){
           <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
             <div style="flex:1;min-width:0;">
               <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
-                <span style="font-size:13px;font-weight:500;color:var(--text);">${v.tipo||'Visita de inspección'}</span>
+                <span style="font-size:13px;font-weight:500;color:var(--text);">${esc(v.tipo||'Visita de inspección')}</span>
               </div>
-              <div class="obra-meta">${fmtDate(v.fecha)}${v.hora?' · '+v.hora:''} ${v.personas?'· '+v.personas:''}</div>
-              ${v.obs?`<div style="font-size:12px;color:var(--text2);margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${v.obs}</div>`:''}
+              <div class="obra-meta">${fmtDate(v.fecha)}${v.hora?' · '+esc(v.hora):''} ${v.personas?'· '+esc(v.personas):''}</div>
+              ${v.obs?`<div style="font-size:12px;color:var(--text2);margin-top:4px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${esc(v.obs)}</div>`:''}
             </div>
             <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0;">
               <span class="badge ${estadoBadge[v.estado]||'badge-info'}">${estadoLabel[v.estado]||'Normal'}</span>
@@ -2588,9 +2698,9 @@ function nuevaVisita(){
   document.getElementById('visita-tipo').value = 'Visita de inspección';
   // Fecha y hora actuales
   const ahora = new Date();
-  document.getElementById('visita-fecha').value = ahora.toISOString().slice(0,10);
+  document.getElementById('visita-fecha').value = today();
   document.getElementById('visita-hora').value = ahora.toTimeString().slice(0,5);
-  document.getElementById('visita-personas').value = 'César Pino, ITO';
+  document.getElementById('visita-personas').value = getITONombre();
   document.getElementById('visita-obs').value = '';
   document.getElementById('visita-estado').value = 'normal';
   document.getElementById('visita-fotos-preview').innerHTML = '';
@@ -2620,7 +2730,7 @@ function editarVisita(idx){
   // Mostrar fotos ya guardadas en Drive
   const driveDiv = document.getElementById('visita-fotos-drive');
   driveDiv.innerHTML = v.fotos&&v.fotos.length
-    ? v.fotos.map(f=>`<a href="${f.driveLink}" target="_blank" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--blue);padding:4px 0;">📎 ${f.nombre}</a>`).join('')
+    ? v.fotos.map(f=>`<a href="${safeUrl(f.driveLink)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--blue);padding:4px 0;">📎 ${esc(f.nombre)}</a>`).join('')
     : '';
   document.getElementById('visita-fotos-preview').innerHTML = '';
   go('s-visita-form');
@@ -2708,42 +2818,32 @@ async function guardarVisita(){
     personas:document.getElementById('visita-personas').value.trim(),
     obs:document.getElementById('visita-obs').value.trim(),
     estado:document.getElementById('visita-estado').value,
-    timestamp:new Date().toISOString(),
+    id:base.id||uid(),                                  // identificador estable (F-04/F-05)
+    timestamp:base.timestamp||new Date().toISOString(), // conserva la fecha de registro original al editar
   };
   const prog=document.getElementById('visita-upload-progress');
 
-  // Subir fotos de obra
-  if(visitaFotosNuevas.length>0){
-    if(!accessToken){showToast('Conecta Drive para guardar fotos de obra.');}
-    else{
-      prog.style.display='block';
-      let sub=0;
-      for(const foto of visitaFotosNuevas){
-        prog.textContent=`Subiendo foto obra ${++sub}/${visitaFotosNuevas.length}...`;
+  // Subir fotos (obra y libro). Sin Drive, o si una subida falla → cola local; nunca se pierden (F-04)
+  let enCola=0;
+  const subirGrupo=async(lista,tipo,carpeta)=>{
+    let sub=0;
+    for(const foto of lista){
+      if(accessToken){
+        prog.style.display='block'; prog.textContent=`Subiendo foto ${tipo==='fotosLibro'?'libro':'obra'} ${++sub}/${lista.length}...`;
         try{
-          const r=await subirArchivoADrive(foto.file,`Visitas/${o.nombre}/${fecha}`);
-          visita.fotos.push({nombre:r.name,driveId:r.id,driveLink:r.webViewLink,fecha,hora});
-        }catch(e){showToast('Error: '+e.message);}
+          const r=await subirArchivoADrive(foto.file,carpeta);
+          visita[tipo].push({nombre:r.name,driveId:r.id,driveLink:r.webViewLink,fecha,hora});
+          continue;
+        }catch(e){ console.error('subida foto',e); }
       }
+      try{ await encolarFoto(o,visita,tipo,foto.file,fecha,hora); enCola++; }
+      catch(e){ showToast('No se pudo guardar la foto localmente: '+e.message); }
     }
-  }
-
-  // Subir fotos del libro
-  if(libroFotosNuevas.length>0){
-    if(!accessToken){showToast('Conecta Drive para guardar fotos del libro.');}
-    else{
-      prog.style.display='block';
-      let sub=0;
-      for(const foto of libroFotosNuevas){
-        prog.textContent=`Subiendo foto libro ${++sub}/${libroFotosNuevas.length}...`;
-        try{
-          const r=await subirArchivoADrive(foto.file,`Visitas/${o.nombre}/${fecha}/Libro`);
-          visita.fotosLibro.push({nombre:r.name,driveId:r.id,driveLink:r.webViewLink,fecha,hora});
-        }catch(e){showToast('Error: '+e.message);}
-      }
-    }
-  }
+  };
+  if(visitaFotosNuevas.length) await subirGrupo(visitaFotosNuevas,'fotos',`Visitas/${safeFolder(o.nombre)}/${fecha}`);
+  if(libroFotosNuevas.length) await subirGrupo(libroFotosNuevas,'fotosLibro',`Visitas/${safeFolder(o.nombre)}/${fecha}/Libro`);
   prog.style.display='none';
+  if(enCola) showToast(`${enCola} foto(s) guardadas en cola · se subirán al conectar Drive`);
 
   if(idx===-1) o.visitas.push(visita);
   else o.visitas[idx]=visita;
@@ -2763,25 +2863,59 @@ async function guardarVisita(){
   }
 
   // ── VINCULAR CON COMUNICACIONES ──────────────────────────
-  if(visita.fotosLibro?.length>0){
-    if(!o.libro) o.libro=[];
-    const resumen='Fotografía del libro de inspección registrada.';
-    const entradaIdx=o.libro.findIndex(e=>e.visitaRef===visita.timestamp);
-    const entrada={
-      fecha,hora,autor:'César Pino, ITO',
-      texto:`[Libro de inspección — ${visita.tipo}]\n${resumen}`,
-      fotosLibro:visita.fotosLibro||[],
-      visitaRef:visita.timestamp,
-      tieneLibroFoto:true,
-    };
-    if(entradaIdx>=0) o.libro[entradaIdx]=entrada;
-    else o.libro.push(entrada);
-  }
+  vincularLibroVisita(o,visita);
 
   saveAndSync();
   go('s-visitas');
   renderVisitas();
   showToast(idx===-1?'Visita registrada':'Visita actualizada');
+}
+
+// Entrada del libro de obras vinculada a las fotos del libro de una visita (se reutiliza al subir fotos en cola)
+function vincularLibroVisita(o,visita){
+  if(!(visita.fotosLibro&&visita.fotosLibro.length)) return;
+  if(!o.libro) o.libro=[];
+  const ref=visita.id||visita.timestamp;
+  const entradaIdx=o.libro.findIndex(e=>e.visitaRef===ref||(visita.timestamp&&e.visitaRef===visita.timestamp));
+  const entrada={fecha:visita.fecha,hora:visita.hora,autor:getITONombre(),
+    texto:`[Libro de inspección — ${visita.tipo}]\nFotografía del libro de inspección registrada.`,
+    fotosLibro:visita.fotosLibro,visitaRef:ref,tieneLibroFoto:true};
+  if(entradaIdx>=0) o.libro[entradaIdx]=entrada; else o.libro.push(entrada);
+}
+
+// ── COLA LOCAL DE FOTOS PENDIENTES (F-04) — IndexedDB: sobrevive sin conexión y sin cuota de localStorage ──
+const FQ_DB='ito_fotos_pendientes', FQ_STORE='fotos';
+function fqOpen(){return new Promise((res,rej)=>{if(!window.indexedDB)return rej(new Error('Sin IndexedDB'));const r=indexedDB.open(FQ_DB,1);r.onupgradeneeded=()=>{r.result.createObjectStore(FQ_STORE,{keyPath:'id'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+function fqWrite(fn){return fqOpen().then(db=>new Promise((res,rej)=>{const t=db.transaction(FQ_STORE,'readwrite');fn(t.objectStore(FQ_STORE));t.oncomplete=()=>res();t.onerror=()=>rej(t.error);}));}
+const fqAdd=item=>fqWrite(st=>st.put(item));
+const fqDel=id=>fqWrite(st=>st.delete(id));
+function fqAll(){return fqOpen().then(db=>new Promise((res,rej)=>{const r=db.transaction(FQ_STORE).objectStore(FQ_STORE).getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);}));}
+async function encolarFoto(o,visita,tipo,file,fecha,hora){
+  let f=file; try{ f=await comprimirImagen(file); }catch(e){}
+  await fqAdd({id:uid(),obraNombre:o.nombre,contrato:o.contrato||'',visitaId:visita.id,tipo,nombre:f.name,blob:f,fecha,hora,creado:Date.now()});
+}
+async function procesarFotosPendientes(){
+  if(!accessToken) return;
+  let items=[]; try{ items=await fqAll(); }catch(e){ return; }
+  if(!items.length) return;
+  showToast(`Subiendo ${items.length} foto(s) pendiente(s)...`);
+  let ok=0;
+  for(const it of items){
+    const o=state.obras.find(x=>x.nombre===it.obraNombre&&(x.contrato||'')===it.contrato);
+    if(!o){ try{await fqDel(it.id);}catch(e){} continue; }               // la obra ya no existe
+    const v=(o.visitas||[]).find(x=>x.id===it.visitaId);
+    if(!v){ try{await fqDel(it.id);}catch(e){} continue; }               // la visita ya no existe
+    try{
+      const file=new File([it.blob],it.nombre,{type:(it.blob&&it.blob.type)||'image/jpeg'});
+      const carpeta=it.tipo==='fotosLibro'?`Visitas/${safeFolder(o.nombre)}/${it.fecha}/Libro`:`Visitas/${safeFolder(o.nombre)}/${it.fecha}`;
+      const r=await subirArchivoADrive(file,carpeta,o);
+      const entry={nombre:r.name,driveId:r.id,driveLink:r.webViewLink,fecha:it.fecha,hora:it.hora};
+      if(it.tipo==='fotosLibro'){ v.fotosLibro=v.fotosLibro||[]; v.fotosLibro.push(entry); vincularLibroVisita(o,v); }
+      else { v.fotos=v.fotos||[]; v.fotos.push(entry); }
+      await fqDel(it.id); ok++;
+    }catch(e){ console.error('foto pendiente',e); }
+  }
+  if(ok){ saveAndSync(); showToast(`✓ ${ok} foto(s) pendiente(s) subidas a Drive`); }
 }
 
 function eliminarVisita(){
@@ -2810,8 +2944,8 @@ function verVisita(idx){
 
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <div>
-          <div style="font-size:15px;font-weight:500;">${v.tipo||'Visita de inspección'}</div>
-          <div style="font-size:12px;color:var(--text2);margin-top:2px;">${v.personas||'—'}</div>
+          <div style="font-size:15px;font-weight:500;">${esc(v.tipo||'Visita de inspección')}</div>
+          <div style="font-size:12px;color:var(--text2);margin-top:2px;">${esc(v.personas||'—')}</div>
         </div>
         <span class="badge ${estadoBadge[v.estado]||'badge-info'}">${estadoLabel[v.estado]||'Normal'}</span>
       </div>
@@ -2819,7 +2953,7 @@ function verVisita(idx){
       ${v.obs?`
       <div style="background:var(--bg2);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;">
         <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Observaciones ITO</div>
-        <div style="font-size:13px;line-height:1.6;color:var(--text);">${v.obs.replace(/\n/g,'<br>')}</div>
+        <div style="font-size:13px;line-height:1.6;color:var(--text);">${esc(v.obs).replace(/\n/g,'<br>')}</div>
       </div>`:''}
 
       ${v.fotos&&v.fotos.length?`
@@ -2827,10 +2961,10 @@ function verVisita(idx){
         <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Fotografías de obra (${v.fotos.length})</div>
         <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;">
           ${v.fotos.map(f=>`
-            <a href="${f.driveLink}" target="_blank" style="text-decoration:none;">
+            <a href="${safeUrl(f.driveLink)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
               <div style="background:var(--bg2);border-radius:var(--r);border:0.5px solid var(--border);overflow:hidden;">
                 <div style="background:var(--blue-bg);height:70px;display:flex;align-items:center;justify-content:center;font-size:24px;">🖼️</div>
-                <div style="padding:5px 8px;"><div style="font-size:10px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📎 ${f.nombre}</div></div>
+                <div style="padding:5px 8px;"><div style="font-size:10px;color:var(--blue);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">📎 ${esc(f.nombre)}</div></div>
               </div>
             </a>`).join('')}
         </div>
@@ -2841,7 +2975,7 @@ function verVisita(idx){
         <div style="font-size:11px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">📖 Libro de inspección (${v.fotosLibro.length} foto${v.fotosLibro.length>1?'s':''})</div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px;">
           ${v.fotosLibro.map(f=>`
-            <a href="${f.driveLink}" target="_blank" style="text-decoration:none;">
+            <a href="${safeUrl(f.driveLink)}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;">
               <div style="background:var(--amber-bg);border-radius:var(--r);border:0.5px solid var(--border);overflow:hidden;aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;">
                 <div style="font-size:22px;">📖</div>
                 <div style="font-size:9px;color:var(--amber);text-align:center;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;text-align:center;">Ver</div>
@@ -2883,16 +3017,16 @@ function renderGarantias(){
     return `<div class="obra-card">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;" onclick="showFormGarantia(${i})">
         <div>
-          <div class="obra-name" style="font-size:14px;">${g.tipo}</div>
-          <div class="obra-meta">${g.instrumento} · ${g.entidad||'—'} · N°${g.numero||'—'}${g.folio?' · Folio: '+g.folio:''}</div>
-          <div class="obra-meta" style="margin-top:3px;">Monto: ${g.moneda==='UF'?g.montoRaw+' UF'+(g.montoEquiv?' (≈$'+fmtM(g.montoEquiv)+')':''):'$'+fmtM(g.monto||0)} · Vence: ${fmtDate(g.vencimiento)}</div>
+          <div class="obra-name" style="font-size:14px;">${esc(g.tipo)}</div>
+          <div class="obra-meta">${esc(g.instrumento)} · ${esc(g.entidad||'—')} · N°${esc(g.numero||'—')}${g.folio?' · Folio: '+esc(g.folio):''}</div>
+          <div class="obra-meta" style="margin-top:3px;">Monto: ${g.moneda==='UF'?esc(g.montoRaw)+' UF'+(g.montoEquiv?' (≈$'+fmtM(g.montoEquiv)+')':''):'$'+fmtM(g.monto||0)} · Vence: ${fmtDate(g.vencimiento)}</div>
         </div>
         <div>${badge}</div>
       </div>
-      ${g.obs?`<div style="font-size:11px;color:var(--text2);margin-top:6px;">${g.obs}</div>`:''}
+      ${g.obs?`<div style="font-size:11px;color:var(--text2);margin-top:6px;">${esc(g.obs)}</div>`:''}
       <div style="margin-top:8px;border-top:0.5px solid var(--border);padding-top:8px;display:flex;align-items:center;justify-content:space-between;">
         ${g.driveLink
-          ? `<a href="${g.driveLink}" target="_blank" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:5px;">📎 ${g.archivoNombre||'Ver documento'}</a>`
+          ? `<a href="${safeUrl(g.driveLink)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:5px;">📎 ${esc(g.archivoNombre||'Ver documento')}</a>`
           : `<span style="font-size:11px;color:var(--text2);">Sin documento adjunto</span>`}
         <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:4px 8px;border:0.5px solid var(--border);border-radius:20px;">
           <input type="file" accept=".pdf,.xlsx,.xls,.jpg,.png" style="display:none;" onchange="adjuntarArchivoGarantia(event,${i})"/>
@@ -2964,6 +3098,7 @@ function guardarGarantia(){
   const monto=parseMonto(montoRaw);
   const equivRaw=document.getElementById('gar-monto-equiv').value.trim();
   const g={
+    id:(idx>=0&&o.garantias[idx]&&o.garantias[idx].id)||uid(),  // identificador estable (F-11)
     tipo:document.getElementById('gar-tipo').value,
     instrumento:document.getElementById('gar-instrumento').value,
     numero:document.getElementById('gar-numero').value.trim(),
@@ -2984,7 +3119,10 @@ function eliminarGarantia(){
   const o=state.obras[state.activeObraIdx];
   const idx=parseInt(document.getElementById('gar-idx').value);
   if(!confirm('¿Eliminar esta garantía?')) return;
+  const gDel=o.garantias[idx];
   o.garantias.splice(idx,1);
+  // Su ficha en Gestión documental se elimina con ella (antes quedaba apuntando a otra garantía — F-11)
+  if(o.documentos&&o.documentos.garantias_docs&&gDel) o.documentos.garantias_docs=o.documentos.garantias_docs.filter(d=>!((d.garantiaId&&d.garantiaId===gDel.id)||(!d.garantiaId&&d.garantiaIdx===idx)));
   saveAndSync(); go('s-garantias'); renderGarantias();
   showToast('Garantía eliminada');
 }
@@ -3057,9 +3195,9 @@ function renderPlanP6(o){
       return `<div style="padding:10px 16px;border-bottom:0.5px solid var(--border);display:flex;align-items:center;gap:10px;">
         <div style="width:28px;height:28px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text2);flex-shrink:0;">${item.num}</div>
         <div style="flex:1;min-width:0;">
-          <div style="font-size:13px;font-weight:500;color:var(--text);">${item.elemento}</div>
-          <div style="font-size:11px;color:var(--text2);margin-top:1px;">${item.tipo}${item.norma?' · '+item.norma:''}${item.frec?' · '+item.frec:''}</div>
-          ${item.obs?`<div style="font-size:11px;color:var(--amber);margin-top:1px;">${item.obs}</div>`:''}
+          <div style="font-size:13px;font-weight:500;color:var(--text);">${esc(item.elemento)}</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:1px;">${esc(item.tipo)}${item.norma?' · '+esc(item.norma):''}${item.frec?' · '+esc(item.frec):''}</div>
+          ${item.obs?`<div style="font-size:11px;color:var(--amber);margin-top:1px;">${esc(item.obs)}</div>`:''}
         </div>
         <div style="text-align:right;flex-shrink:0;">
           ${realizados.length>0?`<div style="font-size:11px;color:var(--text2);">${realizados.length} ensayo${realizados.length>1?'s':''}</div>
@@ -3131,10 +3269,10 @@ function renderRegistroEnsayos(o){
     return `<div class="obra-card" onclick="showFormEnsayo(${i})" style="cursor:pointer;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;">
         <div>
-          <div class="obra-name" style="font-size:13px;">Ítem ${e.itemNum} — ${e.elemento}</div>
-          <div class="obra-meta">${fmtDate(e.fecha)} · ${e.laboratorio||'—'} · Inf. ${e.ninforme||'—'}</div>
-          ${e.valor?`<div class="obra-meta" style="margin-top:3px;">Valor: ${e.valor}</div>`:''}
-          ${e.obs?`<div class="obra-meta" style="margin-top:2px;">${e.obs}</div>`:''}
+          <div class="obra-name" style="font-size:13px;">Ítem ${e.itemNum} — ${esc(e.elemento)}</div>
+          <div class="obra-meta">${fmtDate(e.fecha)} · ${esc(e.laboratorio||'—')} · Inf. ${esc(e.ninforme||'—')}</div>
+          ${e.valor?`<div class="obra-meta" style="margin-top:3px;">Valor: ${esc(e.valor)}</div>`:''}
+          ${e.obs?`<div class="obra-meta" style="margin-top:2px;">${esc(e.obs)}</div>`:''}
         </div>
         <span class="badge ${resBadge}">${resLabel}</span>
       </div>
@@ -3173,7 +3311,7 @@ function renderEstadoEnsayos(o){
       const pend=ens.length===0;
       return `<div style="display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:0.5px solid var(--border);">
         <div style="width:20px;height:20px;border-radius:50%;background:${apro?'#639922':rech?'#E24B4A':pend?'#ddd':'#EF9F27'};flex-shrink:0;"></div>
-        <div style="flex:1;font-size:12px;color:var(--text);">Ítem ${item.num} — ${item.elemento}</div>
+        <div style="flex:1;font-size:12px;color:var(--text);">Ítem ${item.num} — ${esc(item.elemento)}</div>
         <div style="font-size:11px;color:var(--text2);">${ens.length>0?ens.length+' ensayo'+(ens.length>1?'s':''):'—'}</div>
       </div>`;
     }).join('')}`;
@@ -3187,7 +3325,7 @@ function showFormEnsayo(idx){
   document.getElementById('ens-form-title').textContent=esNuevo?'Registrar ensayo':'Editar ensayo';
   document.getElementById('ens-btn-eliminar').style.display=esNuevo?'none':'block';
   const sel=document.getElementById('ens-item-sel');
-  sel.innerHTML=o.planP6.map(item=>`<option value="${item.num}">${item.num}. ${item.elemento}</option>`).join('');
+  sel.innerHTML=o.planP6.map(item=>`<option value="${item.num}">${item.num}. ${esc(item.elemento)}</option>`).join('');
   if(!esNuevo){
     const e=o.ensayos[idx];
     sel.value=e.itemNum;
@@ -3379,22 +3517,22 @@ function generarPDF(){
 
   // OBRA INFO
   const atraso=(o.avanceProg||0)-(o.avance||0);
-  html+=`<div class="obra-box"><h2>${o.nombre}</h2><div class="obra-grid">
-    <div class="obra-field"><label>Contrato</label><p>${o.contrato||'—'}</p></div>
-    <div class="obra-field"><label>Contratista</label><p>${o.contratista||'—'}</p></div>
+  html+=`<div class="obra-box"><h2>${esc(o.nombre)}</h2><div class="obra-grid">
+    <div class="obra-field"><label>Contrato</label><p>${esc(o.contrato||'—')}</p></div>
+    <div class="obra-field"><label>Contratista</label><p>${esc(o.contratista||'—')}</p></div>
     <div class="obra-field"><label>Monto contrato</label><p>$${fmtM(o.monto||0)}</p></div>
     <div class="obra-field"><label>Fecha inicio</label><p>${fmtDate(o.inicio)}</p></div>
     <div class="obra-field"><label>Plazo</label><p>${o.plazo} días</p></div>
     <div class="obra-field"><label>Fecha término</label><p>${fmtDate(fin)}</p></div>
-    <div class="obra-field"><label>Residente</label><p>${o.personal?.residente||'—'}</p></div>
-    <div class="obra-field"><label>Autocontrol</label><p>${o.personal?.autocontrol||'—'}</p></div>
-    <div class="obra-field"><label>ITO</label><p>César Pino, ITO</p></div>
+    <div class="obra-field"><label>Residente</label><p>${esc(o.personal?.residente||'—')}</p></div>
+    <div class="obra-field"><label>Autocontrol</label><p>${esc(o.personal?.autocontrol||'—')}</p></div>
+    <div class="obra-field"><label>ITO</label><p>${esc(getITONombre())}</p></div>
   </div></div>`;
 
   // RESUMEN
   if(incResumen){
     const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0);
-    const tp=o.eps.reduce((s,e)=>s+(e.pagado||0),0);
+    const tp=o.eps.filter(e=>e.pagado).reduce((s,e)=>s+(e.monto||0),0);  // pagado es booleano (F-06)
     const tr=o.eps.reduce((s,e)=>s+(e.retencion||0),0);
     const pctEjec=o.monto?Math.round(tb/o.monto*100):0;
     const fillClass=atraso>=10?'prog-fill-danger':atraso>=5?'prog-fill-warn':'prog-fill-ok';
@@ -3430,8 +3568,8 @@ function generarPDF(){
         <div class="ep-field"><label>Monto bruto</label><p style="color:#185FA5">$${fmtM(epSel.monto)}</p></div>
         <div class="ep-field"><label>Estado</label><p>${epSel.estado==='pagado'?'<span class="badge-ok">Pagado</span>':epSel.estado==='en_revision'?'<span class="badge-warn">En revisión</span>':'<span class="badge-danger">Pendiente</span>'}</p></div>
         <div class="ep-field"><label>Descuento anticipo</label><p style="color:#854F0B">$${fmtM(epSel.descAnt)}</p></div>
-        <div class="ep-field"><label>Retención (5%)</label><p style="color:#854F0B">$${fmtM(epSel.retencion)}</p></div>
-        <div class="ep-field"><label>Líquido a pagar</label><p style="color:#3B6D11;font-size:16px;">$${fmtM(epSel.pagado)}</p></div>
+        <div class="ep-field"><label>Retención (5%)</label><p style="color:#854F0B">$${fmtM(epSel.retencion||0)}</p></div>
+        <div class="ep-field"><label>Líquido a pagar</label><p style="color:#3B6D11;font-size:16px;">$${fmtM((epSel.monto||0)-(epSel.descAnt||0)-(epSel.retencion||0))}</p></div>
       </div></div>
     </div>`;
   }
@@ -3440,7 +3578,7 @@ function generarPDF(){
   if(incPartidas&&o.partidas?.length){
     html+=`<div class="section"><h3>Avance por partidas</h3><table>
       <thead><tr><th>Partida</th><th>Avance</th><th>Estado</th></tr></thead><tbody>
-      ${o.partidas.map(p=>`<tr><td>${p.nombre}</td><td>${p.pct}%</td><td>${p.pct>=80?'<span class="badge-ok">Avanzado</span>':p.pct>=40?'<span class="badge-warn">En ejecución</span>':'<span class="badge-danger">Inicial</span>'}</td></tr>`).join('')}
+      ${o.partidas.map(p=>`<tr><td>${esc(p.nombre)}</td><td>${p.pct}%</td><td>${p.pct>=80?'<span class="badge-ok">Avanzado</span>':p.pct>=40?'<span class="badge-warn">En ejecución</span>':'<span class="badge-danger">Inicial</span>'}</td></tr>`).join('')}
       </tbody></table></div>`;
   }
 
@@ -3449,7 +3587,7 @@ function generarPDF(){
     const _b=epsBase(o), _a=epsAdicionales(o);
     const tBase=_b.reduce((s,e)=>s+(e.monto||0),0);
     const tAdic=_a.reduce((s,e)=>s+(e.monto||0),0);
-    const filaPdf=ep=>`<tr><td>${EP_TIPOS[tipoEP(ep)].corto} N°${ep.num}</td><td>${fmtDate(ep.fecha)}</td><td>$${fmtM(ep.monto)}</td><td>$${fmtM(ep.descAnt)}</td><td>${ep.resolucion||'—'}</td><td>${ep.estado==='pagado'||ep.pagado?'<span class="badge-ok">Pagado</span>':ep.estado==='en_revision'?'<span class="badge-warn">En revisión</span>':'<span class="badge-danger">Pendiente</span>'}</td></tr>`;
+    const filaPdf=ep=>`<tr><td>${EP_TIPOS[tipoEP(ep)].corto} N°${ep.num}</td><td>${fmtDate(ep.fecha)}</td><td>$${fmtM(ep.monto)}</td><td>$${fmtM(ep.descAnt)}</td><td>${esc(ep.resolucion||'—')}</td><td>${ep.estado==='pagado'||ep.pagado?'<span class="badge-ok">Pagado</span>':ep.estado==='en_revision'?'<span class="badge-warn">En revisión</span>':'<span class="badge-danger">Pendiente</span>'}</td></tr>`;
     html+=`<div class="section"><h3>Resumen estados de pago</h3><table>
       <thead><tr><th>EP</th><th>Fecha</th><th>Monto bruto</th><th>Desc. anticipo</th><th>Res./Decreto</th><th>Estado</th></tr></thead>
       <tbody>
@@ -3472,7 +3610,7 @@ function generarPDF(){
     const ultimas=o.libro.slice(-3).reverse();
     html+=`<div class="section"><h3>Últimas entradas libro de inspección</h3><table>
       <thead><tr><th>Fecha</th><th>Contenido</th><th>Autor</th></tr></thead><tbody>
-      ${ultimas.map(e=>`<tr><td style="white-space:nowrap">${fmtDate(e.fecha)}</td><td>${e.texto}</td><td>${e.autor}</td></tr>`).join('')}
+      ${ultimas.map(e=>`<tr><td style="white-space:nowrap">${fmtDate(e.fecha)}</td><td>${esc(e.texto)}</td><td>${esc(e.autor)}</td></tr>`).join('')}
       </tbody></table></div>`;
   }
 
@@ -3483,10 +3621,10 @@ function generarPDF(){
       html+=`<div class="section"><h3>Registro fotográfico — últimas visitas ITO</h3>`;
       ultimasVisitas.forEach(v=>{
         if(v.fotos?.length){
-          html+=`<div style="margin-bottom:8px;"><div style="font-size:10px;color:#666;margin-bottom:4px;">${v.tipo} · ${fmtDate(v.fecha)}${v.hora?' · '+v.hora:''}</div>`;
+          html+=`<div style="margin-bottom:8px;"><div style="font-size:10px;color:#666;margin-bottom:4px;">${esc(v.tipo)} · ${fmtDate(v.fecha)}${v.hora?' · '+esc(v.hora):''}</div>`;
           html+=`<div class="fotos-grid">`;
           v.fotos.slice(0,2).forEach((f,i)=>{
-            html+=`<div class="foto-item"><a href="${f.driveLink}" target="_blank" style="display:block;background:#E6F1FB;height:120px;display:flex;align-items:center;justify-content:center;border-radius:5px;text-decoration:none;"><div style="text-align:center;"><div style="font-size:24px;">🖼️</div><div style="font-size:9px;color:#185FA5;margin-top:4px;">Ver foto ${i+1}</div></div></a><p style="font-size:9px;color:#666;margin-top:3px;text-align:center;">${f.nombre}</p></div>`;
+            html+=`<div class="foto-item"><a href="${safeUrl(f.driveLink)}" target="_blank" rel="noopener noreferrer" style="display:block;background:#E6F1FB;height:120px;display:flex;align-items:center;justify-content:center;border-radius:5px;text-decoration:none;"><div style="text-align:center;"><div style="font-size:24px;">🖼️</div><div style="font-size:9px;color:#185FA5;margin-top:4px;">Ver foto ${i+1}</div></div></a><p style="font-size:9px;color:#666;margin-top:3px;text-align:center;">${esc(f.nombre)}</p></div>`;
           });
           html+=`</div></div>`;
         }
@@ -3498,7 +3636,7 @@ function generarPDF(){
     if(top5.length>0){
       html+=`<div class="section"><h3>Partidas con mayor atraso</h3><table><thead><tr><th>#</th><th>Partida</th><th>% Esperado</th><th>% Real</th><th>Atraso</th></tr></thead><tbody>`;
       top5.forEach((p,i)=>{
-        html+=`<tr><td>${i+1}</td><td>${p.item} ${p.desc}</td><td>${p.pctEsperado}%</td><td>${p.pctReal}%</td><td style="color:#A32D2D;font-weight:600;">-${p.atraso}%</td></tr>`;
+        html+=`<tr><td>${i+1}</td><td>${esc(p.item)} ${esc(p.desc)}</td><td>${p.pctEsperado}%</td><td>${p.pctReal}%</td><td style="color:#A32D2D;font-weight:600;">-${p.atraso}%</td></tr>`;
       });
       html+=`</tbody></table></div>`;
     }
@@ -3513,13 +3651,13 @@ function generarPDF(){
 
   // OBSERVACIONES
   if(obs){
-    html+=`<div class="section"><h3>Observaciones del ITO</h3><div class="obs-box">${obs.replace(/\n/g,'<br>')}</div></div>`;
+    html+=`<div class="section"><h3>Observaciones del ITO</h3><div class="obs-box">${esc(obs).replace(/\n/g,'<br>')}</div></div>`;
   }
 
   // FIRMAS
   html+=`<div class="firma-row">
-    <div class="firma-box"><p style="margin-bottom:40px;"></p>César G.<br>Inspector Técnico de Obra<br>SERVIU Metropolitano</div>
-    <div class="firma-box"><p style="margin-bottom:40px;"></p>${o.personal?.residente||'Profesional Residente'}<br>Contratista: ${o.contratista||'—'}</div>
+    <div class="firma-box"><p style="margin-bottom:40px;"></p>${esc(getITONombre())}<br>Inspector Técnico de Obra<br>SERVIU Metropolitano</div>
+    <div class="firma-box"><p style="margin-bottom:40px;"></p>${esc(o.personal?.residente||'Profesional Residente')}<br>Contratista: ${esc(o.contratista||'—')}</div>
   </div>`;
 
   // FOOTER
@@ -3528,6 +3666,7 @@ function generarPDF(){
 
   // ABRIR VENTANA PARA IMPRIMIR/GUARDAR PDF
   const win=window.open('','_blank');
+  if(!win){status.style.display='none';showToast('El navegador bloqueó la ventana del informe. Permite pop-ups e intenta de nuevo.');return;}
   win.document.write(html);
   win.document.close();
   setTimeout(()=>{win.focus();win.print();},600);
@@ -3575,7 +3714,7 @@ function openFichaDetalle(id,nombre){
         <div class="prog-labels"><span class="prog-label">Tiempo transcurrido</span><span class="prog-pct">${pct}%</span></div>
         <div class="prog-track"><div class="prog-fill ${pct>80?'fill-danger':pct>60?'fill-warn':'fill-ok'}" style="width:${pct}%"></div></div>
       </div>
-      <div class="form-group"><label class="form-label">Fecha inicio contrato</label><input class="form-input" type="date" id="p1-inicio" value="${o.inicio||''}"/></div>
+      <div class="form-group"><label class="form-label">Fecha inicio contrato</label><input class="form-input" type="date" id="p1-inicio" value="${esc(o.inicio||'')}"/></div>
       <div class="form-group"><label class="form-label">Plazo total (días)</label><input class="form-input" type="number" id="p1-plazo" value="${o.plazo||''}"/></div>
       <div class="form-group"><label class="form-label">Aumento de plazo (días adicionales)</label><input class="form-input" type="number" id="fp1-aum" placeholder="0" min="0"/></div>
       <button class="btn-primary" onclick="guardarP1()">Guardar cambios</button>
@@ -3583,9 +3722,9 @@ function openFichaDetalle(id,nombre){
 
   } else if(id==='P.2'){
     html=`<div style="padding:16px;">
-      <div class="form-group"><label class="form-label">Fecha entrega de terreno</label><input class="form-input" type="date" id="p2-entrega" value="${o.p2?.entrega||o.inicio||''}"/></div>
-      <div class="form-group"><label class="form-label">Fecha próximo EP</label><input class="form-input" type="date" id="p2-ep" value="${o.proximoEP||''}"/></div>
-      <div class="form-group"><label class="form-label">Observaciones plazo</label><input class="form-input" id="p2-obs" value="${o.p2?.obs||''}" placeholder="Ampliaciones, paralizaciones, etc."/></div>
+      <div class="form-group"><label class="form-label">Fecha entrega de terreno</label><input class="form-input" type="date" id="p2-entrega" value="${esc(o.p2?.entrega||o.inicio||'')}"/></div>
+      <div class="form-group"><label class="form-label">Fecha próximo EP</label><input class="form-input" type="date" id="p2-ep" value="${esc(o.proximoEP||'')}"/></div>
+      <div class="form-group"><label class="form-label">Observaciones plazo</label><input class="form-input" id="p2-obs" value="${esc(o.p2?.obs||'')}" placeholder="Ampliaciones, paralizaciones, etc."/></div>
       <button class="btn-primary" onclick="guardarP2()">Guardar</button>
     </div>`;
 
@@ -3598,8 +3737,8 @@ function openFichaDetalle(id,nombre){
         <div style="font-size:13px;font-weight:500;color:${estado==='ok'?'var(--green)':'var(--amber)'};">${estado==='ok'?'✓ Programa de trabajo recibido':'⏳ Pendiente envío por parte del contratista'}</div>
       </div>
       ${tieneAdj?o.adjuntos['P.3'].map(a=>a.driveLink
-        ? `<a href="${a.driveLink}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--blue);">📎 ${a.nombre}</a>`
-        : `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--green-bg);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--green);">${a.esGantt?'📅':'📄'} ${a.nombre}</div>`
+        ? `<a href="${safeUrl(a.driveLink)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--blue);">📎 ${esc(a.nombre)}</a>`
+        : `<div style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--green-bg);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--green);">${a.esGantt?'📅':'📄'} ${esc(a.nombre)}</div>`
       ).join(''):''}
       <div class="form-group" style="margin-top:8px;">
         <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;">
@@ -3616,7 +3755,7 @@ function openFichaDetalle(id,nombre){
 
   } else if(id==='P.4'){
     const tb=o.eps.reduce((s,e)=>s+(e.monto||0),0);
-    const tp=o.eps.reduce((s,e)=>s+(e.pagado||0),0);
+    const tp=o.eps.filter(e=>e.pagado).reduce((s,e)=>s+(e.monto||0),0);  // pagado es booleano (F-06)
     html=`<div style="padding:16px;">
       <div class="stats-row" style="margin-bottom:14px;">
         <div class="stat-card"><div class="stat-label">Monto contrato</div><div class="stat-value" style="font-size:14px;">$${fmtM(o.monto||0)}</div></div>
@@ -3626,14 +3765,14 @@ function openFichaDetalle(id,nombre){
       </div>
       <div class="form-group"><label class="form-label">Monto contrato ($)</label><input class="form-input" type="number" id="p4-monto" value="${o.monto||0}"/></div>
       <div class="form-group"><label class="form-label">% anticipo</label><input class="form-input" type="number" id="p4-anticipo" value="${o.anticipo||0}" min="0" max="100"/></div>
-      <div class="form-group"><label class="form-label">Fecha próximo EP</label><input class="form-input" type="date" id="fp4-ep" value="${o.proximoEP||''}"/></div>
+      <div class="form-group"><label class="form-label">Fecha próximo EP</label><input class="form-input" type="date" id="fp4-ep" value="${esc(o.proximoEP||'')}"/></div>
       <button class="btn-primary" onclick="guardarP4()">Guardar</button>
     </div>`;
 
   } else if(id==='P.5'){
     html=`<div style="padding:16px;">
       <div class="form-group"><label class="form-label">Observaciones lista de materiales</label>
-      <textarea class="form-input" id="p5-obs" rows="4" style="resize:none;">${o.p5?.obs||''}</textarea></div>
+      <textarea class="form-input" id="p5-obs" rows="4" style="resize:none;">${esc(o.p5?.obs||'')}</textarea></div>
       <button class="btn-primary" onclick="guardarPX('p5','p5-obs')">Guardar</button>
     </div>`;
 
@@ -3653,9 +3792,9 @@ function openFichaDetalle(id,nombre){
       </div>
       ${visitas.length?visitas.slice(-3).reverse().map(v=>`
         <div class="obra-card" style="cursor:default;margin:0 0 8px;">
-          <div style="font-size:13px;font-weight:500;">${v.tipo||'Visita'}</div>
-          <div class="obra-meta">${fmtDate(v.fecha)}${v.hora?' · '+v.hora:''}</div>
-          ${v.obs?`<div style="font-size:12px;color:var(--text2);margin-top:4px;">${v.obs.slice(0,100)}${v.obs.length>100?'...':''}</div>`:''}
+          <div style="font-size:13px;font-weight:500;">${esc(v.tipo||'Visita')}</div>
+          <div class="obra-meta">${fmtDate(v.fecha)}${v.hora?' · '+esc(v.hora):''}</div>
+          ${v.obs?`<div style="font-size:12px;color:var(--text2);margin-top:4px;">${esc(v.obs.slice(0,100))}${v.obs.length>100?'...':''}</div>`:''}
         </div>`).join(''):'<div class="empty-state" style="padding:20px;">Sin visitas registradas aún.</div>'}
       <button class="btn-primary" style="margin-top:8px;" onclick="goModulo('visitas')">Ir a Visitas ITO</button>
     </div>`;
@@ -3669,7 +3808,7 @@ function openFichaDetalle(id,nombre){
         P.8 está vinculada al módulo de Ensayos P.6. Cumplimiento actual: ${plan.length?Math.round(aprobados/plan.length*100):0}% (${aprobados}/${plan.length} ítems aprobados).
       </div>
       <div class="form-group"><label class="form-label">Observaciones control de calidad</label>
-      <textarea class="form-input" id="p8-obs" rows="4" style="resize:none;">${o.p8?.obs||''}</textarea></div>
+      <textarea class="form-input" id="p8-obs" rows="4" style="resize:none;">${esc(o.p8?.obs||'')}</textarea></div>
       <button class="btn-primary" onclick="guardarPX('p8','p8-obs');goModulo('ensayos')">Guardar e ir a Ensayos</button>
       <button class="btn-secondary" onclick="guardarPX('p8','p8-obs')">Solo guardar</button>
     </div>`;
@@ -3689,14 +3828,14 @@ function openFichaDetalle(id,nombre){
         </div>
       </div>
       <div class="form-group"><label class="form-label">Equipos y subcontratos autorizados</label>
-      <textarea class="form-input" id="p9-lista" rows="5" style="resize:none;" placeholder="Lista los equipos y subcontratos autorizados...">${o.p9?.lista||''}</textarea></div>
+      <textarea class="form-input" id="p9-lista" rows="5" style="resize:none;" placeholder="Lista los equipos y subcontratos autorizados...">${esc(o.p9?.lista||'')}</textarea></div>
       <button class="btn-primary" onclick="guardarP9()">Guardar</button>
     </div>`;
 
   } else {
     html=`<div style="padding:16px;">
       <div class="form-group"><label class="form-label">Observaciones</label>
-      <textarea class="form-input" id="px-obs" rows="5" style="resize:none;">${o['p'+id.toLowerCase().replace('.','')]?.obs||''}</textarea></div>
+      <textarea class="form-input" id="px-obs" rows="5" style="resize:none;">${esc(o['p'+id.toLowerCase().replace('.','')]?.obs||'')}</textarea></div>
       <button class="btn-primary" onclick="showToast('Guardado')">Guardar</button>
     </div>`;
   }
@@ -3783,8 +3922,8 @@ function renderEP(o){
             <span style="font-size:11px;color:${info.color};background:${info.bg};padding:1px 7px;border-radius:20px;">${info.afectaAvance?'Contrato':'Adicional'}</span>
           </div>
           <div style="font-size:12px;color:var(--text2);margin-top:2px;">${fmtDate(ep.fecha)} · $${fmtM(ep.monto)}</div>
-          ${ep.resolucion?`<div style="font-size:11px;color:var(--text2);margin-top:1px;">${ep.resolucion}</div>`:''}
-          ${ep.obs?`<div style="font-size:11px;color:var(--text2);margin-top:1px;">${ep.obs}</div>`:''}
+          ${ep.resolucion?`<div style="font-size:11px;color:var(--text2);margin-top:1px;">${esc(ep.resolucion)}</div>`:''}
+          ${ep.obs?`<div style="font-size:11px;color:var(--text2);margin-top:1px;">${esc(ep.obs)}</div>`:''}
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer;" onclick="event.stopPropagation()">
@@ -3795,7 +3934,7 @@ function renderEP(o){
         </div>
       </div>
       <div style="padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-        ${(ep.adjuntos||[]).map(a=>`<a href="${a.driveLink}" target="_blank" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 ${a.nombre}</a>`).join('')}
+        ${(ep.adjuntos||[]).map(a=>`<a href="${safeUrl(a.driveLink)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 ${esc(a.nombre)}</a>`).join('')}
         <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:3px 8px;border:0.5px dashed var(--border2);border-radius:20px;">
           <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="adjuntarArchivoEP(event,${ep.num},'${t}')"/>+ Adjuntar
         </label>
@@ -3820,7 +3959,7 @@ function renderEP(o){
         </label>
       </div>
       <div style="padding:8px 14px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;">
-        ${(ep.adjuntos||[]).map(a=>`<a href="${a.driveLink}" target="_blank" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 ${a.nombre}</a>`).join('')}
+        ${(ep.adjuntos||[]).map(a=>`<a href="${safeUrl(a.driveLink)}" target="_blank" rel="noopener noreferrer" style="font-size:11px;color:var(--blue);display:flex;align-items:center;gap:3px;padding:3px 8px;border:0.5px solid var(--border);border-radius:20px;">📎 ${esc(a.nombre)}</a>`).join('')}
         <label style="font-size:11px;color:var(--blue);cursor:pointer;padding:3px 8px;border:0.5px dashed var(--border2);border-radius:20px;">
           <input type="file" accept=".pdf,.xlsx,.xls" style="display:none;" onchange="adjuntarArchivoEP(event,${ep.num},'base')"/>+ Adjuntar
         </label>
@@ -3876,11 +4015,11 @@ function showFormEP(idx){
     <div class="form-group"><label class="form-label">Descuento anticipo ($)</label><input class="form-input" type="number" id="ep-desc" value="${ep?.descAnt||''}" placeholder="0"/></div>
     <div class="form-group" id="ep-resol-wrap">
       <label class="form-label">Resolución / decreto que lo aprueba</label>
-      <input class="form-input" id="ep-resol" value="${ep?.resolucion||''}" placeholder="Ej: Res. Ex. N°1234/2026"/>
+      <input class="form-input" id="ep-resol" value="${esc(ep?.resolucion||'')}" placeholder="Ej: Res. Ex. N°1234/2026"/>
     </div>
     <div class="form-group">
       <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;">
-        <input type="checkbox" id="ep-pagado" ${ep?.pagado?'checked':''} style="width:18px;height:18px;"/> EP pagado por SERVIU
+        <input type="checkbox" id="ep-pagado" ${ep?.pagado?'checked':''} style="width:18px;height:18px;"/> EP pagado por el mandante
       </label>
     </div>
     <div class="form-group"><label class="form-label">Estado</label>
@@ -3891,7 +4030,7 @@ function showFormEP(idx){
       </select>
     </div>
     <div class="form-group"><label class="form-label">Observaciones</label>
-      <input class="form-input" id="ep-obs" value="${ep?.obs||''}" placeholder="Opcional"/>
+      <input class="form-input" id="ep-obs" value="${esc(ep?.obs||'')}" placeholder="Opcional"/>
     </div>
     <button class="btn-primary" onclick="guardarEP(${idx})">Guardar EP</button>
     ${idx>=0?`<button class="btn-secondary" style="color:var(--red);border-color:#F09595;" onclick="eliminarEP(${idx})">Eliminar EP</button>`:''}
@@ -3931,13 +4070,15 @@ function guardarEP(idx){
   const num=idx>=0&&tipoEP(o.eps[idx])===tipo
     ? o.eps[idx].num
     : (mismoTipo.reduce((m,e)=>Math.max(m,e.num||0),0)+1);
-  const ep={num,tipo,fecha,monto,descAnt,pagado,estado,resolucion,obs,
-            adjuntos:idx>=0?(o.eps[idx].adjuntos||[]):[]};
+  const prev=idx>=0?o.eps[idx]:null;
+  const ep={id:(prev&&prev.id)||uid(),num,tipo,fecha,monto,descAnt,pagado,estado,resolucion,obs,
+            adjuntos:prev?(prev.adjuntos||[]):[],
+            ...(prev&&prev.autogen?{autogen:true,aprobado:!!prev.aprobado}:{})};  // un EP condicional sigue condicional al editarlo (F-10)
   if(idx===-1){
     o.eps.push(ep);
     // El calendario de EPs solo lo marca el contrato base
     if(tipo==='base'&&!o.programaEPs?.length){
-      const nx=new Date(fecha);nx.setDate(nx.getDate()+28);o.proximoEP=nx.toISOString().slice(0,10);
+      const nx=parseISO(fecha)||new Date();nx.setDate(nx.getDate()+28);o.proximoEP=isoLocal(nx);
     }
   } else {
     o.eps[idx]=ep;
@@ -3951,9 +4092,7 @@ function eliminarEP(idx){
   const o=state.obras[state.activeObraIdx];
   const tipo=tipoEP(o.eps[idx]);
   o.eps.splice(idx,1);
-  // Renumerar solo dentro del tipo afectado
-  let n=0;
-  o.eps.forEach(e=>{ if(tipoEP(e)===tipo) e.num=++n; });
+  // No se renumeran los demás: el N° de EP es un identificador (carpetas en Drive, referencias, EP generados) — F-05
   saveAndSync();renderEP(o);renderDashCurvaS(o);showToast('EP eliminado');
 }
 
@@ -4023,11 +4162,11 @@ function renderAvance(o){
         </thead>
         <tbody>
           ${partidas.map((p,i)=>p.esCapitulo
-            ? `<tr style="background:var(--blue-bg);"><td colspan="9" style="padding:6px 8px;font-weight:600;color:var(--blue);font-size:11px;">${p.item}. ${p.desc}</td></tr>`
+            ? `<tr style="background:var(--blue-bg);"><td colspan="9" style="padding:6px 8px;font-weight:600;color:var(--blue);font-size:11px;">${esc(p.item)}. ${esc(p.desc)}</td></tr>`
             : `<tr style="border-bottom:0.5px solid var(--border);${i%2===0?'background:var(--bg2);':''}">
-                <td style="padding:5px 8px;font-weight:500;">${p.item}</td>
-                <td style="padding:5px 8px;">${p.desc}</td>
-                <td style="padding:5px 8px;text-align:center;">${p.unidad}</td>
+                <td style="padding:5px 8px;font-weight:500;">${esc(p.item)}</td>
+                <td style="padding:5px 8px;">${esc(p.desc)}</td>
+                <td style="padding:5px 8px;text-align:center;">${esc(p.unidad)}</td>
                 <td style="padding:5px 8px;text-align:right;">${p.cant}</td>
                 <td style="padding:5px 8px;text-align:right;">$${fmtM(p.ptotal)}</td>
                 <td style="padding:2px 4px;text-align:center;"><input type="number" value="${p.cantHF||0}" min="0" style="width:50px;padding:3px;border:0.5px solid var(--border2);border-radius:4px;font-size:11px;text-align:right;" onchange="updatePartidaField(${i},'cantHF',this.value)"/></td>
@@ -4368,18 +4507,18 @@ function renderLibro(o){
         </div>
         <button onclick="eliminarEntradaLibro(${idx})" style="font-size:11px;color:var(--red);background:none;border:none;cursor:pointer;">✕</button>
       </div>
-      <div class="libro-text" style="margin-top:6px;">${e.texto.replace(/\n/g,'<br>')}</div>
+      <div class="libro-text" style="margin-top:6px;">${esc(e.texto).replace(/\n/g,'<br>')}</div>
       ${e.fotosLibro?.length?`
       <div style="margin-top:8px;">
         <div style="font-size:11px;color:var(--text2);margin-bottom:5px;">Fotografías del libro (${e.fotosLibro.length}):</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           ${e.fotosLibro.map(f=>`
-            <a href="${f.driveLink}" target="_blank" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--blue);padding:4px 8px;border:0.5px solid var(--border);border-radius:20px;text-decoration:none;">
+            <a href="${safeUrl(f.driveLink)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--blue);padding:4px 8px;border:0.5px solid var(--border);border-radius:20px;text-decoration:none;">
               📖 Ver foto
             </a>`).join('')}
         </div>
       </div>`:''}
-      <div class="libro-autor" style="margin-top:6px;">${e.autor}</div>
+      <div class="libro-autor" style="margin-top:6px;">${esc(e.autor)}</div>
     </div>`;
   }).join('');
 }
@@ -4389,7 +4528,7 @@ function addComEntry(){
   const txt=prompt('Nueva entrada libro de obras:');if(!txt)return;
   if(!o.libro)o.libro=[];
   const ahora=new Date();
-  o.libro.push({fecha:ahora.toISOString().slice(0,10),hora:ahora.toTimeString().slice(0,5),texto:txt,autor:'César Pino, ITO'});
+  o.libro.push({fecha:today(),hora:ahora.toTimeString().slice(0,5),texto:txt,autor:getITONombre()});
   saveAndSync();renderLibro(o);showToast('Entrada registrada');
 }
 function eliminarEntradaLibro(idx){
@@ -4414,15 +4553,15 @@ function renderPersonal(o){
       ].map(([label,key])=>`
         <div class="form-group">
           <label class="form-label">${label}</label>
-          <input class="form-input" id="pers-${key}" value="${p[key]||''}" placeholder="${label}"/>
+          <input class="form-input" id="pers-${key}" value="${esc(p[key]||'')}" placeholder="${label}"/>
         </div>`).join('')}
 
       <div class="section-title" style="padding:12px 0 8px;">otros profesionales</div>
       ${profesionales.map((pr,i)=>`
         <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center;">
           <div style="flex:1;">
-            <input class="form-input" value="${pr.nombre||''}" placeholder="Nombre y cargo" style="margin-bottom:4px;" onchange="updateProfesional(${i},'nombre',this.value)"/>
-            <input class="form-input" value="${pr.cargo||''}" placeholder="Cargo" style="font-size:12px;" onchange="updateProfesional(${i},'cargo',this.value)"/>
+            <input class="form-input" value="${esc(pr.nombre||'')}" placeholder="Nombre y cargo" style="margin-bottom:4px;" onchange="updateProfesional(${i},'nombre',this.value)"/>
+            <input class="form-input" value="${esc(pr.cargo||'')}" placeholder="Cargo" style="font-size:12px;" onchange="updateProfesional(${i},'cargo',this.value)"/>
           </div>
           <button onclick="eliminarProfesional(${i})" style="color:var(--red);background:none;border:none;font-size:18px;cursor:pointer;flex-shrink:0;">✕</button>
         </div>`).join('')}
@@ -4430,7 +4569,7 @@ function renderPersonal(o){
 
       <div class="section-title" style="padding:0 0 8px;">organigrama</div>
       ${o.organigramaDriveLink
-        ? `<a href="${o.organigramaDriveLink}" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--blue);">📎 ${o.organigramaNombre||'Organigrama'}</a>`
+        ? `<a href="${safeUrl(o.organigramaDriveLink)}" target="_blank" rel="noopener noreferrer" style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--bg2);border-radius:var(--r);margin-bottom:8px;font-size:13px;color:var(--blue);">📎 ${esc(o.organigramaNombre||'Organigrama')}</a>`
         : ''}
       <label style="display:flex;align-items:center;gap:10px;border:0.5px dashed var(--border2);border-radius:var(--r);padding:12px;cursor:pointer;margin-bottom:14px;">
         <input type="file" accept=".pdf,.png,.jpg,.jpeg" style="display:none;" onchange="subirOrganigrama(event)"/>
@@ -4479,6 +4618,51 @@ async function subirOrganigrama(event){
   }catch(e){showToast('Error: '+e.message);}
 }
 
+// ══ AJUSTES: nombre del ITO (S-10) y PIN local (S-06) ═════════
+const LS_PIN='ito_pin';
+async function sha256Hex(str){
+  if(!(window.crypto&&crypto.subtle)) throw new Error('Este navegador no permite PIN seguro (requiere https).');
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function abrirAjustes(){
+  document.getElementById('aj-ito-nombre').value=(state.config&&state.config.itoNombre)||'';
+  document.getElementById('aj-pin1').value='';document.getElementById('aj-pin2').value='';
+  const tiene=!!localStorage.getItem(LS_PIN);
+  document.getElementById('aj-pin-estado').innerHTML=tiene?'<span style="color:var(--green);">● PIN activo en este dispositivo</span>':'<span style="color:var(--text2);">○ Sin PIN</span>';
+  document.getElementById('aj-pin-quitar').style.display=tiene?'block':'none';
+  go('s-ajustes');
+}
+function guardarAjustes(){
+  if(!state.config) state.config={};
+  state.config.itoNombre=document.getElementById('aj-ito-nombre').value.trim();
+  saveAndSync(); showToast('Ajustes guardados');
+}
+async function establecerPIN(){
+  const p1=document.getElementById('aj-pin1').value.trim(), p2=document.getElementById('aj-pin2').value.trim();
+  if(!/^\d{4,8}$/.test(p1)){showToast('El PIN debe tener entre 4 y 8 dígitos');return;}
+  if(p1!==p2){showToast('Los PIN no coinciden');return;}
+  try{ localStorage.setItem(LS_PIN,await sha256Hex(p1)); showToast('PIN activado'); abrirAjustes(); }
+  catch(e){ showToast(e.message); }
+}
+function quitarPIN(){ if(!confirm('¿Quitar el PIN de este dispositivo?'))return; localStorage.removeItem(LS_PIN); showToast('PIN quitado'); abrirAjustes(); }
+function mostrarBloqueo(){
+  if(!localStorage.getItem(LS_PIN)) return;
+  document.getElementById('lock-screen').style.display='flex';
+  setTimeout(()=>{const i=document.getElementById('lock-pin'); if(i) i.focus();},50);
+}
+let lockIntentos=0;
+async function desbloquear(){
+  const inp=document.getElementById('lock-pin'), msg=document.getElementById('lock-msg');
+  try{
+    const ok=(await sha256Hex(inp.value.trim()))===localStorage.getItem(LS_PIN);
+    if(ok){ document.getElementById('lock-screen').style.display='none'; inp.value=''; msg.textContent=''; lockIntentos=0; return; }
+    lockIntentos++; inp.value='';
+    msg.textContent=lockIntentos>=5?'Demasiados intentos. Espera 30 segundos.':'PIN incorrecto';
+    if(lockIntentos>=5){ inp.disabled=true; setTimeout(()=>{inp.disabled=false;lockIntentos=0;msg.textContent='';},30000); }
+  }catch(e){ msg.textContent=e.message; }
+}
+
 function confirmarEliminarObra(){
   const o=state.obras[state.activeObraIdx];
   if(!confirm(`¿Eliminar "${o.nombre}"?\n\nEsta acción no se puede deshacer.`)) return;
@@ -4492,9 +4676,9 @@ function confirmarEliminarObra(){
 function goNuevaObra(){go('s-nueva-obra');document.getElementById('nw-inicio').value=today();}
 function guardarObra(){
   const nombre=document.getElementById('nw-nombre').value.trim();if(!nombre){showToast('Ingresa el nombre');return;}
-  const inicio=document.getElementById('nw-inicio').value;
-  const nx=new Date(inicio);nx.setDate(nx.getDate()+28);
-  state.obras.push({nombre,contrato:document.getElementById('nw-contrato').value.trim(),contratista:document.getElementById('nw-contratista').value.trim(),inicio,plazo:parseInt(document.getElementById('nw-plazo').value)||365,monto:parseInt(document.getElementById('nw-monto').value)||0,anticipo:parseInt(document.getElementById('nw-anticipo').value)||20,avance:parseInt(document.getElementById('nw-avance').value)||0,avanceProg:parseInt(document.getElementById('nw-avanceprog').value)||0,eps:[],partidas:[],libro:[],personal:{residente:'',autocontrol:'',jefTerreno:''},proximoEP:nx.toISOString().slice(0,10)});
+  const inicio=document.getElementById('nw-inicio').value||today();  // sin fecha → hoy (antes rompía en silencio, F-15)
+  const nx=parseISO(inicio)||new Date();nx.setDate(nx.getDate()+28);
+  state.obras.push({nombre,contrato:document.getElementById('nw-contrato').value.trim(),contratista:document.getElementById('nw-contratista').value.trim(),inicio,plazo:parseInt(document.getElementById('nw-plazo').value)||365,monto:parseInt(document.getElementById('nw-monto').value)||0,anticipo:(()=>{const v=parseInt(document.getElementById('nw-anticipo').value);return isNaN(v)?20:v;})(),avance:parseInt(document.getElementById('nw-avance').value)||0,avanceProg:parseInt(document.getElementById('nw-avanceprog').value)||0,eps:[],partidas:[],libro:[],personal:{residente:'',autocontrol:'',jefTerreno:''},proximoEP:isoLocal(nx)});
   saveAndSync();go('s-obras');showToast(`Obra "${nombre}" creada`);
 }
 
@@ -4505,9 +4689,9 @@ let actaDocxLibs=null;
 function ensureDocxLibs(){
   if(window.PizZip && (window.docxtemplater||window.Docxtemplater)) return Promise.resolve();
   if(actaDocxLibs) return actaDocxLibs;
-  const load=(src)=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar librería'));document.head.appendChild(s);});
-  actaDocxLibs=load('https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js')
-    .then(()=>load('https://cdn.jsdelivr.net/npm/docxtemplater@3.50.0/build/docxtemplater.js'));
+  const load=(src,sri)=>new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;if(sri){s.integrity=sri;s.crossOrigin='anonymous';}s.onload=res;s.onerror=()=>rej(new Error('No se pudo cargar librería'));document.head.appendChild(s);});
+  actaDocxLibs=load('https://cdn.jsdelivr.net/npm/pizzip@3.1.7/dist/pizzip.min.js','sha384-3mvYicTS7UKJFuQYjm4TLHd0AEsGqivIvpOz05D1WC6EY0wjrdMXxlwRAdckMW73')
+    .then(()=>load('https://cdn.jsdelivr.net/npm/docxtemplater@3.50.0/build/docxtemplater.js','sha384-iE2CLpzI//WSW27IS4DPW3L3BJaOxn0tcasTXUDBWsyWw35ruWTPz6ERH7FP14Zg'));
   return actaDocxLibs;
 }
 function actaB64ToBytes(b64){const bin=atob(b64);const len=bin.length;const bytes=new Uint8Array(len);for(let i=0;i<len;i++)bytes[i]=bin.charCodeAt(i);return bytes;}
@@ -4662,11 +4846,11 @@ function renderEPAvBody(){
   const parts=epPartidas.filter(p=>!p.cap);
   let rows='';
   epPartidas.forEach(p=>{
-    if(p.cap){ rows+='<div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;padding:14px 16px 6px;background:var(--bg2);border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border);">'+p.item+'  '+p.desig+'</div>'; return; }
+    if(p.cap){ rows+='<div style="font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;padding:14px 16px 6px;background:var(--bg2);border-top:0.5px solid var(--border);border-bottom:0.5px solid var(--border);">'+esc(p.item)+'  '+esc(p.desig)+'</div>'; return; }
     const pctRef=p.D>0?Math.round((p.newcant||0)/p.D*100):0;
     rows+='<div style="padding:10px 16px;border-bottom:0.5px solid var(--border);">'
-      +'<div style="font-size:13px;line-height:1.25;">'+p.item+' \u00b7 '+p.desig+'</div>'
-      +'<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+(p.unidad||'')+' \u00b7 contrato: '+epFmtNum(p.D)+' \u00b7 <span id="eppct-'+p.row+'">'+pctRef+'</span>% completado</div>'
+      +'<div style="font-size:13px;line-height:1.25;">'+esc(p.item)+' \u00b7 '+esc(p.desig)+'</div>'
+      +'<div style="font-size:11px;color:var(--text2);margin-top:2px;">'+esc(p.unidad||'')+' \u00b7 contrato: '+epFmtNum(p.D)+' \u00b7 <span id="eppct-'+p.row+'">'+pctRef+'</span>% completado</div>'
       +'<div style="display:flex;gap:8px;margin-top:8px;">'
         +'<div style="flex:1;"><div style="font-size:10px;color:var(--text2);margin-bottom:3px;">cantidad actual</div>'
           +'<input type="text" value="'+epFmtNum(p.Gcur)+'" disabled style="width:100%;padding:7px 8px;font-size:14px;border:0.5px solid var(--border);border-radius:var(--r);text-align:right;background:var(--bg2);color:var(--text2);"></div>'
@@ -4684,7 +4868,7 @@ function renderEPAvBody(){
       +'<input type="number" min="1" step="1" id="ep-num-input" placeholder="Ej: 8" style="width:100%;padding:9px 10px;font-size:15px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--bg);color:var(--text);">'
       +'<div style="font-size:10px;color:var(--text2);margin-top:5px;">Se escribe en la car\u00e1tula (D13) y define la fila de la programaci\u00f3n financiera (columna K).</div>'
     +'</div>'
-    +'<div style="margin:0 16px 6px;font-size:11px;color:var(--text2);line-height:1.4;">Base: <b>'+epBaseName+'</b> \u00b7 '+parts.length+' partidas. Ingresa la <b>cantidad nueva acumulada</b> de cada una.</div>'
+    +'<div style="margin:0 16px 6px;font-size:11px;color:var(--text2);line-height:1.4;">Base: <b>'+esc(epBaseName)+'</b> \u00b7 '+parts.length+' partidas. Ingresa la <b>cantidad nueva acumulada</b> de cada una.</div>'
     +rows
     +'<div style="padding:16px 16px 32px;"><button class="btn-primary" onclick="generarEPExcel()">\u26a1 Generar EP (Excel)</button>'
     +'<div id="ep-gen-status" style="text-align:center;font-size:12px;color:var(--text2);margin-top:8px;display:none;"></div>'
@@ -4828,7 +5012,7 @@ async function generarEPExcel(){
       if(!o.eps) o.eps=[];
       var existe=o.eps.find(function(e){return tipoEP(e)==='base' && e.num===epNum;});
       if(existe){ existe.fecha=today(); existe.monto=Math.round(parcial); existe.autogen=true; if(existe.aprobado===undefined) existe.aprobado=false; }
-      else { o.eps.push({num:epNum,tipo:'base',fecha:today(),monto:Math.round(parcial),descAnt:0,pagado:false,estado:'en_revision',aprobado:false,autogen:true,adjuntos:[]}); }
+      else { o.eps.push({id:uid(),num:epNum,tipo:'base',fecha:today(),monto:Math.round(parcial),descAnt:0,pagado:false,estado:'en_revision',aprobado:false,autogen:true,adjuntos:[]}); }
       saveAndSync();
     }
     if(st) st.style.display='none';
@@ -4836,9 +5020,12 @@ async function generarEPExcel(){
   }catch(e){ if(st)st.style.display='none'; showToast('Error: '+(e.message||e)); console.error('generarEPExcel',e); }
 }
 
-loadLocal();seedDemo();renderObras();
+loadLocal();seedDemo();renderObras();mostrarBloqueo();
 const sheetjs=document.createElement('script');
-sheetjs.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+sheetjs.src='https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js';  // S-02: versión sin CVE conocidos
+sheetjs.integrity='sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT';  // S-05: integridad (SRI)
+sheetjs.crossOrigin='anonymous';
+sheetjs.onerror=()=>showToast('No se pudo cargar la librería de Excel (integridad o red).');
 document.head.appendChild(sheetjs);
 const gsi=document.createElement('script');
 gsi.src='https://accounts.google.com/gsi/client';
