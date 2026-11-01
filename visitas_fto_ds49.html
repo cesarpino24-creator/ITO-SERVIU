@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7n8Zg+/e5fCYcTtAbbLljP/yurSkcTJqzOeGZXql8aI=' 'sha256-5lUfzcMvCdaFOyxRJtGNAdlEfg2mGKQaEevu4PbCDVQ=' 'sha256-rvtxbxPSj8eOUwbWWl9NgIflntvANWFcKSnh7cj54p0=' 'sha256-j/Juih4Yj6WOhWKCUF8JLyIjpV2NJCg6EcU+aLyPtn0=' https://accounts.google.com/gsi/; style-src 'unsafe-inline' https://accounts.google.com/gsi/style; img-src data: blob:; connect-src https://www.googleapis.com https://accounts.google.com/gsi/ https://oauth2.googleapis.com; frame-src https://accounts.google.com/gsi/; object-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7n8Zg+/e5fCYcTtAbbLljP/yurSkcTJqzOeGZXql8aI=' 'sha256-5lUfzcMvCdaFOyxRJtGNAdlEfg2mGKQaEevu4PbCDVQ=' 'sha256-rvtxbxPSj8eOUwbWWl9NgIflntvANWFcKSnh7cj54p0=' 'sha256-aWCMvKR2qlOTZLo32DTtXAmyrajdw6cOTjapPHqC7X0=' https://accounts.google.com/gsi/; style-src 'unsafe-inline' https://accounts.google.com/gsi/style; img-src data: blob:; connect-src https://www.googleapis.com https://accounts.google.com/gsi/ https://oauth2.googleapis.com; frame-src https://accounts.google.com/gsi/; object-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -560,7 +560,7 @@ async function render(){
   const tabs=[['visitas','Visitas'],['avance','Avance'],['pagos','Estados de pago'],['docs','Documentos'],['informe','Informe'],['ficha','Ficha']];
   app.innerHTML=`
   <div class="top"><div class="wrap"><button class="ib" id="back" aria-label="Volver">‹</button>
-    <h1>${esc(S.proj.nombre)}<small>${esc(S.proj.comuna||'')}${S.proj.expediente?' · Exp. '+esc(S.proj.expediente):''}</small></h1><button class="ib cloud" aria-label="Sincronizar con Drive">☁</button></div></div>
+    <h1>${esc(S.proj.nombre)}<small>${[S.proj.comuna,S.proj.expediente?'Cód. '+S.proj.expediente:''].filter(Boolean).map(esc).join(' · ')}</small></h1><button class="ib cloud" aria-label="Sincronizar con Drive">☁</button></div></div>
   <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}</button>`).join('')}</div>
   <div class="wrap" id="main"></div>`;
   $('#back').onclick=()=>{S.view='home';S.pid=null;render()};
@@ -611,7 +611,7 @@ function openSheet(title,body,{save='Guardar',onSave,onMount,onCancel}={}){
 function tabFicha(m){
   const p=S.proj;
   m.innerHTML=`<div class="card"><h3>${esc(p.nombre)}</h3>
-  <table class="t" style="margin-top:6px">${[['Comuna',p.comuna],['N° expediente DS 49',p.expediente],['Entidad patrocinante',p.ep],['Constructora',p.constructora],['Inicio',p.inicio?fdate(p.inicio):''],['Término',p.termino?fdate(p.termino):''],['Monto contrato',p.monto?money(pn(p.monto),p.moneda):'']].map(([k,v])=>`<tr><td>${k}</td><td>${esc(v||'—')}</td></tr>`).join('')}</table>
+  <table class="t" style="margin-top:6px">${[['Comuna',p.comuna],['Código de proyecto',p.expediente],['Entidad patrocinante',p.ep],['Constructora',p.constructora],['Inicio',p.inicio?fdate(p.inicio):''],['Término',p.termino?fdate(p.termino):''],['Monto contrato',p.monto?money(pn(p.monto),p.moneda):'']].map(([k,v])=>`<tr><td>${k}</td><td>${esc(v||'—')}</td></tr>`).join('')}</table>
   <div class="row" style="margin-top:12px"><button class="btn sec" id="ed" style="flex:1">Editar ficha</button></div></div>
   <div class="card"><b>Zona de peligro</b><p class="mut sm">Elimina el proyecto con todas sus visitas, fotos, estados de pago y documentos de este dispositivo.</p>
   <button class="btn bad block" id="dp">Eliminar proyecto</button></div>`;
@@ -624,7 +624,7 @@ function editProject(p){
   openSheet(n?'Nuevo proyecto':'Editar ficha',`
     ${f('nombre','Nombre del proyecto *','text','autocomplete="off"')}
     ${f('comuna','Comuna')}
-    ${f('expediente','N° de expediente DS 49')}
+    ${f('expediente','Código de proyecto')}
     ${f('ep','Entidad patrocinante')}
     ${f('constructora','Constructora')}
     <div class="g2"><div>${f('inicio','Fecha de inicio','date')}</div><div>${f('termino','Fecha de término','date')}</div></div>
@@ -646,7 +646,7 @@ function tabVisitas(m){
   ${v.length?[...v].reverse().map(x=>`<div class="card tap" data-v="${esc(x.id)}">
     <div class="row sp"><h3>Visita ${x.n} · ${fdate(x.fecha)} <span class="mut">${ftime(x.fecha)}</span></h3><span class="pill">${(x.fotos||[]).length} 📷</span></div>
     <div class="row" style="gap:18px;margin:6px 0"><span>Semanal <b>${pct(pn(x.avance))}</b></span><span>Acumulado <b>${pct(x.acum)}</b></span></div>
-    <div class="mut sm" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(x.obs||'Sin observaciones')}</div></div>`).join(''):`<div class="empty"><p><b>Sin visitas registradas</b></p><p>Toca “Nueva visita” para registrar la primera. La fecha y hora se guardan solas.</p></div>`}
+    <div class="mut sm" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(x.avances||x.obs||'Sin registro')}</div></div>`).join(''):`<div class="empty"><p><b>Sin visitas registradas</b></p><p>Toca “Nueva visita” para registrar la primera. La fecha y hora se guardan solas.</p></div>`}
   <button class="btn fab" id="nv">+ Nueva visita</button>`;
   $('#nv').onclick=()=>editVisit();
   $$('[data-v]',m).forEach(c=>c.onclick=()=>editVisit(S.visits.find(x=>x.id===c.dataset.v)));
@@ -665,7 +665,7 @@ async function fileToPhoto(file){
 
 function editVisit(v){
   const nueva=!v;
-  v=v?JSON.parse(JSON.stringify(v)):{id:uid(),pid:S.pid,fecha:nowLocal(),avance:'',obs:'',fotos:[]};
+  v=v?JSON.parse(JSON.stringify(v)):{id:uid(),pid:S.pid,fecha:nowLocal(),avance:'',avances:'',obs:'',fotos:[]};
   delete v.n;delete v.acum;
   const prevAcum=(fecha)=>S.visits.filter(x=>x.id!==v.id&&x.fecha<fecha).reduce((a,x)=>a+pn(x.avance),0);
   let dirty=false;
@@ -675,6 +675,10 @@ function editVisit(v){
       <div><label>Avance semanal (%)</label><input type="text" inputmode="decimal" id="av" placeholder="0" value="${esc(String(v.avance??'').replace('.',','))}"></div>
       <div><label>Acumulado (%)</label><input type="text" id="ac" readonly></div></div>
     <div class="mut sm" id="acn" style="margin-top:6px"></div>
+    <label>Avances de la semana</label>
+    <textarea id="as" placeholder="Partidas ejecutadas, frentes de trabajo, dotación…">${esc(v.avances)}</textarea>
+    <div class="mic"><button class="btn sec" id="mic2" type="button">🎤 Dictar</button><span class="mut sm">También puedes usar el micrófono del teclado.</span></div>
+    <div class="live" id="live2"></div>
     <label>Observaciones</label>
     <textarea id="ob" placeholder="Escribe o dicta lo observado en terreno…">${esc(v.obs)}</textarea>
     <div class="mic"><button class="btn sec" id="mic" type="button">🎤 Dictar</button><span class="mut sm">También puedes usar el micrófono del teclado.</span></div>
@@ -695,16 +699,17 @@ function editVisit(v){
       $$('[data-rm]',ph).forEach(b=>b.onclick=()=>{v.fotos.splice(+b.dataset.rm,1);dirty=true;drawPh()});
       $$('[data-cap]',ph).forEach(i=>i.oninput=()=>{v.fotos[+i.dataset.cap].cap=i.value;dirty=true})};
     const addFiles=async files=>{for(const fl of files){try{v.fotos.push(await fileToPhoto(fl));dirty=true}catch(e){toast('No se pudo leer una imagen')}}drawPh()};
-    f.oninput=()=>{dirty=true;calc()};av.oninput=()=>{dirty=true;calc()};ob.oninput=()=>dirty=true;
+    f.oninput=()=>{dirty=true;calc()};av.oninput=()=>{dirty=true;calc()};ob.oninput=()=>dirty=true;$('#as',sh).oninput=()=>dirty=true;
     $('#cam',sh).onclick=()=>$('#fcam',sh).click();$('#gal',sh).onclick=()=>$('#fgal',sh).click();
     $('#fcam',sh).onchange=e=>{addFiles([...e.target.files]);e.target.value=''};
     $('#fgal',sh).onchange=e=>{addFiles([...e.target.files]);e.target.value=''};
     $('#mic',sh).onclick=()=>toggleDictation(ob,$('#mic',sh),$('#live',sh),()=>dirty=true);
+    $('#mic2',sh).onclick=()=>toggleDictation($('#as',sh),$('#mic2',sh),$('#live2',sh),()=>dirty=true);
     const del=$('#del',sh);if(del)del.onclick=async()=>{if(confirm('¿Eliminar esta visita y sus fotos?')){await dbDel('visits',v.id);sh.querySelector('[data-x]').onclick=null;sh.remove();document.body.style.overflow='';stopDictation();render()}};
     calc();drawPh();
    },
    onSave:async sh=>{
-    v.fecha=$('#f',sh).value||v.fecha;v.avance=pn($('#av',sh).value);v.obs=$('#ob',sh).value.trim();
+    v.fecha=$('#f',sh).value||v.fecha;v.avance=pn($('#av',sh).value);v.avances=$('#as',sh).value.trim();v.obs=$('#ob',sh).value.trim();
     if(v.avance<0){toast('El avance semanal no puede ser negativo');return false}
     stopDictation();await dbPut('visits',v);toast('Visita guardada');render();
   }});
@@ -714,10 +719,10 @@ function editVisit(v){
 let REC=null;
 function stopDictation(){if(REC){try{REC.stop()}catch(e){}REC=null}}
 function toggleDictation(ta,btn,live,onChange){
-  if(REC){stopDictation();return}
+  if(REC){const same=REC._ta===ta;stopDictation();if(same)return}
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){toast('Este navegador no permite dictar desde la app. Usa el micrófono del teclado.',4500);return}
-  const r=new SR();r.lang='es-CL';r.continuous=true;r.interimResults=true;REC=r;
+  const r=new SR();r.lang='es-CL';r.continuous=true;r.interimResults=true;r._ta=ta;REC=r;
   const reset=()=>{btn.classList.remove('rec');btn.innerHTML='🎤 Dictar';live.textContent='';if(REC===r)REC=null};
   r.onstart=()=>{btn.classList.add('rec');btn.innerHTML='<span class="dot"></span>Grabando · toca para detener'};
   r.onresult=e=>{let fin='',tmp='';
@@ -819,7 +824,7 @@ function cleanRec(s,r){
   const o={id:String(r.id),mod:Math.max(0,+r.mod||0)},F=(k,m)=>{o[k]=str(r[k],m)};
   if(s!=='projects'){if(!ID_RE.test(String(r.pid)))return null;o.pid=String(r.pid)}
   if(s==='projects'){['nombre','comuna','expediente','ep','constructora','monto','creado'].forEach(k=>F(k,500));o.inicio=dateOk(r.inicio);o.termino=dateOk(r.termino);o.moneda=r.moneda==='CLP'?'CLP':'UF';if(!o.nombre)return null}
-  else if(s==='visits'){if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(r.fecha||''))return null;o.fecha=String(r.fecha).slice(0,16);o.avance=pn(r.avance);F('obs',20000);
+  else if(s==='visits'){if(!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(r.fecha||''))return null;o.fecha=String(r.fecha).slice(0,16);o.avance=pn(r.avance);F('avances',20000);F('obs',20000);
     o.fotos=(Array.isArray(r.fotos)?r.fotos:[]).filter(f=>f&&typeof f.data==='string'&&IMG_RE.test(f.data)).slice(0,200).map(f=>({id:ID_RE.test(String(f.id))?String(f.id):uid(),data:f.data,w:Math.max(1,+f.w||1),h:Math.max(1,+f.h||1),cap:str(f.cap,300)}))}
   else if(s==='payments'){F('n',20);o.fecha=dateOk(r.fecha);F('periodo',200);o.monto=pn(r.monto);o.estado=ESTADOS.includes(r.estado)?r.estado:'Presentado';F('obs',5000);o.file=cleanFile(r.file)}
   else if(s==='docs'){o.cat=CATS.includes(r.cat)?r.cat:'Otros';F('nombre',300);o.fecha=dateOk(r.fecha);F('nota',2000);o.file=cleanFile(r.file);if(!o.file)return null}
@@ -1019,7 +1024,7 @@ async function buildPdf(o){
   let sn=1;
   section(sn++ +'. ANTECEDENTES DEL PROYECTO');
   table([{w:42,b:true,h:''},{w:130,h:''}],[
-    ['Proyecto',p.nombre],['Comuna',p.comuna||'—'],['N° de expediente',p.expediente||'—'],['Entidad patrocinante',p.ep||'—'],['Constructora',p.constructora||'—'],
+    ['Proyecto',p.nombre],['Comuna',p.comuna||'—'],['Código de proyecto',p.expediente||'—'],['Entidad patrocinante',p.ep||'—'],['Constructora',p.constructora||'—'],
     ['Inicio / término',(p.inicio?fdate(p.inicio):'—')+'  /  '+(p.termino?fdate(p.termino):'—')],
     ['Monto del contrato',pn(p.monto)?money(pn(p.monto),p.moneda):'—'],
     ['Período informado',sel.length===1?fdate(first.fecha):fdate(first.fecha)+' al '+fdate(last.fecha)+' ('+sel.length+' visitas)'],
@@ -1053,6 +1058,8 @@ async function buildPdf(o){
     need(30);
     text('Visita N° '+x.n+' — '+flong(x.fecha)+', '+ftime(x.fecha)+' h',{bold:true,gap:.6});
     text('Avance semanal: '+pct(pn(x.avance))+'     Avance acumulado: '+pct(x.acum),{gap:1.2});
+    text('Avances de la semana:',{bold:true,gap:.4});
+    text(x.avances||'Sin avances registrados.',{w:CW,gap:1.6});
     text('Observaciones:',{bold:true,gap:.4});
     text(x.obs||'Sin observaciones registradas.',{w:CW,gap:2.4});
     if(o.fotos&&x.fotos&&x.fotos.length){
@@ -1267,6 +1274,11 @@ async function showLock(){
   $('#lb',d).onclick=go;$('#lp',d).onkeydown=e=>{if(e.key==='Enter')go()};setTimeout(()=>{const i=$('#lp',d);i&&i.focus()},50);
 }
 document.addEventListener('visibilitychange',()=>{if(document.hidden)LOCK.hiddenAt=Date.now();else if(LOCK.hiddenAt&&Date.now()-LOCK.hiddenAt>5*60000)showLock()});
+
+/* ============ corrector ortográfico ============ */
+// Usa el corrector del sistema (iOS/Android/Chrome/Edge) en español; el texto no sale del dispositivo.
+function spell(root){$$('textarea,input[type=text]:not([readonly]):not([inputmode])',root).forEach(e=>{e.spellcheck=true;e.lang='es';e.setAttribute('autocorrect','on');if(e.tagName==='TEXTAREA')e.setAttribute('autocapitalize','sentences')})}
+new MutationObserver(ms=>{for(const m of ms)for(const n of m.addedNodes)if(n.nodeType===1)spell(n.parentNode||n)}).observe(document.body,{childList:true,subtree:true});
 
 /* ============ arranque ============ */
 (async()=>{
