@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7n8Zg+/e5fCYcTtAbbLljP/yurSkcTJqzOeGZXql8aI=' 'sha256-5lUfzcMvCdaFOyxRJtGNAdlEfg2mGKQaEevu4PbCDVQ=' 'sha256-rvtxbxPSj8eOUwbWWl9NgIflntvANWFcKSnh7cj54p0=' 'sha256-aWCMvKR2qlOTZLo32DTtXAmyrajdw6cOTjapPHqC7X0=' https://accounts.google.com/gsi/; style-src 'unsafe-inline' https://accounts.google.com/gsi/style; img-src data: blob:; connect-src https://www.googleapis.com https://accounts.google.com/gsi/ https://oauth2.googleapis.com; frame-src https://accounts.google.com/gsi/; object-src blob:; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-7n8Zg+/e5fCYcTtAbbLljP/yurSkcTJqzOeGZXql8aI=' 'sha256-5lUfzcMvCdaFOyxRJtGNAdlEfg2mGKQaEevu4PbCDVQ=' 'sha256-rvtxbxPSj8eOUwbWWl9NgIflntvANWFcKSnh7cj54p0=' 'sha256-fKlGF03eEUzbOrLIKo0OqGLIMvoVmeo4B+ZnvxP3wqg=' https://accounts.google.com/gsi/; style-src 'unsafe-inline' https://accounts.google.com/gsi/style; img-src data: blob:; connect-src https://www.googleapis.com https://accounts.google.com/gsi/ https://oauth2.googleapis.com; frame-src https://accounts.google.com/gsi/; object-src blob:; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -55,7 +55,7 @@ input[type=text],input[type=number],input[type=date],input[type=datetime-local],
 textarea{min-height:120px;resize:vertical}
 input:focus,select:focus,textarea:focus{outline:2px solid var(--pri);outline-offset:0}
 input[readonly]{background:var(--soft);font-weight:700}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.g2>div{min-width:0}
 .bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden}
 .bar>i{display:block;height:100%;background:var(--pri);border-radius:99px}
 .pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:700;background:var(--soft);color:var(--pri)}
@@ -652,6 +652,32 @@ function tabVisitas(m){
   $$('[data-v]',m).forEach(c=>c.onclick=()=>editVisit(S.visits.find(x=>x.id===c.dataset.v)));
 }
 
+/* Firma manuscrita: quita el fondo claro, recorta al trazo y guarda PNG transparente (solo en este dispositivo) */
+async function processSignature(file){
+  let bmp;
+  try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'})}catch(e){
+    bmp=await new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=()=>rej(new Error('No se pudo leer la imagen'));i.src=URL.createObjectURL(file)});
+  }
+  const W0=bmp.width||bmp.naturalWidth,H0=bmp.height||bmp.naturalHeight,k=Math.min(1,1600/Math.max(W0,H0));
+  const W=Math.round(W0*k),H=Math.round(H0*k);
+  const c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true});
+  x.drawImage(bmp,0,0,W,H);const im=x.getImageData(0,0,W,H),d=im.data;
+  let x0=W,y0=H,x1=-1,y1=-1;
+  for(let i=0,p=0;i<d.length;i+=4,p++){
+    const lum=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+    const a=Math.max(0,Math.min(1,(235-lum)/90))*(d[i+3]/255);   // fondo claro → transparente, trazo conserva su color
+    d[i+3]=Math.round(a*255);
+    if(a>.12){const px=p%W,py=(p/W)|0;if(px<x0)x0=px;if(px>x1)x1=px;if(py<y0)y0=py;if(py>y1)y1=py}
+  }
+  if(x1<0)throw new Error('No se detectó un trazo de firma en la imagen.');
+  x.putImageData(im,0,0);
+  const pad=8;x0=Math.max(0,x0-pad);y0=Math.max(0,y0-pad);x1=Math.min(W-1,x1+pad);y1=Math.min(H-1,y1+pad);
+  const cw=x1-x0+1,ch=y1-y0+1,k2=Math.min(1,900/cw);
+  const o=document.createElement('canvas');o.width=Math.round(cw*k2);o.height=Math.round(ch*k2);
+  o.getContext('2d').drawImage(c,x0,y0,cw,ch,0,0,o.width,o.height);
+  return {data:o.toDataURL('image/png'),w:o.width,h:o.height};
+}
+async function getFirmaImg(){const f=await getSet('firmaImg',null);return f&&typeof f.data==='string'&&IMG_RE.test(f.data)&&f.w>0&&f.h>0?f:null}
 async function fileToPhoto(file){
   let bmp;
   try{bmp=await createImageBitmap(file,{imageOrientation:'from-image'})}catch(e){
@@ -878,6 +904,10 @@ async function openSettings(){
     <label>Nombre</label><input type="text" id="n" value="${esc(f.nombre)}">
     <label>Cargo</label><input type="text" id="c" value="${esc(f.cargo)}">
     <label>Institución</label><input type="text" id="i" value="${esc(f.inst)}"></div>
+   <div class="card"><b>Firma manuscrita</b><p class="mut sm">Se agrega sobre tu nombre en cada informe PDF. Se guarda solo en este dispositivo: no se publica en GitHub, no se sube a Drive y no va en el respaldo. Cárgala una vez en cada equipo (teléfono y PC).</p>
+    <div id="fprev" style="background:#fff;border:1px solid var(--line);border-radius:10px;min-height:70px;display:flex;align-items:center;justify-content:center;padding:8px"></div>
+    <input type="file" id="ffirma" accept="image/*" hidden>
+    <div class="row" style="margin-top:10px"><button class="btn sec" id="fload" style="flex:1">Cargar imagen de firma</button><button class="btn bad" id="fdel">Quitar</button></div></div>
    <div class="card"><b>Bloqueo con PIN</b><p class="mut sm">Pide un PIN al abrir la app y al volver tras 5 minutos fuera. Protege frente a quien tome tu teléfono desbloqueado.</p>
     <div class="mut sm" id="pst"></div>
     <div class="g2"><div><label>PIN nuevo (4–8 dígitos)</label><input type="password" inputmode="numeric" id="p1" maxlength="8" autocomplete="new-password"></div><div><label>Repetir PIN</label><input type="password" inputmode="numeric" id="p2" maxlength="8" autocomplete="new-password"></div></div>
@@ -892,6 +922,11 @@ async function openSettings(){
     <div class="mut sm" id="st" style="margin-top:6px"></div></div>`,
   {onMount:sh=>{
     refreshGStat();
+    const fprev=async()=>{const f=await getFirmaImg();$('#fprev',sh).innerHTML=f?`<img src="${f.data}" alt="Firma" style="max-width:100%;max-height:110px">`:'<span class="mut sm">Sin firma cargada</span>';$('#fdel',sh).style.display=f?'':'none'};fprev();
+    $('#fload',sh).onclick=()=>$('#ffirma',sh).click();
+    $('#ffirma',sh).onchange=async e=>{const fl=e.target.files[0];e.target.value='';if(!fl)return;
+      try{const f=await processSignature(fl);await setSet('firmaImg',f);toast('Firma guardada en este dispositivo');fprev()}catch(err){toast(err.message,4000)}};
+    $('#fdel',sh).onclick=async()=>{if(confirm('¿Quitar la firma de este dispositivo?')){await setSet('firmaImg',null);toast('Firma quitada');fprev()}};
     const pst=async()=>{const on=!!(await getSet('pin',null));$('#pst',sh).innerHTML=on?'<span style="color:var(--ok)">● PIN activo en este dispositivo</span>':'○ Sin PIN';$('#pdel',sh).style.display=on?'':'none'};pst();
     $('#pset',sh).onclick=async()=>{const a=$('#p1',sh).value.trim(),b=$('#p2',sh).value.trim();
       if(!/^\d{4,8}$/.test(a))return toast('El PIN debe tener entre 4 y 8 dígitos');if(a!==b)return toast('Los PIN no coinciden');
@@ -949,19 +984,21 @@ function tabInforme(m){
    <label class="chk"><input type="checkbox" id="oF" checked>Incluir fotografías</label>
    <label class="chk"><input type="checkbox" id="oP">Incluir resumen de estados de pago</label>
    <label class="chk"><input type="checkbox" id="oD">Incluir listado de documentos del proyecto</label>
+   <label class="chk" id="oSl"><input type="checkbox" id="oS">Incluir firma manuscrita</label>
    <button class="btn block" id="go" style="margin-top:6px">Generar PDF</button>
    <div id="res" style="margin-top:12px"></div></div>
    <div class="mut sm">Firma: ${esc((S.firma||FIRMA_DEF).nombre)} — editable en Ajustes (⚙, pantalla de inicio).</div>`;
   const d=$('#d'),h=$('#h');
   $('#q1').onclick=()=>{d.value=h.value=v[v.length-1].n};$('#qa').onclick=()=>{d.value=v[0].n;h.value=v[v.length-1].n};
   $('#qa').click();
+  getFirmaImg().then(f=>{const c=$('#oS');if(!c)return;c.checked=!!f;c.disabled=!f;if(!f)$('#oSl').insertAdjacentHTML('beforeend',' <span class="mut sm">(cárgala en ⚙ Ajustes)</span>')});
   $('#go').onclick=async()=>{
     const a=+d.value,b=+h.value;if(a>b){toast('“Desde” no puede ser posterior a “Hasta”');return}
     const btn=$('#go');btn.disabled=true;btn.textContent='Generando…';
     try{
       const firma=await getSet('firma',FIRMA_DEF);
       const blob=await buildPdf({proj:S.proj,all:S.visits,sel:S.visits.filter(x=>x.n>=a&&x.n<=b),pagos:payRows(),docs:S.docs,firma,
-        ni:$('#ni').value.trim(),fi:$('#fi').value||todayISO(),cn:$('#cn').value.trim(),fotos:$('#oF').checked,incP:$('#oP').checked,incD:$('#oD').checked});
+        ni:$('#ni').value.trim(),fi:$('#fi').value||todayISO(),cn:$('#cn').value.trim(),fotos:$('#oF').checked,incP:$('#oP').checked,incD:$('#oD').checked,firmaImg:$('#oS').checked?await getFirmaImg():null});
       const name='Informe_FTO_'+slug(S.proj.nombre)+'_'+todayISO()+'.pdf';
       const file=new File([blob],name,{type:'application/pdf'});S.report={blob,file,name};
       $('#res').innerHTML=`<div class="mut sm" style="margin-bottom:8px">✔ ${esc(name)} · ${fsize(blob.size)}</div>
@@ -1104,7 +1141,10 @@ async function buildPdf(o){
   }
 
   /* firma */
-  need(40);y+=14;
+  const fi=o.firmaImg;
+  if(fi){let w=58,h=w*fi.h/fi.w;if(h>28){h=28;w=h*fi.w/fi.h}
+    need(h+22);y+=4;doc.addImage(fi.data,'PNG',ML+CW/2-w/2,y,w,h,undefined,'FAST');y+=h+3;}
+  else{need(40);y+=14;}
   const fx=ML+CW/2;
   font(10.5,true);doc.text(firma.nombre,fx,y,{align:'center'});y+=5;
   font(10.5,false);if(firma.cargo){doc.text(firma.cargo,fx,y,{align:'center'});y+=5}
